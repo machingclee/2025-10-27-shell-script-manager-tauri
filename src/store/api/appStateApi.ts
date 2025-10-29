@@ -3,7 +3,7 @@ import { baseApi } from './baseApi';
 
 export interface AppState {
   id: number;
-  lastOpenedFolderId: number | null;
+  last_opened_folder_id: number | null;
 }
 
 export const appStateApi = baseApi.injectEndpoints({
@@ -13,11 +13,13 @@ export const appStateApi = baseApi.injectEndpoints({
         command: 'get_app_state',
         args: {},
       }),
+      keepUnusedDataFor: 0,
       providesTags: ['AppState'],
-      onQueryStarted: async (_, { queryFulfilled,dispatch }) => {
+      onQueryStarted: async (_, { queryFulfilled, dispatch }) => {
         const { data } = await queryFulfilled;
-        if (data?.lastOpenedFolderId) {
-          dispatch(setSelectedFolderId(data.lastOpenedFolderId));
+        console.log('[appStateApi] getAppState data:', data);
+        if (data?.last_opened_folder_id) {
+          dispatch(setSelectedFolderId(data.last_opened_folder_id));
         }
       },
     }),

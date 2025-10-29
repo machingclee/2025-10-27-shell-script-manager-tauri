@@ -6,7 +6,7 @@
   filter: drop-shadow(0 0 2em #61dafb);
 }
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  /* Using system default font from tailwind.config.ts */
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;

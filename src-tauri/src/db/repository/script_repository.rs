@@ -15,10 +15,11 @@ impl ScriptRepository {
         &self,
         name: String,
         command: String,
+        ordering: i32,
     ) -> prisma_client_rust::Result<Data> {
         self.db
             .shell_script()
-            .create(name, command, 0, vec![])
+            .create(name, command, ordering, vec![])
             .exec()
             .await
     }
@@ -85,6 +86,23 @@ impl ScriptRepository {
                     ),
                 ]),
             ])
+            .order_by(crate::prisma::shell_script::ordering::order(
+                prisma_client_rust::Direction::Asc,
+            ))
+            .exec()
+            .await
+    }
+
+    pub async fn get_script_count_by_folder(&self, folder_id: i32) -> prisma_client_rust::Result<i64> {
+        self.db
+            .shell_script()
+            .count(vec![
+                crate::prisma::shell_script::rel_scriptsfolder_shellscript::some(vec![
+                    crate::prisma::rel_scriptsfolder_shellscript::scripts_folder_id::equals(
+                        folder_id,
+                    ),
+                ]),
+            ])
             .exec()
             .await
     }
@@ -122,7 +140,7 @@ impl ScriptRepository {
         Ok(folder_scripts)
     }
 
-    pub async fn delete_script(&self, script_id: i32) -> prisma_client_rust::Result<()> {
+    pub async fn delete_script(&self, script_id: i32, folder_id: i32) -> prisma_client_rust::Result<()> {
         // First delete the relationship record to avoid foreign key constraint error
         self.db
             .rel_scriptsfolder_shellscript()
@@ -138,6 +156,51 @@ impl ScriptRepository {
             .delete_many(vec![crate::prisma::shell_script::id::equals(script_id)])
             .exec()
             .await?;
+
+        // Reorder remaining scripts in the folder
+        let remaining_scripts = self.get_scripts_by_folder(folder_id).await?;
+        for (index, script) in remaining_scripts.iter().enumerate() {
+            self.db
+                .shell_script()
+                .update_many(
+                    vec![crate::prisma::shell_script::id::equals(script.id)],
+                    vec![crate::prisma::shell_script::ordering::set(index as i32)],
+                )
+                .exec()
+                .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn reorder_scripts(
+        &self,
+        folder_id: i32,
+        from_index: usize,
+        to_index: usize,
+    ) -> prisma_client_rust::Result<()> {
+        let mut scripts = self.get_scripts_by_folder(folder_id).await?;
+        
+        if from_index >= scripts.len() || to_index >= scripts.len() {
+            return Ok(());
+        }
+
+        // Reorder in memory
+        let script = scripts.remove(from_index);
+        scripts.insert(to_index, script);
+
+        // Update ordering in database
+        for (index, script) in scripts.iter().enumerate() {
+            self.db
+                .shell_script()
+                .update_many(
+                    vec![crate::prisma::shell_script::id::equals(script.id)],
+                    vec![crate::prisma::shell_script::ordering::set(index as i32)],
+                )
+                .exec()
+                .await?;
+        }
+
         Ok(())
     }
 }

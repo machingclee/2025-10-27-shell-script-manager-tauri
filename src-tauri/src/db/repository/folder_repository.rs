@@ -168,4 +168,16 @@ impl FolderRepository {
         }
         Ok(())
     }
+
+    pub async fn rename_folder(&self, id: i32, new_name: String) -> Result<(), QueryError> {
+        self.db
+            .scripts_folder()
+            .update_many(
+                vec![crate::prisma::scripts_folder::id::equals(id)],
+                vec![crate::prisma::scripts_folder::name::set(new_name)],
+            )
+            .exec()
+            .await?;
+        Ok(())
+    }
 }

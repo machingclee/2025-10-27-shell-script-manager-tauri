@@ -2,10 +2,12 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface FolderState {
   selectedFolderId: number | null;
+  isReorderingFolder: boolean;
 }
 
 const initialState: FolderState = {
-  selectedFolderId: null
+  selectedFolderId: null,
+  isReorderingFolder: false,
 };
 
 export const folderSlice = createSlice({
@@ -18,9 +20,12 @@ export const folderSlice = createSlice({
     clearSelectedFolderId: (state) => {
       state.selectedFolderId = null;
     },
+    setIsReorderingFolder: (state, action: PayloadAction<boolean>) => {
+      state.isReorderingFolder = action.payload;
+    },
   },
 });
 
-export const { setSelectedFolderId, clearSelectedFolderId } = folderSlice.actions;
+export const { setSelectedFolderId, clearSelectedFolderId, setIsReorderingFolder } = folderSlice.actions;
 
 export default folderSlice;

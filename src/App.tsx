@@ -1,7 +1,7 @@
 import "./App.css";
 import { useEffect } from "react";
 import FolderColumn from "./app-component/FolderColumn";
-import ScriptsColumn from "./app-component/ScriptsColumn";
+import ScriptsColumn from "./app-component/ScriptsColumn/ScriptsColumn";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -9,7 +9,8 @@ import {
 } from "./components/ui/resizable";
 import { appStateApi } from "./store/api/appStateApi";
 import { useAppDispatch } from "./store/hooks";
-import { setSelectedFolderId } from "./store/slices/folderSlice";
+import folderSlice from "./store/slices/folderSlice";
+
 
 
 function App() {
@@ -18,15 +19,15 @@ function App() {
 
   // Load the last opened folder on app start
   useEffect(() => {
-    if (appState?.lastOpenedFolderId) {
-      dispatch(setSelectedFolderId(appState.lastOpenedFolderId));
+    if (appState?.last_opened_folder_id) {
+      dispatch(folderSlice.actions.setSelectedFolderId(appState.last_opened_folder_id));
     }
   }, [appState, dispatch]);
 
   return (
-    <div className="h-screen w-screen">
+    <div className="h-screen w-screen bg-gray-100">
       <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+        <ResizablePanel defaultSize={25} minSize={25} maxSize={50}>
           <FolderColumn />
         </ResizablePanel>
         <ResizableHandle withHandle />

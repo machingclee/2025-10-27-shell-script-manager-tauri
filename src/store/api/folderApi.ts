@@ -25,7 +25,19 @@ export const folderApi = baseApi.injectEndpoints({
         command: 'create_folder',
         args: request,
       }),
-      invalidatesTags: ['Folder'],
+      async onQueryStarted(_request, { dispatch, queryFulfilled }) {
+        try {
+          const { data: newFolder } = await queryFulfilled;
+          // Optimistically add the new folder to the cache
+          dispatch(
+            folderApi.util.updateQueryData('getAllFolders', undefined, (draft) => {
+              draft.push(newFolder);
+            })
+          );
+        } catch {
+          // Error handling - the mutation will fail and show an error
+        }
+      },
     }),
 
     deleteFolder: builder.mutation<void, number>({
@@ -33,7 +45,72 @@ export const folderApi = baseApi.injectEndpoints({
         command: 'delete_folder',
         args: { id },
       }),
-      invalidatesTags: ['Folder'],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        // Optimistically update the cache
+        const patchResult = dispatch(
+          folderApi.util.updateQueryData('getAllFolders', undefined, (draft) => {
+            const index = draft.findIndex(f => f.id === id);
+            if (index !== -1) {
+              draft.splice(index, 1);
+            }
+          })
+        );
+        
+        try {
+          await queryFulfilled;
+        } catch {
+          // Rollback on error
+          patchResult.undo();
+        }
+      },
+    }),
+
+    renameFolder: builder.mutation<void, { id: number; newName: string }>({
+      query: ({ id, newName }) => ({
+        command: 'rename_folder',
+        args: { id, newName },
+      }),
+      async onQueryStarted({ id, newName }, { dispatch, queryFulfilled }) {
+        // Optimistically update the cache
+        const patchResult = dispatch(
+          folderApi.util.updateQueryData('getAllFolders', undefined, (draft) => {
+            const folder = draft.find(f => f.id === id);
+            if (folder) {
+              folder.name = newName;
+            }
+          })
+        );
+        
+        try {
+          await queryFulfilled;
+        } catch {
+          // Rollback on error
+          patchResult.undo();
+        }
+      },
+    }),
+
+    reorderFolders: builder.mutation<void, { fromIndex: number; toIndex: number }>({
+      query: ({ fromIndex, toIndex }) => ({
+        command: 'reorder_folders',
+        args: { fromIndex, toIndex },
+      }),
+      async onQueryStarted({ fromIndex, toIndex }, { dispatch, queryFulfilled }) {
+        // Optimistically update the cache
+        const patchResult = dispatch(
+          folderApi.util.updateQueryData('getAllFolders', undefined, (draft) => {
+            const [movedItem] = draft.splice(fromIndex, 1);
+            draft.splice(toIndex, 0, movedItem);
+          })
+        );
+        
+        try {
+          await queryFulfilled;
+        } catch {
+          // Rollback on error
+          patchResult.undo();
+        }
+      },
     }),
   }),
 });

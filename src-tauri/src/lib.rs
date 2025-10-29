@@ -40,6 +40,12 @@ pub struct CreateFolderRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct ReorderFoldersRequest {
+    pub from_index: usize,
+    pub to_index: usize,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct UpdateFolderRequest {
     pub id: i32,
     pub name: String,
@@ -78,14 +84,14 @@ async fn get_all_folders() -> Result<Vec<Folder>, String> {
 }
 
 #[tauri::command]
-async fn create_folder(request: CreateFolderRequest) -> Result<Folder, String> {
+async fn create_folder(name: String) -> Result<Folder, String> {
     let repo = FolderRepository::new();
-
+    
     // Get the count to determine the next ordering
     let count = repo.get_folder_count().await;
 
     let folder = repo
-        .create_script_folder(&request.name, count as i32)
+        .create_script_folder(&name, count as i32)
         .await
         .map_err(|e| format!("Failed to create folder: {}", e))?;
 
@@ -102,6 +108,24 @@ async fn delete_folder(id: i32) -> Result<(), String> {
     repo.delete_script_folder(id)
         .await
         .map_err(|e| format!("Failed to delete folder: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn rename_folder(id: i32, new_name: String) -> Result<(), String> {
+    let repo = FolderRepository::new();
+    repo.rename_folder(id, new_name)
+        .await
+        .map_err(|e| format!("Failed to rename folder: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn reorder_folders(from_index: usize, to_index: usize) -> Result<(), String> {
+    let repo = FolderRepository::new();
+    repo.reorder_folders(from_index, to_index)
+        .await
+        .map_err(|e| format!("Failed to reorder folders: {}", e))?;
     Ok(())
 }
 
@@ -129,16 +153,22 @@ async fn get_scripts_by_folder(folder_id: i32) -> Result<Vec<Script>, String> {
 }
 
 #[tauri::command]
-async fn create_script(request: CreateScriptRequest) -> Result<Script, String> {
+async fn create_script(name: String, content: String, folder_id: i32) -> Result<Script, String> {
     let repo = ScriptRepository::new();
 
+    // Get the count of scripts in the folder to determine the next ordering
+    let count = repo
+        .get_script_count_by_folder(folder_id)
+        .await
+        .map_err(|e| format!("Failed to get script count: {}", e))?;
+
     let script = repo
-        .create_script(request.name.clone(), request.content.clone())
+        .create_script(name.clone(), content.clone(), count as i32)
         .await
         .map_err(|e| format!("Failed to create script: {}", e))?;
 
     // Create the relationship between script and folder
-    repo.create_script_relationship(request.folder_id, script.id)
+    repo.create_script_relationship(folder_id, script.id)
         .await
         .map_err(|e| format!("Failed to create script relationship: {}", e))?;
 
@@ -150,34 +180,47 @@ async fn create_script(request: CreateScriptRequest) -> Result<Script, String> {
 }
 
 #[tauri::command]
-async fn update_script(request: UpdateScriptRequest) -> Result<Script, String> {
+async fn update_script(
+    id: i32,
+    name: Option<String>,
+    content: Option<String>,
+) -> Result<Script, String> {
     let repo = ScriptRepository::new();
 
-    if let Some(name) = request.name {
-        repo.update_script_name(request.id, name)
+    if let Some(name) = name {
+        repo.update_script_name(id, name)
             .await
             .map_err(|e| format!("Failed to update script name: {}", e))?;
     }
 
-    if let Some(content) = request.content {
-        repo.update_script_command(request.id, content)
+    if let Some(content) = content {
+        repo.update_script_command(id, content)
             .await
             .map_err(|e| format!("Failed to update script command: {}", e))?;
     }
 
     Ok(Script {
-        id: request.id,
+        id: id,
         name: String::new(),
         command: String::new(),
     })
 }
 
 #[tauri::command]
-async fn delete_script(id: i32) -> Result<(), String> {
+async fn delete_script(id: i32, folder_id: i32) -> Result<(), String> {
     let repo = ScriptRepository::new();
-    repo.delete_script(id)
+    repo.delete_script(id, folder_id)
         .await
         .map_err(|e| format!("Failed to delete script: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn reorder_scripts(folder_id: i32, from_index: usize, to_index: usize) -> Result<(), String> {
+    let repo = ScriptRepository::new();
+    repo.reorder_scripts(folder_id, from_index, to_index)
+        .await
+        .map_err(|e| format!("Failed to reorder scripts: {}", e))?;
     Ok(())
 }
 
@@ -213,10 +256,98 @@ async fn set_last_opened_folder(folder_id: i32) -> Result<AppState, String> {
 }
 
 #[tauri::command]
+async fn run_script(command: String) -> Result<(), String> {
+    run_terminal_command(command);
+    Ok(())
+}
+
+#[tauri::command]
 async fn custom_command(name: String) -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({
         "message": format!("Hello, {}! Welcome to Tauri + Redux Toolkit!", name)
     }))
+}
+
+pub fn run_terminal_command(command: String) {
+    let rt_handle = RT_HANDLE.get().expect("Runtime handle not initialized");
+    rt_handle.spawn(async move {
+        // Get the user's home directory
+        let home = std::env::var("HOME").unwrap_or_else(|_| {
+            dirs::home_dir()
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|| "/Users".to_string())
+        });
+
+        // Detect the user's shell from /etc/passwd or use zsh as default
+        let shell = std::env::var("SHELL").unwrap_or_else(|_| {
+            std::fs::read_to_string("/etc/passwd")
+                .ok()
+                .and_then(|content| {
+                    content.lines().find_map(|line| {
+                        if line.contains(&home) {
+                            line.split(':').last().map(|s| s.to_string())
+                        } else {
+                            None
+                        }
+                    })
+                })
+                .unwrap_or_else(|| "/bin/zsh".to_string())
+        });
+
+        #[cfg(debug_assertions)]
+        println!("Using shell: {} for command: {}", shell, command);
+
+        // Build the command that sources the shell config files before running
+        let wrapped_command = if shell.contains("zsh") {
+            format!(
+                "source ~/.zshrc 2>/dev/null; source ~/.zprofile 2>/dev/null; {}",
+                command
+            )
+        } else if shell.contains("bash") {
+            format!(
+                "source ~/.bash_profile 2>/dev/null; source ~/.bashrc 2>/dev/null; {}",
+                command
+            )
+        } else {
+            command.clone()
+        };
+
+        let output = tokio::process::Command::new(&shell)
+            .arg("-l") // Login shell
+            .arg("-c")
+            .arg(&wrapped_command)
+            .env("HOME", &home) // Ensure HOME is set
+            .env(
+                "USER",
+                std::env::var("USER").unwrap_or_else(|_| whoami::username()),
+            )
+            .output()
+            .await;
+
+        match output {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+
+                #[cfg(debug_assertions)]
+                {
+                    println!("Command executed: {}", command);
+                    if !stdout.is_empty() {
+                        println!("Output: {}", stdout);
+                    }
+                    if !stderr.is_empty() {
+                        eprintln!("Error: {}", stderr);
+                    }
+                }
+
+                // Show errors in both debug and release mode
+                if !output.status.success() && !stderr.is_empty() {
+                    eprintln!("Command '{}' failed: {}", command, stderr);
+                }
+            }
+            Err(e) => eprintln!("Failed to execute command '{}': {:?}", command, e),
+        }
+    });
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -228,12 +359,16 @@ pub fn run() {
             get_all_folders,
             create_folder,
             delete_folder,
+            rename_folder,
+            reorder_folders,
             get_scripts_by_folder,
             create_script,
             update_script,
             delete_script,
+            reorder_scripts,
             get_app_state,
             set_last_opened_folder,
+            run_script,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]
