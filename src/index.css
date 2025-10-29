@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --border: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+  }
+
+  .dark {
+    --border: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer utilities {
+  .bg-border {
+    background-color: hsl(var(--border));
+  }
+}

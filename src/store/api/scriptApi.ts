@@ -4,13 +4,12 @@ export interface Script {
   id: number;
   name: string;
   command: string;
-  execution_count: number;
 }
 
 export interface CreateScriptRequest {
   name: string;
   content: string;
-  folder_id: number;
+  folderId: number;
 }
 
 export interface UpdateScriptRequest {
@@ -24,7 +23,7 @@ export const scriptApi = baseApi.injectEndpoints({
     getScriptsByFolder: builder.query<Script[], number>({
       query: (folderId) => ({
         command: 'get_scripts_by_folder',
-        args: { folder_id: folderId },
+        args: { folderId },
       }),
       providesTags: (_result, _error, folderId) => [
         { type: 'Script', id: `FOLDER-${folderId}` },

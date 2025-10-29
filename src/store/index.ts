@@ -7,4 +7,5 @@ export { useAppDispatch, useAppSelector } from './hooks';
 export { baseApi } from './api/baseApi';
 export * from './api/folderApi';
 export * from './api/scriptApi';
+export * from './api/appStateApi';
 

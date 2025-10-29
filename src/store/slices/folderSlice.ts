@@ -1,33 +1,26 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-interface ExampleState {
-  value: number;
-  text: string;
+interface FolderState {
+  selectedFolderId: number | null;
 }
 
-const initialState: ExampleState = {
-  value: 0,
-  text: '',
+const initialState: FolderState = {
+  selectedFolderId: null
 };
 
 export const folderSlice = createSlice({
-  name: 'example',
+  name: 'folder',
   initialState,
   reducers: {
-    increment: (state) => {
-      state.value += 1;
+    setSelectedFolderId: (state, action: PayloadAction<number>) => {
+      state.selectedFolderId = action.payload;
     },
-    decrement: (state) => {
-      state.value -= 1;
-    },
-    incrementByAmount: (state, action: PayloadAction<number>) => {
-      state.value += action.payload;
-    },
-    setText: (state, action: PayloadAction<string>) => {
-      state.text = action.payload;
+    clearSelectedFolderId: (state) => {
+      state.selectedFolderId = null;
     },
   },
 });
 
-export default folderSlice;
+export const { setSelectedFolderId, clearSelectedFolderId } = folderSlice.actions;
 
+export default folderSlice;

@@ -4,7 +4,7 @@ import { baseApi } from './api/baseApi';
 
 export const store = configureStore({
   reducer: {
-    example: folderSlice.reducer,
+    folder: folderSlice.reducer,
     [baseApi.reducerPath]: baseApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>

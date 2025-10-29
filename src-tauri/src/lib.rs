@@ -4,6 +4,7 @@ mod db;
 mod handler_command;
 mod prisma;
 
+use crate::db::repository::app_state_repository::AppStateRepository;
 use crate::db::repository::folder_repository::FolderRepository;
 use crate::db::repository::script_repository::ScriptRepository;
 use crate::prisma::PrismaClient;
@@ -25,6 +26,12 @@ pub struct Script {
     pub id: i32,
     pub name: String,
     pub command: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AppState {
+    pub id: i32,
+    pub last_opened_folder_id: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -100,6 +107,11 @@ async fn delete_folder(id: i32) -> Result<(), String> {
 
 #[tauri::command]
 async fn get_scripts_by_folder(folder_id: i32) -> Result<Vec<Script>, String> {
+    // add some logging here
+    #[cfg(debug_assertions)]
+    {
+        println!("Getting scripts for folder id: {}", folder_id);
+    }
     let repo = ScriptRepository::new();
     let scripts = repo
         .get_scripts_by_folder(folder_id)
@@ -170,6 +182,37 @@ async fn delete_script(id: i32) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn get_app_state() -> Result<Option<AppState>, String> {
+    let repo = AppStateRepository::new();
+    let state = repo
+        .get_app_state()
+        .await
+        .map_err(|e| format!("Failed to get app state: {}", e))?;
+
+    Ok(state.map(|s| AppState {
+        id: s.id,
+        last_opened_folder_id: s.last_opened_folder_id,
+    }))
+}
+
+#[tauri::command]
+async fn set_last_opened_folder(folder_id: i32) -> Result<AppState, String> {
+    let repo = AppStateRepository::new();
+    let state = repo
+        .set_last_opened_folder(Some(folder_id)) // Wrap in Some when calling repository
+        .await
+        .map_err(|e| {
+            eprintln!("Error in set_last_opened_folder: {}", e);
+            format!("Failed to set last opened folder: {}", e)
+        })?;
+
+    Ok(AppState {
+        id: state.id,
+        last_opened_folder_id: state.last_opened_folder_id,
+    })
+}
+
+#[tauri::command]
 async fn custom_command(name: String) -> Result<serde_json::Value, String> {
     Ok(serde_json::json!({
         "message": format!("Hello, {}! Welcome to Tauri + Redux Toolkit!", name)
@@ -189,6 +232,8 @@ pub fn run() {
             create_script,
             update_script,
             delete_script,
+            get_app_state,
+            set_last_opened_folder,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]
