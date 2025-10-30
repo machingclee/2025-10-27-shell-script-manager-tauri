@@ -12,10 +12,11 @@ datasource db {
 }
 
 model application_state {
-  id                    Int    @id @default(autoincrement())
+  id                    Int     @id @default(autoincrement())
   last_opened_folder_id Int?
-  created_at            Float  @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
-  created_at_hk         String @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+  dark_mode             Boolean @default(false)
+  created_at            Float   @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+  created_at_hk         String  @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
 }
 
 model scripts_folder {

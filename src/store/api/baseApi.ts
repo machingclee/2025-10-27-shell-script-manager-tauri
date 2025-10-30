@@ -4,7 +4,7 @@ import { tauriBaseQuery } from './tauriBaseQuery';
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: tauriBaseQuery(),
-  tagTypes: ['Folder', 'Script', 'User', 'AppState'],
+  tagTypes: ['Folder', 'Script', 'User', 'AppState', 'DarkMode'],
   endpoints: (_builder) => ({ }),
 });
 

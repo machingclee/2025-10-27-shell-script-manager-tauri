@@ -4,6 +4,7 @@ import { baseApi } from './baseApi';
 export interface AppState {
   id: number;
   last_opened_folder_id: number | null;
+  dark_mode: boolean;
 }
 
 export const appStateApi = baseApi.injectEndpoints({
@@ -30,6 +31,22 @@ export const appStateApi = baseApi.injectEndpoints({
         args: { folderId }
       }),
       invalidatesTags: ['AppState'],
+    }),
+
+    getDarkMode: builder.query<boolean, void>({
+      query: () => ({
+        command: 'get_dark_mode',
+        args: {},
+      }),
+      providesTags: ['DarkMode'],
+    }),
+
+    setDarkMode: builder.mutation<boolean, boolean>({
+      query: (enabled) => ({
+        command: 'set_dark_mode',
+        args: { enabled }
+      }),
+      invalidatesTags: ['DarkMode', 'AppState'],
     }),
   }),
 });

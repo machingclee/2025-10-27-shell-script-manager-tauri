@@ -61,5 +61,41 @@ impl AppStateRepository {
             Ok(created)
         }
     }
+
+    pub async fn set_dark_mode(&self, enabled: bool) -> Result<crate::prisma::application_state::Data, Box<dyn std::error::Error>> {
+        let client = self.get_client();
+        
+        // Check if state exists
+        let existing = self.get_app_state().await?;
+        
+        if let Some(state) = existing {
+            // Update existing state
+            let updated = client
+                .application_state()
+                .update(
+                    crate::prisma::application_state::id::equals(state.id),
+                    vec![
+                        crate::prisma::application_state::dark_mode::set(enabled),
+                    ],
+                )
+                .exec()
+                .await?;
+            
+            Ok(updated)
+        } else {
+            // Create new state with dark mode
+            let created = client
+                .application_state()
+                .create(
+                    vec![
+                        crate::prisma::application_state::dark_mode::set(enabled),
+                    ],
+                )
+                .exec()
+                .await?;
+            
+            Ok(created)
+        }
+    }
 }
 

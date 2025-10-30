@@ -32,6 +32,7 @@ pub struct Script {
 pub struct AppState {
     pub id: i32,
     pub last_opened_folder_id: Option<i32>,
+    pub dark_mode: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -235,6 +236,7 @@ async fn get_app_state() -> Result<Option<AppState>, String> {
     Ok(state.map(|s| AppState {
         id: s.id,
         last_opened_folder_id: s.last_opened_folder_id,
+        dark_mode: s.dark_mode,
     }))
 }
 
@@ -252,7 +254,30 @@ async fn set_last_opened_folder(folder_id: i32) -> Result<AppState, String> {
     Ok(AppState {
         id: state.id,
         last_opened_folder_id: state.last_opened_folder_id,
+        dark_mode: state.dark_mode,
     })
+}
+
+#[tauri::command]
+async fn get_dark_mode() -> Result<bool, String> {
+    let repo = AppStateRepository::new();
+    let state = repo
+        .get_app_state()
+        .await
+        .map_err(|e| format!("Failed to get app state: {}", e))?;
+    
+    Ok(state.map(|s| s.dark_mode).unwrap_or(false))
+}
+
+#[tauri::command]
+async fn set_dark_mode(enabled: bool) -> Result<bool, String> {
+    let repo = AppStateRepository::new();
+    let state = repo
+        .set_dark_mode(enabled)
+        .await
+        .map_err(|e| format!("Failed to set dark mode: {}", e))?;
+    
+    Ok(state.dark_mode)
 }
 
 #[tauri::command]
@@ -352,6 +377,9 @@ pub fn run_terminal_command(command: String) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::{Emitter, Manager};
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -369,11 +397,40 @@ pub fn run() {
             get_app_state,
             set_last_opened_folder,
             run_script,
+            get_dark_mode,
+            set_dark_mode,
         ])
         .setup(|app| {
+            // Create the menu
+            let toggle_dark_mode = MenuItemBuilder::with_id("toggle_dark_mode", "Toggle Dark Mode")
+                .accelerator("Cmd+D")
+                .build(app)?;
+
+            // Create View submenu
+            let view_menu = tauri::menu::SubmenuBuilder::new(app, "View")
+                .item(&toggle_dark_mode)
+                .build()?;
+
+            let menu = MenuBuilder::new(app)
+                .item(&view_menu)
+                .build()?;
+
+            app.set_menu(menu)?;
+
+            // Handle menu events
+            app.on_menu_event(move |app, event| {
+                if event.id() == "toggle_dark_mode" {
+                    // Emit an event to the frontend to toggle dark mode
+                    if let Some(window) = app.get_webview_window("main") {
+                        window.emit("toggle-dark-mode", ()).unwrap_or_else(|e| {
+                            eprintln!("Failed to emit toggle-dark-mode event: {}", e);
+                        });
+                    }
+                }
+            });
+
             #[cfg(debug_assertions)]
             {
-                use tauri::Manager;
                 let windows = app.webview_windows();
                 if let Some(window) = windows.values().next() {
                     window.open_devtools();

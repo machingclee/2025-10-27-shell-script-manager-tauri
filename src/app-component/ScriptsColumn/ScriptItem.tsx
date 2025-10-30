@@ -79,8 +79,8 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
     return (
         <div
             className={`px-3 py-2 rounded-md border transition-colors cursor-pointer ${isSelected
-                ? 'bg-gray-200 border-gray-400'
-                : 'bg-white border-gray-200 hover:bg-gray-50'
+                ? 'bg-gray-200 border-gray-400 dark:bg-gray-600 dark:border-gray-500'
+                : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700'
                 }`}
             onMouseDown={() => setIsSelected(true)}
             onMouseUp={() => setIsSelected(false)}
@@ -98,12 +98,12 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                     <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
                         <Button
                             variant="destructive"
-                            className="!shadow-none transition-transform duration-150 hover:bg-red-700"
+                            className="!shadow-none transition-transform duration-150 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
                             onClick={handleDeleteClick}
                         >
                             <Trash className="w-4 h-4" /> Delete
                         </Button>
-                        <AlertDialogContent className="bg-white text-black">
+                        <AlertDialogContent className="bg-white text-black dark:bg-gray-800 dark:text-white dark:border-gray-700">
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Script?</AlertDialogTitle>
                                 <AlertDialogDescription>
@@ -118,13 +118,13 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                     </AlertDialog>
                     <Button
                         variant="ghost"
-                        className="bg-gray-100 p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300"
+                        className="bg-gray-100 p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                         onClick={handleEditClick}
                     >
                         <Edit className="w-4 h-4" /> Edit
                     </Button>
                     <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                        <DialogContent className="bg-white text-black">
+                        <DialogContent className="bg-white text-black dark:bg-gray-800 dark:text-white dark:border-gray-700">
                             <DialogHeader>
                                 <DialogTitle>Edit Script</DialogTitle>
                                 <DialogDescription>
@@ -165,14 +165,14 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                     </Dialog>
                     <Button
                         variant="ghost"
-                        className="bg-gray-100 p-0 border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300"
+                        className="bg-gray-100 p-0 border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
                         onClick={handleExecuteClick}
                     >
                         <Play className="w-4 h-4" /> Execute
                     </Button>
                 </div>
             </div>
-            <div className="text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md">{script.command}</div>
+            <div className="text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-gray-300 dark:bg-gray-700">{script.command}</div>
         </div>
     );
 }
