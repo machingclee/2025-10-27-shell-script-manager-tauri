@@ -111,6 +111,7 @@ const SortableFolderItem = React.memo(function SortableFolderItem({ folder, isSe
                 style={style}
                 {...attributes}
                 className="w-full flex-shrink-0"
+                onClick={onClick}
             >
                 <ContextMenu>
                     <ContextMenuTrigger asChild>
@@ -118,7 +119,7 @@ const SortableFolderItem = React.memo(function SortableFolderItem({ folder, isSe
                             className={cn(
                                 "flex items-center gap-2 px-3 py-2 rounded-md transition-colors w-full flex-shrink-0",
                                 "hover:bg-gray-100 active:bg-gray-200",
-                                isSelected && "bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800"
+                                isSelected && "bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800"
                             )}
                         >
                             <div
@@ -126,13 +127,13 @@ const SortableFolderItem = React.memo(function SortableFolderItem({ folder, isSe
                                 {...listeners}
                                 className={cn(
                                     "cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 flex-shrink-0",
-                                    isSelected && "hover:bg-blue-800"
+                                    isSelected && "hover:bg-gray-800"
                                 )}
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <GripVertical className="w-4 h-4" />
                             </div>
-                            <div onClick={onClick} className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis">
+                            <div className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis">
                                 {folder.name}
                             </div>
                         </div>
@@ -301,9 +302,9 @@ export default function FolderColumn() {
                     <div className="font-medium">Script Folders</div>
                 </div>
                 <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="mr-4"
+                    className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 mr-4"
                     onClick={() => setIsCreateDialogOpen(true)}
                 >
                     <Plus className="w-4 h-4 mr-1" />

@@ -28,13 +28,13 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from 'react';
 import { Script } from '@/store/api/scriptApi';
+import { folderApi } from '@/store';
 
 interface SortableScriptItemProps {
     script: Script;
@@ -97,6 +97,11 @@ const SortableScriptItem = React.memo(function SortableScriptItem({ script, fold
 
 export default function ScriptsColumn() {
     const selectedFolderId = useAppSelector(s => s.folder.selectedFolderId);
+    const { data: selectedFolder } = folderApi.endpoints.getAllFolders.useQueryState(undefined, {
+        selectFromResult: (result) => ({
+            data: result.data?.find(f => f.id === selectedFolderId)
+        })
+    })
     const { data: scripts, isLoading } = scriptApi.endpoints.getScriptsByFolder.useQuery(selectedFolderId ?? 0);
     const [createScript] = scriptApi.endpoints.createScript.useMutation();
     const [reorderScripts] = scriptApi.endpoints.reorderScripts.useMutation();
@@ -140,20 +145,29 @@ export default function ScriptsColumn() {
     };
 
     const scriptIds = React.useMemo(() => scripts?.map(s => s.id) || [], [scripts]);
+    const displayName = () => {
+        if (selectedFolder) {
+            return <div>Scripts in  <span className='font-bold text-[18px]' >{selectedFolder.name}</span></div>;
+        }
+        return <Label>Scripts</Label>;
+    }
 
     return (
         <div className="flex flex-col h-full">
             <div className='flex items-center justify-between'>
                 <div className="flex items-center gap-2 p-4">
                     <ScrollText />
-                    <div className="font-medium">Scripts</div>
+                    <div className="font-medium">{displayName()}</div>
                 </div>
+                <Button
+                    variant="ghost"
+                    className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 mr-4"
+                    disabled={!selectedFolderId}
+                    onClick={() => setIsCreateOpen(true)}
+                >
+                    <Plus className="w-4 h-4" /> Add Script
+                </Button>
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" className="mr-4" disabled={!selectedFolderId}>
-                            <Plus className="w-4 h-4" /> Add Script
-                        </Button>
-                    </DialogTrigger>
                     <DialogContent className="bg-white text-black">
                         <DialogHeader>
                             <DialogTitle>Create New Script</DialogTitle>

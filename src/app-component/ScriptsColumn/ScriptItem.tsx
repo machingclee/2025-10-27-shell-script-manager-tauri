@@ -10,7 +10,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
     Dialog,
@@ -19,7 +18,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,8 +30,10 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
     const [updateScript] = scriptApi.endpoints.updateScript.useMutation();
 
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [editName, setEditName] = useState(script.name);
     const [editCommand, setEditCommand] = useState(script.command);
+    const [isSelected, setIsSelected] = useState(false);
 
     // Reset form when dialog opens
     useEffect(() => {
@@ -43,12 +43,28 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
         }
     }, [isEditOpen, script.name, script.command]);
 
-    const handleRun = () => {
+    const handleRun = (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         runScript(script.command);
     };
 
     const handleDelete = () => {
         deleteScript({ id: script.id, folderId });
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsDeleteOpen(true);
+    };
+
+    const handleEditClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsEditOpen(true);
+    };
+
+    const handleExecuteClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        handleRun(e);
     };
 
     const handleUpdate = async () => {
@@ -62,18 +78,31 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
 
     return (
         <div
-            className="px-3 py-2 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors bg-white cursor-pointer"
-            onDoubleClick={handleRun}
+            className={`px-3 py-2 rounded-md border transition-colors cursor-pointer ${isSelected
+                ? 'bg-gray-200 border-gray-400'
+                : 'bg-white border-gray-200 hover:bg-gray-50'
+                }`}
+            onMouseDown={() => setIsSelected(true)}
+            onMouseUp={() => setIsSelected(false)}
+            onMouseLeave={() => setIsSelected(false)}
+            onDoubleClick={(e) => handleRun(e)}
         >
             <div className="flex items-center gap-2 justify-between mb-4">
                 <div className="font-bold text-lg">{script.name}</div>
-                <div className="flex items-center gap-2">
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="!shadow-none">
-                                <Trash className="w-4 h-4" /> Delete
-                            </Button>
-                        </AlertDialogTrigger>
+                <div
+                    className="flex items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onMouseUp={(e) => e.stopPropagation()}
+                >
+                    <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                        <Button
+                            variant="destructive"
+                            className="!shadow-none transition-transform duration-150 hover:bg-red-700"
+                            onClick={handleDeleteClick}
+                        >
+                            <Trash className="w-4 h-4" /> Delete
+                        </Button>
                         <AlertDialogContent className="bg-white text-black">
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Script?</AlertDialogTitle>
@@ -87,12 +116,14 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
+                    <Button
+                        variant="ghost"
+                        className="bg-gray-100 p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300"
+                        onClick={handleEditClick}
+                    >
+                        <Edit className="w-4 h-4" /> Edit
+                    </Button>
                     <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="ghost" className="bg-gray-100 p-1 rounded-md border-0 !shadow-none">
-                                <Edit className="w-4 h-4" /> Edit
-                            </Button>
-                        </DialogTrigger>
                         <DialogContent className="bg-white text-black">
                             <DialogHeader>
                                 <DialogTitle>Edit Script</DialogTitle>
@@ -134,8 +165,8 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                     </Dialog>
                     <Button
                         variant="ghost"
-                        className="bg-gray-100 p-0 border-0 !shadow-none"
-                        onClick={handleRun}
+                        className="bg-gray-100 p-0 border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300"
+                        onClick={handleExecuteClick}
                     >
                         <Play className="w-4 h-4" /> Execute
                     </Button>
