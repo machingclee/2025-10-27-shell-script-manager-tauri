@@ -27,25 +27,25 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 0 0% 7%;           /* Pure black-gray #121212 */
+    --foreground: 0 0% 98%;          /* Pure white #FAFAFA */
+    --card: 0 0% 10%;                /* Dark gray card #1A1A1A */
+    --card-foreground: 0 0% 98%;     /* Pure white text */
+    --popover: 0 0% 10%;             /* Dark gray popover */
+    --popover-foreground: 0 0% 98%;  /* Pure white text */
+    --primary: 0 0% 98%;             /* Pure white */
+    --primary-foreground: 0 0% 10%;  /* Dark gray */
+    --secondary: 0 0% 15%;           /* Medium dark gray #262626 */
+    --secondary-foreground: 0 0% 98%; /* Pure white */
+    --muted: 0 0% 15%;               /* Medium dark gray */
+    --muted-foreground: 0 0% 65%;    /* Medium gray text #A6A6A6 */
+    --accent: 0 0% 18%;              /* Slightly lighter gray #2E2E2E */
+    --accent-foreground: 0 0% 98%;   /* Pure white */
+    --destructive: 0 62.8% 30.6%;    /* Keep red for destructive actions */
+    --destructive-foreground: 0 0% 98%; /* Pure white */
+    --border: 0 0% 20%;              /* Border gray #333333 */
+    --input: 0 0% 20%;               /* Input border gray */
+    --ring: 0 0% 83.9%;              /* Focus ring light gray */
   }
 }
 

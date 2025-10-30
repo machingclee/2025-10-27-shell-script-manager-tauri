@@ -56,7 +56,7 @@ function App() {
   }, [darkMode, setDarkMode]);
 
   return (
-    <div className="h-screen w-screen bg-gray-100 dark:bg-gray-900">
+    <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-900">
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel defaultSize={25} minSize={25} maxSize={50}>
           <FolderColumn />

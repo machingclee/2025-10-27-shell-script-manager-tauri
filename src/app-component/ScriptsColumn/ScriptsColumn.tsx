@@ -77,7 +77,7 @@ const SortableScriptItem = React.memo(function SortableScriptItem({ script, fold
             <div
                 ref={setActivatorNodeRef}
                 {...listeners}
-                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-gray-700"
+                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-neutral-700"
                 onClick={(e) => e.stopPropagation()}
             >
                 <GripVertical className="w-4 h-4" />
@@ -161,14 +161,14 @@ export default function ScriptsColumn() {
                 </div>
                 <Button
                     variant="ghost"
-                    className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 mr-4 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                    className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 mr-4 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
                     disabled={!selectedFolderId}
                     onClick={() => setIsCreateOpen(true)}
                 >
                     <Plus className="w-4 h-4" /> Add Script
                 </Button>
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                    <DialogContent className="bg-white text-black dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                    <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
                         <DialogHeader>
                             <DialogTitle>Create New Script</DialogTitle>
                             <DialogDescription>
@@ -208,7 +208,7 @@ export default function ScriptsColumn() {
                     </DialogContent>
                 </Dialog>
             </div>
-            <div className="h-px bg-gray-400 dark:bg-gray-600" />
+            <div className="h-px bg-gray-400 dark:bg-neutral-600" />
             <div className="space-y-2 p-4 overflow-y-auto flex-1">
                 {isLoading && <div>Loading...</div>}
                 {scripts && scripts.length > 0 && selectedFolderId && (

@@ -118,16 +118,16 @@ const SortableFolderItem = React.memo(function SortableFolderItem({ folder, isSe
                         <div
                             className={cn(
                                 "flex items-center gap-2 px-3 py-2 rounded-md transition-colors w-full flex-shrink-0",
-                                "hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-gray-700 dark:active:bg-gray-600",
-                                isSelected && "bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800 dark:bg-gray-500 dark:hover:bg-gray-600 dark:active:bg-gray-700"
+                                "hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-600",
+                                isSelected && "bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800 dark:bg-neutral-500 dark:hover:bg-neutral-600 dark:active:bg-neutral-700"
                             )}
                         >
                             <div
                                 ref={setActivatorNodeRef}
                                 {...listeners}
                                 className={cn(
-                                    "cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-gray-600",
-                                    isSelected && "hover:bg-gray-800 dark:hover:bg-gray-700"
+                                    "cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-neutral-600",
+                                    isSelected && "hover:bg-gray-800 dark:hover:bg-neutral-700"
                                 )}
                                 onClick={(e) => e.stopPropagation()}
                             >
@@ -138,8 +138,8 @@ const SortableFolderItem = React.memo(function SortableFolderItem({ folder, isSe
                             </div>
                         </div>
                     </ContextMenuTrigger>
-                    <ContextMenuContent className="bg-white dark:bg-gray-800 dark:border-gray-700">
-                        <ContextMenuItem className="dark:hover:bg-gray-700 dark:focus:bg-gray-700" onClick={() => {
+                    <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:border-neutral-700">
+                        <ContextMenuItem className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" onClick={() => {
                             setNewName(folder.name);
                             setIsRenameOpen(true);
                         }}>
@@ -148,7 +148,7 @@ const SortableFolderItem = React.memo(function SortableFolderItem({ folder, isSe
                         </ContextMenuItem>
                         <ContextMenuItem
                             onClick={() => setIsDeleteOpen(true)}
-                            className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 dark:hover:bg-gray-700 dark:focus:bg-gray-700"
+                            className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                         >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
@@ -159,7 +159,7 @@ const SortableFolderItem = React.memo(function SortableFolderItem({ folder, isSe
 
             {/* Rename Dialog */}
             <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-                <DialogContent className="bg-white text-black dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
                     <DialogHeader>
                         <DialogTitle>Rename Folder</DialogTitle>
                         <DialogDescription>
@@ -190,7 +190,7 @@ const SortableFolderItem = React.memo(function SortableFolderItem({ folder, isSe
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                <AlertDialogContent className="bg-white text-black dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                <AlertDialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Folder?</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -304,14 +304,14 @@ export default function FolderColumn() {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 mr-4 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                    className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 mr-4 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
                     onClick={() => setIsCreateDialogOpen(true)}
                 >
                     <Plus className="w-4 h-4 mr-1" />
                     New Folder
                 </Button>
             </div>
-            <div className="h-px bg-gray-400 dark:bg-gray-600" />
+            <div className="h-px bg-gray-400 dark:bg-neutral-600" />
             <div className="space-y-1 p-4 overflow-y-auto flex-1">
                 {isLoading && <div>Loading...</div>}
                 {!isLoading && folders.length > 0 && (
@@ -344,7 +344,7 @@ export default function FolderColumn() {
 
             {/* Create Folder Dialog */}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogContent className="bg-white dark:bg-gray-800 dark:text-white dark:border-gray-700">
+                <DialogContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
                     <DialogHeader>
                         <DialogTitle>Create New Folder</DialogTitle>
                         <DialogDescription>
