@@ -1,6 +1,8 @@
 import "./App.css";
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import FolderColumn from "./app-component/FolderColumn";
 import ScriptsColumn from "./app-component/ScriptsColumn/ScriptsColumn";
 import {
@@ -27,26 +29,34 @@ function App() {
     }
   }, [appState, dispatch]);
 
-  // Apply dark mode class to document
+  // Apply dark mode class to document and update title bar
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    const applyDarkMode = async () => {
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+        await invoke('set_title_bar_color', { isDark: true });
+      } else {
+        document.documentElement.classList.remove('dark');
+        await invoke('set_title_bar_color', { isDark: false });
+      }
+    };
+
+    applyDarkMode();
   }, [darkMode]);
 
   // Listen for toggle dark mode event from menu
   useEffect(() => {
-    const unlisten = listen('toggle-dark-mode', () => {
+    const unlisten = listen('toggle-dark-mode', async () => {
       const newDarkMode = !darkMode;
       setDarkMode(newDarkMode);
 
       // Apply immediately for better UX
       if (newDarkMode) {
         document.documentElement.classList.add('dark');
+        await invoke('set_title_bar_color', { isDark: true });
       } else {
         document.documentElement.classList.remove('dark');
+        await invoke('set_title_bar_color', { isDark: false });
       }
     });
 
@@ -55,17 +65,37 @@ function App() {
     };
   }, [darkMode, setDarkMode]);
 
+  const handleDragStart = (e: React.MouseEvent) => {
+    // Only trigger on left click
+    if (e.button !== 0) return;
+
+    const window = getCurrentWindow();
+    window.startDragging().catch(err => {
+      console.error('Failed to start dragging:', err);
+    });
+  };
+
   return (
-    <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-900">
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={25} minSize={25} maxSize={50}>
-          <FolderColumn />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={70}>
-          <ScriptsColumn />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+    <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-900 flex flex-col">
+      {/* Draggable title bar area */}
+      <div
+        className="h-10 flex-shrink-0 bg-transparent select-none cursor-move"
+        onMouseDown={handleDragStart}
+        onDoubleClick={(e) => e.preventDefault()}
+      />
+
+      {/* Main content */}
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal">
+          <ResizablePanel defaultSize={25} minSize={25} maxSize={50}>
+            <FolderColumn />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={70}>
+            <ScriptsColumn />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
     </div>
   )
 }
