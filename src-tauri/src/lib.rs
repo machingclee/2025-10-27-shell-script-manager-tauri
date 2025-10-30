@@ -91,7 +91,7 @@ async fn get_all_folders() -> Result<Vec<Folder>, String> {
 #[tauri::command]
 async fn create_folder(name: String) -> Result<Folder, String> {
     let repo = FolderRepository::new();
-    
+
     // Get the count to determine the next ordering
     let count = repo.get_folder_count().await;
 
@@ -269,7 +269,7 @@ async fn get_dark_mode() -> Result<bool, String> {
         .get_app_state()
         .await
         .map_err(|e| format!("Failed to get app state: {}", e))?;
-    
+
     Ok(state.map(|s| s.dark_mode).unwrap_or(false))
 }
 
@@ -280,7 +280,7 @@ async fn set_dark_mode(enabled: bool) -> Result<bool, String> {
         .set_dark_mode(enabled)
         .await
         .map_err(|e| format!("Failed to set dark mode: {}", e))?;
-    
+
     Ok(state.dark_mode)
 }
 
@@ -291,39 +291,42 @@ async fn set_title_bar_color(window: tauri::Window, is_dark: bool) -> Result<(),
         use cocoa::appkit::{NSColor, NSWindow};
         use cocoa::base::{id, nil};
         use tauri::Manager;
-        
+
         unsafe {
-            let ns_window = window.ns_window().map_err(|e| format!("Failed to get NSWindow: {}", e))? as id;
-            
+            let ns_window = window
+                .ns_window()
+                .map_err(|e| format!("Failed to get NSWindow: {}", e))?
+                as id;
+
             if is_dark {
                 // Dark mode - neutral-900 background (#171717)
                 let color = NSColor::colorWithRed_green_blue_alpha_(
                     nil,
-                    23.0/255.0,   // R
-                    23.0/255.0,   // G
-                    23.0/255.0,   // B
-                    1.0           // Alpha
+                    23.0 / 255.0, // R
+                    23.0 / 255.0, // G
+                    23.0 / 255.0, // B
+                    1.0,          // Alpha
                 );
                 ns_window.setBackgroundColor_(color);
             } else {
                 // Light mode - neutral-100 background (#f5f5f5)
                 let color = NSColor::colorWithRed_green_blue_alpha_(
                     nil,
-                    245.0/255.0,  // R
-                    245.0/255.0,  // G
-                    245.0/255.0,  // B
-                    1.0           // Alpha
+                    245.0 / 255.0, // R
+                    245.0 / 255.0, // G
+                    245.0 / 255.0, // B
+                    1.0,           // Alpha
                 );
                 ns_window.setBackgroundColor_(color);
             }
         }
     }
-    
+
     #[cfg(not(target_os = "macos"))]
     {
         let _ = (window, is_dark);
     }
-    
+
     Ok(())
 }
 
@@ -452,30 +455,36 @@ pub fn run() {
             // Setup window appearance for macOS
             #[cfg(target_os = "macos")]
             {
-                use cocoa::appkit::{NSWindow, NSWindowTitleVisibility, NSColor, NSWindowStyleMask, NSWindowButton};
-                use cocoa::base::{id, nil, YES, NO};
+                use cocoa::appkit::{
+                    NSColor, NSWindow, NSWindowButton, NSWindowStyleMask, NSWindowTitleVisibility,
+                };
+                use cocoa::base::{id, nil, NO, YES};
                 use cocoa::foundation::NSRect;
-                
+
                 if let Some(window) = app.get_webview_window("main") {
                     unsafe {
                         if let Ok(ns_window) = window.ns_window() {
                             let ns_window = ns_window as id;
-                            
+
                             // Make title bar transparent and blended
                             ns_window.setTitlebarAppearsTransparent_(YES);
-                            ns_window.setTitleVisibility_(NSWindowTitleVisibility::NSWindowTitleHidden);
-                            
+                            ns_window
+                                .setTitleVisibility_(NSWindowTitleVisibility::NSWindowTitleHidden);
+
                             // Enable full size content view (allows content to go under title bar)
                             let mut style_mask = ns_window.styleMask();
                             style_mask |= NSWindowStyleMask::NSFullSizeContentViewWindowMask;
                             ns_window.setStyleMask_(style_mask);
-                            
+
                             // Adjust traffic light button positions
                             // Get the buttons
-                            let close_button = ns_window.standardWindowButton_(NSWindowButton::NSWindowCloseButton);
-                            let miniaturize_button = ns_window.standardWindowButton_(NSWindowButton::NSWindowMiniaturizeButton);
-                            let zoom_button = ns_window.standardWindowButton_(NSWindowButton::NSWindowZoomButton);
-                            
+                            let close_button = ns_window
+                                .standardWindowButton_(NSWindowButton::NSWindowCloseButton);
+                            let miniaturize_button = ns_window
+                                .standardWindowButton_(NSWindowButton::NSWindowMiniaturizeButton);
+                            let zoom_button =
+                                ns_window.standardWindowButton_(NSWindowButton::NSWindowZoomButton);
+
                             if close_button != nil {
                                 // Adjust button positions
                                 let mut frame: NSRect = msg_send![close_button, frame];
@@ -483,34 +492,34 @@ pub fn run() {
                                 frame.origin.y = -5.0; // Vertical position from top
                                 let _: () = msg_send![close_button, setFrame: frame];
                             }
-                            
+
                             if miniaturize_button != nil {
                                 let mut frame: NSRect = msg_send![miniaturize_button, frame];
                                 frame.origin.x = frame.origin.x + 10.0; // Move right by 10px
                                 frame.origin.y = -5.0;
                                 let _: () = msg_send![miniaturize_button, setFrame: frame];
                             }
-                            
+
                             if zoom_button != nil {
                                 let mut frame: NSRect = msg_send![zoom_button, frame];
                                 frame.origin.x = frame.origin.x + 10.0; // Move right by 10px
                                 frame.origin.y = -5.0;
                                 let _: () = msg_send![zoom_button, setFrame: frame];
                             }
-                            
+
                             // Hide window shadow for cleaner look
                             ns_window.setHasShadow_(YES);
-                            
+
                             // Make window background transparent/opaque based on content
                             ns_window.setOpaque_(NO);
-                            
+
                             // Set initial color (light mode)
                             let color = NSColor::colorWithRed_green_blue_alpha_(
                                 nil,
-                                245.0/255.0,
-                                245.0/255.0,
-                                245.0/255.0,
-                                1.0
+                                245.0 / 255.0,
+                                245.0 / 255.0,
+                                245.0 / 255.0,
+                                1.0,
                             );
                             ns_window.setBackgroundColor_(color);
                         }
@@ -518,19 +527,20 @@ pub fn run() {
                 }
             }
 
-            // Create the menu
             let toggle_dark_mode = MenuItemBuilder::with_id("toggle_dark_mode", "Toggle Dark Mode")
                 .accelerator("Cmd+D")
                 .build(app)?;
 
-            // Create View submenu
+            let quit = MenuItemBuilder::with_id("quit", "Quit")
+                .accelerator("Cmd+Q")
+                .build(app)?;
+
             let view_menu = tauri::menu::SubmenuBuilder::new(app, "View")
                 .item(&toggle_dark_mode)
+                .item(&quit)
                 .build()?;
 
-            let menu = MenuBuilder::new(app)
-                .item(&view_menu)
-                .build()?;
+            let menu = MenuBuilder::new(app).item(&view_menu).build()?;
 
             app.set_menu(menu)?;
 
@@ -543,6 +553,10 @@ pub fn run() {
                             eprintln!("Failed to emit toggle-dark-mode event: {}", e);
                         });
                     }
+                }
+
+                if event.id() == "quit" {
+                    app.exit(0);
                 }
             });
 
