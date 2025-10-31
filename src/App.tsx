@@ -79,7 +79,7 @@ function App() {
     <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-800 flex flex-col">
       {/* Draggable title bar area */}
       <div
-        className="h-10 flex-shrink-0 bg-transparent select-none cursor-move"
+        className="h-10 flex-shrink-0 bg-transparent select-none"
         onMouseDown={handleDragStart}
         onDoubleClick={(e) => e.preventDefault()}
       />

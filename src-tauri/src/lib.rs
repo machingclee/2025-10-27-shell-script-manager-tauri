@@ -527,6 +527,32 @@ pub fn run() {
                 }
             }
 
+            // Edit menu with standard shortcuts
+            use tauri::menu::PredefinedMenuItem;
+
+            let undo = PredefinedMenuItem::undo(app, None)?;
+            let cut = PredefinedMenuItem::cut(app, None)?;
+            let copy = PredefinedMenuItem::copy(app, None)?;
+            let paste = PredefinedMenuItem::paste(app, None)?;
+            let select_all = PredefinedMenuItem::select_all(app, None)?;
+
+            // Custom redo with Cmd+Y
+            let redo = MenuItemBuilder::with_id("redo", "Redo")
+                .accelerator("Cmd+Y")
+                .build(app)?;
+
+            let edit_menu = tauri::menu::SubmenuBuilder::new(app, "Edit")
+                .item(&undo)
+                .item(&redo)
+                .separator()
+                .item(&cut)
+                .item(&copy)
+                .item(&paste)
+                .separator()
+                .item(&select_all)
+                .build()?;
+
+            // View menu
             let toggle_dark_mode = MenuItemBuilder::with_id("toggle_dark_mode", "Toggle Dark Mode")
                 .accelerator("Cmd+D")
                 .build(app)?;
@@ -540,12 +566,22 @@ pub fn run() {
                 .item(&quit)
                 .build()?;
 
-            let menu = MenuBuilder::new(app).item(&view_menu).build()?;
+            let menu = MenuBuilder::new(app)
+                .item(&edit_menu)
+                .item(&view_menu)
+                .build()?;
 
             app.set_menu(menu)?;
 
             // Handle menu events
             app.on_menu_event(move |app, event| {
+                if event.id() == "redo" {
+                    // Execute redo command in the webview
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.eval("document.execCommand('redo')");
+                    }
+                }
+
                 if event.id() == "toggle_dark_mode" {
                     // Emit an event to the frontend to toggle dark mode
                     if let Some(window) = app.get_webview_window("main") {
