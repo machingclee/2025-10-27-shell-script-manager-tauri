@@ -79,8 +79,8 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
     return (
         <div
             className={`px-3 py-2 rounded-md border transition-colors cursor-pointer ${isSelected
-                ? 'bg-gray-200 border-gray-400 dark:bg-neutral-600 dark:border-neutral-500'
-                : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-neutral-800 dark:border-neutral-700 dark:hover:bg-neutral-700'
+                ? 'bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500'
+                : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]'
                 }`}
             onMouseDown={() => setIsSelected(true)}
             onMouseUp={() => setIsSelected(false)}
@@ -135,6 +135,7 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                                 <div className="grid gap-2">
                                     <Label htmlFor="edit-name">Name</Label>
                                     <Input
+                                        className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
                                         id="edit-name"
                                         value={editName}
                                         onChange={(e) => setEditName(e.target.value)}
@@ -149,7 +150,7 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                                         onChange={(e) => setEditCommand(e.target.value)}
                                         placeholder="Command to execute"
                                         rows={4}
-                                        className="font-mono text-sm"
+                                        className="font-mono text-sm  bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
                                     />
                                 </div>
                             </div>
@@ -172,7 +173,7 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                     </Button>
                 </div>
             </div>
-            <div className="text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-neutral-700">{script.command}</div>
+            <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)]">{script.command}</div>
         </div>
     );
 }

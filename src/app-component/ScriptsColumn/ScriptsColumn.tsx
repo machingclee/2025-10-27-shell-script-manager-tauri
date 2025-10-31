@@ -179,6 +179,7 @@ export default function ScriptsColumn() {
                             <div className="grid gap-2">
                                 <Label htmlFor="new-name">Name</Label>
                                 <Input
+                                    className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
                                     id="new-name"
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
@@ -193,7 +194,7 @@ export default function ScriptsColumn() {
                                     onChange={(e) => setNewCommand(e.target.value)}
                                     placeholder="Command to execute"
                                     rows={4}
-                                    className="font-mono text-sm"
+                                    className="font-mono text-sm  bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
                                 />
                             </div>
                         </div>
@@ -221,7 +222,7 @@ export default function ScriptsColumn() {
                             items={scriptIds}
                             strategy={verticalListSortingStrategy}
                         >
-                            <div className="space-y-2">
+                            <div className="space-y-4">
                                 {scripts.map((script) => (
                                     <SortableScriptItem
                                         key={script.id}

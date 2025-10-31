@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import FolderColumn from "./app-component/FolderColumn";
+import FolderColumn from "./app-component/FolderColumn/FolderColumn";
 import ScriptsColumn from "./app-component/ScriptsColumn/ScriptsColumn";
 import {
   ResizablePanelGroup,
@@ -76,7 +76,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-900 flex flex-col">
+    <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-800 flex flex-col">
       {/* Draggable title bar area */}
       <div
         className="h-10 flex-shrink-0 bg-transparent select-none cursor-move"
