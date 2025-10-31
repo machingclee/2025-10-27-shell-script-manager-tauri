@@ -11,8 +11,9 @@ import {
   ResizableHandle,
 } from "./components/ui/resizable";
 import { appStateApi } from "./store/api/appStateApi";
-import { useAppDispatch } from "./store/hooks";
+import { useAppDispatch, useAppSelector } from "./store/hooks";
 import folderSlice from "./store/slices/folderSlice";
+import { folderApi } from "./store";
 
 
 
@@ -43,6 +44,14 @@ function App() {
 
     applyDarkMode();
   }, [darkMode]);
+
+  const selectedFolderId = useAppSelector(s => s.folder.selectedFolderId)
+  const { data: selectedFolder } = folderApi.endpoints.getAllFolders.useQueryState(undefined, {
+    selectFromResult: (result) => ({
+      data: result.data?.find(f => f.id === selectedFolderId)
+    }),
+    skip: !selectedFolderId,
+  })
 
   // Listen for toggle dark mode event from menu
   useEffect(() => {
@@ -79,10 +88,12 @@ function App() {
     <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-800 flex flex-col">
       {/* Draggable title bar area */}
       <div
-        className="h-10 flex-shrink-0 bg-transparent select-none"
+        className="h-12 flex-shrink-0 bg-transparent select-none dark:bg-[rgba(255,255,255,0.05)] flex items-center justify-center dark:text-white w-full"
         onMouseDown={handleDragStart}
         onDoubleClick={(e) => e.preventDefault()}
-      />
+      >
+        {selectedFolder?.name}
+      </div>
 
       {/* Main content */}
       <div className="flex-1 overflow-hidden">
