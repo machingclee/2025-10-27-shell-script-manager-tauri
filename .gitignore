@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tauri production build resources
+src-tauri/resources/
+src-tauri/target/
+
+# Database files
+*.db
+*.db-journal
+*.db-wal

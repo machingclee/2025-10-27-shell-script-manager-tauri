@@ -4,13 +4,13 @@
 #[macro_use]
 extern crate objc;
 
-mod db;
-mod handler_command;
 mod prisma;
 
-use crate::prisma::PrismaClient;
+use prisma::PrismaClient;
+use serde::{Deserialize, Serialize};
 use std::process::{Child, Command};
 use std::sync::{Arc, Mutex, OnceLock};
+use tauri::Manager;
 
 pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
 pub static PRISMA_CLIENT: OnceLock<PrismaClient> = OnceLock::new();
@@ -29,97 +29,216 @@ async fn check_backend_health() -> Result<bool, String> {
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
-    match client.get("http://localhost:7070/health").send().await {
+    match client.get("http://localhost:7070/health").await {
         Ok(response) => Ok(response.status().is_success()),
         Err(_) => Ok(false),
+    }
+}
+
+// Function to determine database path based on environment
+fn get_database_path(app_handle: &tauri::AppHandle) -> Result<String, String> {
+    #[cfg(debug_assertions)]
+    {
+        // In development, use the local src-tauri directory
+        let current_dir = std::env::current_dir()
+            .map_err(|e| format!("Failed to get current directory: {}", e))?;
+        let db_path = current_dir.join("src-tauri").join("database.db");
+        Ok(db_path.to_string_lossy().to_string())
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        // In production, use the app data directory
+        let app_data_dir = app_handle
+            .path()
+            .app_data_dir()
+            .map_err(|e| format!("Failed to get app data directory: {}", e))?;
+
+        // Create the directory if it doesn't exist
+        std::fs::create_dir_all(&app_data_dir)
+            .map_err(|e| format!("Failed to create app data directory: {}", e))?;
+
+        let db_path = app_data_dir.join("database.db");
+        Ok(db_path.to_string_lossy().to_string())
     }
 }
 
 pub fn run_terminal_command(command: String) {
     let rt_handle = RT_HANDLE.get().expect("Runtime handle not initialized");
     rt_handle.spawn(async move {
-        // Get the user's home directory
-        let home = std::env::var("HOME").unwrap_or_else(|_| {
-            dirs::home_dir()
-                .map(|p| p.to_string_lossy().to_string())
-                .unwrap_or_else(|| "/Users".to_string())
-        });
-
-        // Detect the user's shell from /etc/passwd or use zsh as default
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| {
-            std::fs::read_to_string("/etc/passwd")
-                .ok()
-                .and_then(|content| {
-                    content.lines().find_map(|line| {
-                        if line.contains(&home) {
-                            line.split(':').last().map(|s| s.to_string())
-                        } else {
-                            None
-                        }
-                    })
-                })
-                .unwrap_or_else(|| "/bin/zsh".to_string())
-        });
-
-        #[cfg(debug_assertions)]
-        println!("Using shell: {} for command: {}", shell, command);
-
-        // Build the command that sources the shell config files before running
-        let wrapped_command = if shell.contains("zsh") {
-            format!(
-                "source ~/.zshrc 2>/dev/null; source ~/.zprofile 2>/dev/null; {}",
-                command
-            )
-        } else if shell.contains("bash") {
-            format!(
-                "source ~/.bash_profile 2>/dev/null; source ~/.bashrc 2>/dev/null; {}",
-                command
-            )
+        let shell = if cfg!(target_os = "windows") {
+            "cmd"
         } else {
-            command.clone()
+            "/bin/zsh"
         };
 
-        let output = tokio::process::Command::new(&shell)
-            .arg("-l") // Login shell
-            .arg("-c")
-            .arg(&wrapped_command)
-            .env("HOME", &home) // Ensure HOME is set
-            .env(
-                "USER",
-                std::env::var("USER").unwrap_or_else(|_| whoami::username()),
-            )
-            .output()
-            .await;
+        let arg_flag = if cfg!(target_os = "windows") {
+            "/C"
+        } else {
+            "-c"
+        };
 
-        match output {
-            Ok(output) => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
+        let user = whoami::username();
+        let hostname = whoami::devicename();
+        let home_dir = dirs::home_dir().unwrap_or_default();
 
-                #[cfg(debug_assertions)]
-                {
-                    println!("Command executed: {}", command);
-                    if !stdout.is_empty() {
-                        println!("Output: {}", stdout);
-                    }
-                    if !stderr.is_empty() {
-                        eprintln!("Error: {}", stderr);
-                    }
-                }
+        // Create the AppleScript to open Terminal with the command
+        #[cfg(target_os = "macos")]
+        let applescript = format!(
+            r#"
+            tell application "Terminal"
+                activate
+                do script "cd {} && PS1='\\u@\\h \\W$ ' {} -c '{}; exec {} '"
+            end tell
+            "#,
+            home_dir.display(),
+            shell,
+            command,
+            shell
+        );
 
-                // Show errors in both debug and release mode
-                if !output.status.success() && !stderr.is_empty() {
-                    eprintln!("Command '{}' failed: {}", command, stderr);
-                }
-            }
+        #[cfg(target_os = "macos")]
+        match Command::new("osascript")
+            .arg("-e")
+            .arg(&applescript)
+            .spawn()
+        {
+            Ok(_) => {}
             Err(e) => eprintln!("Failed to execute command '{}': {:?}", command, e),
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            // For Windows and Linux, execute directly
+            match Command::new(shell).arg(arg_flag).arg(&command).spawn() {
+                Ok(_) => {}
+                Err(e) => eprintln!("Failed to execute command '{}': {:?}", command, e),
+            }
         }
     });
 }
 
+fn start_spring_boot_backend(app_handle: tauri::AppHandle) -> Result<(), String> {
+    // Check if backend is already running
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    if let Ok(true) = rt.block_on(check_backend_health()) {
+        println!("Spring Boot backend already running");
+        return Ok(());
+    }
+
+    println!("Starting Spring Boot backend...");
+
+    // Get the database path
+    let db_path = get_database_path(&app_handle)?;
+    println!("Database path: {}", db_path);
+
+    // Get the path to the backend-spring directory
+    let resource_path = app_handle
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Failed to get resource directory: {}", e))?;
+
+    let backend_dir = resource_path.join("backend-spring");
+    println!("Backend directory: {:?}", backend_dir);
+
+    #[cfg(debug_assertions)]
+    {
+        // In development, use gradlew bootRun
+        let project_root = std::env::current_dir()
+            .map_err(|e| format!("Failed to get current directory: {}", e))?;
+        let dev_backend_dir = project_root.join("backend-spring");
+        let gradlew_path = dev_backend_dir.join("gradlew");
+
+        println!("Development mode: Using gradlew at {:?}", gradlew_path);
+
+        let child = Command::new(&gradlew_path)
+            .current_dir(&dev_backend_dir)
+            .arg("bootRun")
+            .arg(format!(
+                "--args=--spring.datasource.url=jdbc:sqlite:{}",
+                db_path
+            ))
+            .spawn()
+            .map_err(|e| format!("Failed to start Spring Boot backend: {}", e))?;
+
+        // Store the process handle
+        if let Some(process_mutex) = SPRING_BOOT_PROCESS.get() {
+            *process_mutex.lock().unwrap() = Some(child);
+        }
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        // In production, use the bundled JAR and JRE
+        let jar_path = backend_dir.join("app.jar");
+        let jre_dir = backend_dir.join("jre");
+
+        // Determine the java executable path based on OS
+        #[cfg(target_os = "macos")]
+        let java_executable = jre_dir
+            .join("Contents")
+            .join("Home")
+            .join("bin")
+            .join("java");
+
+        #[cfg(target_os = "windows")]
+        let java_executable = jre_dir.join("bin").join("java.exe");
+
+        #[cfg(target_os = "linux")]
+        let java_executable = jre_dir.join("bin").join("java");
+
+        println!("Production mode: Using JAR at {:?}", jar_path);
+        println!("Using Java executable at {:?}", java_executable);
+
+        // Verify JAR exists
+        if !jar_path.exists() {
+            return Err(format!("JAR file not found at {:?}", jar_path));
+        }
+
+        // Verify Java executable exists
+        if !java_executable.exists() {
+            return Err(format!(
+                "Java executable not found at {:?}. Please ensure JRE is properly bundled.",
+                java_executable
+            ));
+        }
+
+        let child = Command::new(&java_executable)
+            .current_dir(&backend_dir)
+            .arg("-jar")
+            .arg(&jar_path)
+            .arg(format!("--spring.datasource.url=jdbc:sqlite:{}", db_path))
+            .spawn()
+            .map_err(|e| format!("Failed to start Spring Boot backend: {}", e))?;
+
+        // Store the process handle
+        if let Some(process_mutex) = SPRING_BOOT_PROCESS.get() {
+            *process_mutex.lock().unwrap() = Some(child);
+        }
+    }
+
+    println!("Spring Boot backend started successfully");
+    Ok(())
+}
+
+fn check_backend_health_sync() -> Result<bool, String> {
+    let rt =
+        tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create runtime: {}", e))?;
+    rt.block_on(check_backend_health())
+}
+
+fn kill_spring_boot_backend() {
+    if let Some(process_mutex) = SPRING_BOOT_PROCESS.get() {
+        if let Some(mut process) = process_mutex.lock().unwrap().take() {
+            println!("Shutting down Spring Boot backend...");
+            let _ = process.kill();
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, Submenu};
     use tauri::{Emitter, Manager};
 
     tauri::Builder::default()
@@ -145,13 +264,12 @@ pub fn run() {
                             ns_window
                                 .setTitleVisibility_(NSWindowTitleVisibility::NSWindowTitleHidden);
 
-                            // Enable full size content view (allows content to go under title bar)
+                            // Enable full size content view
                             let mut style_mask = ns_window.styleMask();
                             style_mask |= NSWindowStyleMask::NSFullSizeContentViewWindowMask;
                             ns_window.setStyleMask_(style_mask);
 
                             // Adjust traffic light button positions
-                            // Get the buttons
                             let close_button = ns_window
                                 .standardWindowButton_(NSWindowButton::NSWindowCloseButton);
                             let miniaturize_button = ns_window
@@ -160,115 +278,140 @@ pub fn run() {
                                 ns_window.standardWindowButton_(NSWindowButton::NSWindowZoomButton);
 
                             if close_button != nil {
-                                // Adjust button positions
                                 let mut frame: NSRect = msg_send![close_button, frame];
-                                frame.origin.x = frame.origin.x + 10.0; // Move right by 10px
-                                frame.origin.y = -5.0; // Vertical position from top
+                                frame.origin.x = frame.origin.x + 10.0;
+                                frame.origin.y = -5.0;
                                 let _: () = msg_send![close_button, setFrame: frame];
                             }
 
                             if miniaturize_button != nil {
                                 let mut frame: NSRect = msg_send![miniaturize_button, frame];
-                                frame.origin.x = frame.origin.x + 10.0; // Move right by 10px
+                                frame.origin.x = frame.origin.x + 10.0;
                                 frame.origin.y = -5.0;
                                 let _: () = msg_send![miniaturize_button, setFrame: frame];
                             }
 
                             if zoom_button != nil {
                                 let mut frame: NSRect = msg_send![zoom_button, frame];
-                                frame.origin.x = frame.origin.x + 10.0; // Move right by 10px
+                                frame.origin.x = frame.origin.x + 10.0;
                                 frame.origin.y = -5.0;
                                 let _: () = msg_send![zoom_button, setFrame: frame];
                             }
-
-                            // Hide window shadow for cleaner look
-                            ns_window.setHasShadow_(YES);
-
-                            // Make window background transparent/opaque based on content
-                            ns_window.setOpaque_(NO);
-
-                            // Set initial color (light mode)
-                            let color = NSColor::colorWithRed_green_blue_alpha_(
-                                nil,
-                                245.0 / 255.0,
-                                245.0 / 255.0,
-                                245.0 / 255.0,
-                                1.0,
-                            );
-                            ns_window.setBackgroundColor_(color);
                         }
                     }
                 }
             }
 
-            // Edit menu with standard shortcuts
-            use tauri::menu::PredefinedMenuItem;
+            // Initialize runtime handle for async operations
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            RT_HANDLE.set(runtime.handle().clone()).unwrap();
 
-            let undo = PredefinedMenuItem::undo(app, None)?;
-            let cut = PredefinedMenuItem::cut(app, None)?;
-            let copy = PredefinedMenuItem::copy(app, None)?;
-            let paste = PredefinedMenuItem::paste(app, None)?;
-            let select_all = PredefinedMenuItem::select_all(app, None)?;
+            // Get the appropriate database path
+            let db_path = get_database_path(app.handle())?;
+            println!("Database location: {}", db_path);
 
-            // Custom redo with Cmd+Y
-            let redo = MenuItemBuilder::with_id("redo", "Redo")
-                .accelerator("Cmd+Y")
-                .build(app)?;
+            // Set DATABASE_URL environment variable for Prisma
+            std::env::set_var("DATABASE_URL", format!("file:{}", db_path));
 
-            let edit_menu = tauri::menu::SubmenuBuilder::new(app, "Edit")
-                .item(&undo)
-                .item(&redo)
-                .separator()
-                .item(&cut)
-                .item(&copy)
-                .item(&paste)
-                .separator()
-                .item(&select_all)
-                .build()?;
+            // Initialize Prisma client and run migrations to create database
+            let rt_handle = RT_HANDLE.get().unwrap();
+            rt_handle.block_on(async {
+                println!("Initializing database...");
+                let client = PrismaClient::_builder()
+                    .build()
+                    .await
+                    .expect("Failed to create Prisma client");
 
-            // View menu
-            let toggle_dark_mode = MenuItemBuilder::with_id("toggle_dark_mode", "Toggle Dark Mode")
-                .accelerator("Cmd+D")
-                .build(app)?;
-
-            let quit = MenuItemBuilder::with_id("quit", "Quit")
-                .accelerator("Cmd+Q")
-                .build(app)?;
-
-            let view_menu = tauri::menu::SubmenuBuilder::new(app, "View")
-                .item(&toggle_dark_mode)
-                .item(&quit)
-                .build()?;
-
-            let menu = MenuBuilder::new(app)
-                .item(&edit_menu)
-                .item(&view_menu)
-                .build()?;
-
-            app.set_menu(menu)?;
-
-            // Handle menu events
-            app.on_menu_event(move |app, event| {
-                if event.id() == "redo" {
-                    // Execute redo command in the webview
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.eval("document.execCommand('redo')");
-                    }
+                #[cfg(debug_assertions)]
+                {
+                    println!("Running database migrations...");
+                    client
+                        ._db_push()
+                        .accept_data_loss()
+                        .await
+                        .expect("Failed to run migrations");
                 }
 
-                if event.id() == "toggle_dark_mode" {
-                    // Emit an event to the frontend to toggle dark mode
-                    if let Some(window) = app.get_webview_window("main") {
-                        window.emit("toggle-dark-mode", ()).unwrap_or_else(|e| {
-                            eprintln!("Failed to emit toggle-dark-mode event: {}", e);
-                        });
-                    }
-                }
+                PRISMA_CLIENT
+                    .set(client)
+                    .expect("Failed to set Prisma client");
+                println!("Database initialized successfully");
+            });
 
-                if event.id() == "quit" {
-                    app.exit(0);
+            // Initialize Spring Boot process storage
+            SPRING_BOOT_PROCESS.set(Arc::new(Mutex::new(None))).unwrap();
+
+            // Start Spring Boot backend
+            let app_handle = app.handle().clone();
+            std::thread::spawn(move || {
+                if let Err(e) = start_spring_boot_backend(app_handle) {
+                    eprintln!("Failed to start Spring Boot backend: {}", e);
                 }
             });
+
+            // Setup menu (macOS only)
+            #[cfg(target_os = "macos")]
+            {
+                // Edit menu with standard shortcuts
+                let undo = PredefinedMenuItem::undo(app, None)?;
+                let redo_item = MenuItemBuilder::with_id("redo", "Redo")
+                    .accelerator("Cmd+Y")
+                    .build(app)?;
+                let cut = PredefinedMenuItem::cut(app, None)?;
+                let copy = PredefinedMenuItem::copy(app, None)?;
+                let paste = PredefinedMenuItem::paste(app, None)?;
+                let select_all = PredefinedMenuItem::select_all(app, None)?;
+
+                let edit_menu = Submenu::with_items(
+                    app,
+                    "Edit",
+                    true,
+                    &[&undo, &redo_item, &cut, &copy, &paste, &select_all],
+                )?;
+
+                // View menu
+                let dark_mode_toggle =
+                    MenuItemBuilder::with_id("toggle_dark_mode", "Toggle Dark Mode")
+                        .accelerator("Cmd+Shift+D")
+                        .build(app)?;
+
+                let view_menu = Submenu::with_items(app, "View", true, &[&dark_mode_toggle])?;
+
+                // App menu with Quit
+                let quit = MenuItemBuilder::with_id("quit", "Quit")
+                    .accelerator("Cmd+Q")
+                    .build(app)?;
+
+                let menu = MenuBuilder::new(app)
+                    .item(&edit_menu)
+                    .item(&view_menu)
+                    .item(&quit)
+                    .build()?;
+
+                app.set_menu(menu)?;
+
+                // Handle menu events
+                app.on_menu_event(move |app, event| {
+                    if event.id() == "redo" {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.eval("document.execCommand('redo')");
+                        }
+                    }
+
+                    if event.id() == "toggle_dark_mode" {
+                        if let Some(window) = app.get_webview_window("main") {
+                            window.emit("toggle-dark-mode", ()).unwrap_or_else(|e| {
+                                eprintln!("Failed to emit toggle-dark-mode event: {}", e);
+                            });
+                        }
+                    }
+
+                    if event.id() == "quit" {
+                        kill_spring_boot_backend();
+                        app.exit(0);
+                    }
+                });
+            }
 
             #[cfg(debug_assertions)]
             {
@@ -280,112 +423,11 @@ pub fn run() {
 
             Ok(())
         })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                kill_spring_boot_backend();
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-pub fn start_spring_boot() {
-    // Initialize the Spring Boot process storage
-    SPRING_BOOT_PROCESS.set(Arc::new(Mutex::new(None))).ok();
-
-    // Get the project root directory (parent of src-tauri)
-    let backend_dir = std::env::current_dir()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("backend-spring");
-
-    #[cfg(debug_assertions)]
-    println!("Starting Spring Boot from: {}", backend_dir.display());
-
-    // Launch Spring Boot using gradlew bootRun
-    let child = Command::new("./gradlew")
-        .arg("bootRun")
-        .current_dir(&backend_dir)
-        .spawn();
-
-    match child {
-        Ok(process) => {
-            #[cfg(debug_assertions)]
-            println!("Spring Boot started with PID: {:?}", process.id());
-
-            // Store the process handle
-            if let Some(process_lock) = SPRING_BOOT_PROCESS.get() {
-                *process_lock.lock().unwrap() = Some(process);
-            }
-        }
-        Err(e) => {
-            eprintln!("Failed to start Spring Boot: {}", e);
-            eprintln!("Make sure Java 17+ is installed and gradlew is executable");
-        }
-    }
-}
-
-pub fn shutdown_spring_boot() {
-    if let Some(process_lock) = SPRING_BOOT_PROCESS.get() {
-        if let Some(mut process) = process_lock.lock().unwrap().take() {
-            #[cfg(debug_assertions)]
-            println!("Shutting down Spring Boot...");
-
-            let _ = process.kill();
-        }
-    }
-}
-
-pub fn init_db() {
-    let db_path = if cfg!(debug_assertions) {
-        // In debug mode, use current directory for easier development
-        std::env::current_dir().unwrap().join("database.db")
-    } else {
-        // In release mode, use proper app data directory
-        let app_data_dir = dirs::data_dir()
-            .unwrap_or_else(|| std::env::current_dir().unwrap())
-            .join("ShellScriptManager");
-
-        // Create directory if it doesn't exist
-        std::fs::create_dir_all(&app_data_dir).ok();
-
-        app_data_dir.join("database.db")
-    };
-
-    let db_url = format!("file:{}", db_path.display());
-
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    RT_HANDLE.set(rt.handle().clone()).unwrap();
-
-    rt.block_on(async {
-        match crate::prisma::new_client_with_url(&db_url).await {
-            Ok(client) => {
-                // Initialize database schema automatically for desktop app
-                if let Err(e) = crate::db::get_db::initialize_database(&client).await {
-                    #[cfg(debug_assertions)]
-                    {
-                        eprintln!("Failed to initialize database: {}", e);
-                        eprintln!("Please check database permissions or file path");
-                    }
-                    std::process::exit(1);
-                }
-
-                crate::PRISMA_CLIENT.set(client).unwrap();
-                #[cfg(debug_assertions)]
-                println!("Database connection established successfully");
-            }
-            Err(e) => {
-                #[cfg(debug_assertions)]
-                {
-                    eprintln!("Failed to connect to database: {}", e);
-                    eprintln!("Please ensure the database exists by running: npm run migrate:dev");
-                    std::process::exit(1);
-                }
-            }
-        }
-    });
-
-    // Spawn a task to keep the runtime alive
-    std::thread::spawn(move || {
-        rt.block_on(async {
-            // Keep alive until signal
-            let _ = tokio::signal::ctrl_c().await;
-        });
-    });
 }

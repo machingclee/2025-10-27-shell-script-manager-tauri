@@ -244,6 +244,11 @@ application-dev.yaml
 *.backup
 *.old
 
+# Downloaded JRE for production builds
+jre/
+*.tar.gz
+*.zip
+
 ### Build and Distribution ###
 target/
 dist/

@@ -1,22 +1,82 @@
-    Blocking waiting for file lock on package cache
-    Blocking waiting for file lock on package cache
-    Blocking waiting for file lock on package cache
-    Blocking waiting for file lock on package cache
-   4.933312458s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint: stale: changed "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/lib.rs"
-   4.933367833s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:           (vs) "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/target/debug/.fingerprint/shell-script-manager-61ceb5079b0d05ff/dep-lib-shell_script_manager_lib"
-   4.933374917s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1762034512, nanos: 225024895 } < FileTime { seconds: 1762034560, nanos: 850379707 }
-   4.935957375s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/Check { test: false }/TargetInner { ..: lib_target("shell_script_manager_lib", ["staticlib", "cdylib", "rlib"], "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/lib.rs", Edition2021) }
-   4.936021375s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/target/debug/.fingerprint/shell-script-manager-61ceb5079b0d05ff/dep-lib-shell_script_manager_lib", reference_mtime: FileTime { seconds: 1762034512, nanos: 225024895 }, stale: "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/lib.rs", stale_mtime: FileTime { seconds: 1762034560, nanos: 850379707 } }))
-   5.505957167s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint: stale: changed "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/lib.rs"
-   5.506001958s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:           (vs) "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/target/debug/.fingerprint/shell-script-manager-c02d3cc82410abe5/dep-test-lib-shell_script_manager_lib"
-   5.506011917s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1762034512, nanos: 225024979 } < FileTime { seconds: 1762034560, nanos: 850379707 }
-   5.506917625s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/Check { test: true }/TargetInner { ..: lib_target("shell_script_manager_lib", ["staticlib", "cdylib", "rlib"], "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/lib.rs", Edition2021) }
-   5.506951417s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/target/debug/.fingerprint/shell-script-manager-c02d3cc82410abe5/dep-test-lib-shell_script_manager_lib", reference_mtime: FileTime { seconds: 1762034512, nanos: 225024979 }, stale: "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/lib.rs", stale_mtime: FileTime { seconds: 1762034560, nanos: 850379707 } }))
-   5.516275208s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell-script-manager"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/Check { test: false }/TargetInner { name: "shell-script-manager", doc: true, ..: with_path("/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/main.rs", Edition2021) }
-   5.516305625s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell-script-manager"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "shell_script_manager_lib" })
-   5.529046542s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell-script-manager"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/Check { test: true }/TargetInner { name: "shell-script-manager", doc: true, ..: with_path("/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/main.rs", Edition2021) }
-   5.529084958s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell-script-manager"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "shell_script_manager_lib" })
-    Checking shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 15.86s
-warning: the following packages contain code that will be rejected by a future version of Rust: connection-string v0.1.13
-note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 2`
+   0.860851583s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint: stale: changed "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/tauri.conf.json"
+   0.861032125s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:           (vs) "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/target/debug/build/shell-script-manager-04fb9a8c74380f2d/output"
+   0.861034833s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:                FileTime { seconds: 1762034253, nanos: 673118416 } < FileTime { seconds: 1762035195, nanos: 269868939 }
+   0.876420958s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/Check { test: false }/TargetInner { ..: lib_target("shell_script_manager_lib", ["staticlib", "cdylib", "rlib"], "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/lib.rs", Edition2021) }
+   0.876443875s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "build_script_build" })
+   0.923394167s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="build-script-build"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/RunCustomBuild/TargetInner { ..: custom_build_target("build-script-build", "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/build.rs", Edition2021) }
+   0.923401042s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="build-script-build"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleItem(ChangedFile { reference: "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/target/debug/build/shell-script-manager-04fb9a8c74380f2d/output", reference_mtime: FileTime { seconds: 1762034253, nanos: 673118416 }, stale: "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/tauri.conf.json", stale_mtime: FileTime { seconds: 1762035195, nanos: 269868939 } }))
+   0.991710417s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/Check { test: true }/TargetInner { ..: lib_target("shell_script_manager_lib", ["staticlib", "cdylib", "rlib"], "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/lib.rs", Edition2021) }
+   0.991721500s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell_script_manager_lib"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "build_script_build" })
+   0.993129333s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell-script-manager"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/Check { test: false }/TargetInner { name: "shell-script-manager", doc: true, ..: with_path("/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/main.rs", Edition2021) }
+   0.993136417s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell-script-manager"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "shell_script_manager_lib" })
+   0.994451708s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell-script-manager"}: cargo::core::compiler::fingerprint: fingerprint dirty for shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)/Check { test: true }/TargetInner { name: "shell-script-manager", doc: true, ..: with_path("/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/src/main.rs", Edition2021) }
+   0.994459542s  INFO prepare_target{force=false package_id=shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri) target="shell-script-manager"}: cargo::core::compiler::fingerprint:     dirty: FsStatusOutdated(StaleDepFingerprint { name: "shell_script_manager_lib" })
+   Compiling shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)
+error: failed to run custom build command for `shell-script-manager v0.1.0 (/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri)`
+note: To improve backtraces for build dependencies, set the CARGO_PROFILE_DEV_BUILD_OVERRIDE_DEBUG=true environment variable to enable debug information generation.
+
+Caused by:
+  process didn't exit successfully: `/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/target/debug/build/shell-script-manager-05b7752c834c9286/build-script-build` (exit status: 1)
+  --- stdout
+  cargo:rerun-if-changed=prisma/schema.prisma
+
+  ◭  Prisma is a modern DB toolkit to query, migrate and model your database (https://prisma.io)
+
+  Usage
+
+    $ prisma [command]
+
+  Commands
+
+              init   Set up Prisma for your app
+          generate   Generate artifacts (e.g. Prisma Client)
+                db   Manage your database schema and lifecycle
+           migrate   Migrate your database
+            studio   Browse your data with Prisma Studio
+          validate   Validate your Prisma schema
+            format   Format your Prisma schema
+
+  Flags
+
+       --preview-feature   Run Preview Prisma commands
+
+  Examples
+
+    Set up a new Prisma project
+    $ prisma init
+
+    Generate artifacts (e.g. Prisma Client)
+    $ prisma generate
+
+    Browse your data
+    $ prisma studio
+
+    Create migrations from your Prisma schema, apply them to the database, generate artifacts (e.g. Prisma Client)
+    $ prisma migrate dev
+    
+    Pull the schema from an existing database, updating the Prisma schema
+    $ prisma db pull
+
+    Push the Prisma schema state to the database
+    $ prisma db push
+
+    Validate your Prisma schema
+    $ prisma validate
+
+    Format your Prisma schema
+    $ prisma format
+
+  cargo:rerun-if-env-changed=TAURI_CONFIG
+  cargo:rustc-check-cfg=cfg(desktop)
+  cargo:rustc-cfg=desktop
+  cargo:rustc-check-cfg=cfg(mobile)
+  cargo:rerun-if-changed=/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/tauri.conf.json
+  cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_APP_NAME=shell_script_manager
+  cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_PREFIX=com_chingcheonglee
+  cargo:rustc-check-cfg=cfg(dev)
+  cargo:rustc-cfg=dev
+  cargo:PERMISSION_FILES_PATH=/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/target/debug/build/shell-script-manager-04fb9a8c74380f2d/out/app-manifest/__app__-permission-files
+  cargo:rerun-if-changed=capabilities
+  cargo:rerun-if-env-changed=REMOVE_UNUSED_COMMANDS
+  cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE=aarch64-apple-darwin
+  glob pattern resources/backend-spring/* path not found or didn't match any files.
