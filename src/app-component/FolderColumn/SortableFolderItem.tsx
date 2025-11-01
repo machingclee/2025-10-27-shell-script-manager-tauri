@@ -18,7 +18,7 @@ export default React.memo(function SortableFolderItem({ folder, isSelected, onCl
     folder: { id: number; name: string; ordering: number };
     isSelected: boolean;
     onClick: () => void;
-    onRename: (id: number, newName: string) => void;
+    onRename: (newName: string) => void;
     onDelete: (id: number) => void;
 }) {
     const {
@@ -54,7 +54,7 @@ export default React.memo(function SortableFolderItem({ folder, isSelected, onCl
     };
 
     const handleRename = () => {
-        onRename(folder.id, newName);
+        onRename(newName);
         setIsRenameOpen(false);
     };
 

@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import folderSlice from "../../store/slices/folderSlice";
 import SortableFolderItem from "./SortableFolderItem";
+import { ScriptsFolderDTO } from "@/types/dto";
 
 
 
@@ -47,16 +48,16 @@ export default function FolderColumn() {
     const dispatch = useAppDispatch();
     const selectedFolderId = useAppSelector(s => s.folder.selectedFolderId);
     const isReordering = useAppSelector(s => s.folder.isReorderingFolder);
-    const [setLastOpenedFolder] = appStateApi.endpoints.setLastOpenedFolder.useMutation();
+    const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
     const [reorderFolders] = folderApi.endpoints.reorderFolders.useMutation();
-    const [renameFolder] = folderApi.endpoints.renameFolder.useMutation();
+    const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
     const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
     const [createFolder] = folderApi.endpoints.createFolder.useMutation();
 
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [newFolderName, setNewFolderName] = useState("");
 
-    appStateApi.endpoints.getAppState.useQuery();
+    const { data: appState } = appStateApi.endpoints.getAppState.useQuery();
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -67,7 +68,9 @@ export default function FolderColumn() {
 
     const handleFolderClick = (folderId: number) => {
         dispatch(folderSlice.actions.setSelectedFolderId(folderId));
-        setLastOpenedFolder(folderId);
+        if (appState) {
+            updateAppState({ ...appState, lastOpenedFolderId: folderId });
+        }
     };
 
     const handleDragStart = () => {
@@ -91,8 +94,8 @@ export default function FolderColumn() {
         dispatch(folderSlice.actions.setIsReorderingFolder(false));
     };
 
-    const handleRename = (id: number, newName: string) => {
-        renameFolder({ id, newName });
+    const handleRename = (folder: ScriptsFolderDTO, newName: string) => {
+        updateFolder({ ...folder, name: newName });
     };
 
     const handleDelete = (id: number) => {
@@ -151,7 +154,7 @@ export default function FolderColumn() {
                                         folder={folder}
                                         isSelected={!isReordering && selectedFolderId === folder.id}
                                         onClick={() => handleFolderClick(folder.id)}
-                                        onRename={handleRename}
+                                        onRename={(newName: string) => { handleRename(folder, newName) }}
                                         onDelete={handleDelete}
                                     />
                                 ))}

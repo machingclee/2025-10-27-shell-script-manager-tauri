@@ -7,11 +7,11 @@ I've set up a complete **Kotlin Spring Boot backend** for your Tauri application
 ✅ **Spring Boot 3.2.0** with Kotlin 1.9.20  
 ✅ **JPA entities** matching your existing database schema  
 ✅ **SQLite database** integration (shares database with Tauri)  
-✅ **Flyway migrations** for schema management  
+✅ **Prisma for migrations** - Use your familiar Prisma workflow!  
 ✅ **REST API** for folders, scripts, and app state  
 ✅ **Gradle build system** with wrapper included  
 ✅ **Development and production modes** configured  
-✅ **Comprehensive documentation** for all workflows  
+✅ **Simple hybrid architecture** - Prisma manages schema, Spring Boot provides API  
 
 ---
 
@@ -27,12 +27,12 @@ I've set up a complete **Kotlin Spring Boot backend** for your Tauri application
 │   │   └── Application.kt                    # Main application
 │   ├── src/main/resources/
 │   │   ├── application.yml                   # Configuration
-│   │   └── db/migration/
-│   │       └── V1__Initial_schema.sql        # Flyway migration
+│   │   └── db/changelog/
+│   │       └── db.changelog-master.yaml      # Liquibase master changelog
 │   ├── build.gradle.kts                      # Build configuration
 │   ├── README.md                             # Project readme
 │   ├── QUICK_START.md                        # 5-minute quick start
-│   ├── FLYWAY_WORKFLOW.md                    # Migration guide
+│   ├── LIQUIBASE_WORKFLOW.md                 # Migration guide (auto-generation!)
 │   └── RUST_INTEGRATION_EXAMPLE.md           # Integration with Rust
 ├── 3_COMPLETE_SETUP_GUIDE.md                   # NEW: Complete setup guide
 └── 2_OVERVIEW.md                # NEW: This file
@@ -65,14 +65,13 @@ I've created **4 comprehensive documentation files** to help you:
   - Common commands reference
   - API endpoint table
 
-### 3. **5_FLYWAY_WORKFLOW.md**
-- **Purpose**: Detailed database migration workflow
+### 3. **5_PRISMA_SPRING_WORKFLOW.md**
+- **Purpose**: Simple Prisma + Spring Boot workflow
 - **Contents**:
-  - How to change JPA entities
-  - How to create migration SQL files
-  - Migration examples (add column, create table, modify column)
-  - Best practices
-  - Troubleshooting migrations
+  - Use Prisma for all schema changes (what you're used to!)
+  - Keep JPA entities in sync (manually or with LLM)
+  - Simple, clean separation of concerns
+  - No Liquibase/Flyway complexity
 
 ### 4. **6_RUST_INTEGRATION.md**
 - **Purpose**: Integrate Spring Boot with Rust/Tauri
@@ -131,28 +130,42 @@ This is **CRITICAL** to understand:
 spring:
   jpa:
     hibernate:
-      ddl-auto: validate  # ← Only validates, never creates/updates
+      ddl-auto: none  # ← Read-only, never creates/updates
 ```
 
 **Why?**
-- We use Flyway for all schema changes
-- Ensures version control of database changes
-- Prevents accidental schema modifications
-- Allows safe rollbacks
+- We use Prisma for all schema changes (your familiar workflow!)
+- Spring Boot only reads the schema, never modifies it
+- Simple, clean separation of concerns
+- No migration complexity in Spring Boot
 
-### 2. **Schema Change Workflow**
+### 2. **Schema Change Workflow (Simple!)**
 
 Every schema change follows these steps:
 
-1. **Modify JPA entity** (add/remove/change field)
-2. **Create Flyway migration** (SQL file: `V2__Description.sql`)
-3. **Restart app** (Flyway auto-applies migration)
-4. **Test and commit** (both entity + migration)
+1. **Modify Prisma schema** (add/remove/change field)
+2. **Run Prisma migration** (`npx prisma migrate dev`)
+3. **Update JPA entity** (manually or with LLM)
+4. **Restart Spring Boot**
 
 **Example**: Add a `description` field to `ShellScript`
 
+```prisma
+// 1. Edit Prisma schema
+model ShellScript {
+  // ... existing fields ...
+  description String?  // NEW
+}
+```
+
+```bash
+# 2. Generate migration
+cd src-tauri
+npx prisma migrate dev --name add_description
+```
+
 ```kotlin
-// 1. Edit entity
+// 3. Update JPA entity (use LLM to convert!)
 @Entity
 data class ShellScript(
     // ... existing fields ...
@@ -160,17 +173,13 @@ data class ShellScript(
 )
 ```
 
-```sql
--- 2. Create: V2__Add_description_to_shell_script.sql
-ALTER TABLE shell_script ADD COLUMN description TEXT;
-```
-
 ```bash
-# 3. Restart (auto-applies migration)
+# 4. Restart Spring Boot
+cd backend-spring
 ./gradlew bootRun
 ```
 
-See [5_FLYWAY_WORKFLOW.md](5_FLYWAY_WORKFLOW.md) for detailed examples.
+See [5_PRISMA_SPRING_WORKFLOW.md](5_PRISMA_SPRING_WORKFLOW.md) for detailed examples.
 
 ### 3. **Development vs Production**
 
@@ -272,18 +281,28 @@ cd backend-spring
 
 **Example**: Add `description` to `ShellScript`
 
-1. Edit `backend-spring/src/main/kotlin/com/scriptmanager/entity/ShellScript.kt`:
+1. Edit Prisma schema:
+   ```prisma
+   model ShellScript {
+     // ... existing fields ...
+     description String?
+   }
+   ```
+
+2. Generate migration:
+   ```bash
+   cd src-tauri
+   npx prisma migrate dev --name add_description
+   ```
+
+3. Update JPA entity (use LLM to convert!):
    ```kotlin
    val description: String? = null
    ```
 
-2. Create `backend-spring/src/main/resources/db/migration/V2__Add_description.sql`:
-   ```sql
-   ALTER TABLE shell_script ADD COLUMN description TEXT;
-   ```
-
-3. Restart app:
+4. Restart app:
    ```bash
+   cd backend-spring
    ./gradlew bootRun
    ```
 
@@ -318,11 +337,11 @@ See [3_COMPLETE_SETUP_GUIDE.md](3_COMPLETE_SETUP_GUIDE.md) section 8 for details
 3. Test API endpoints with `curl`
 4. Explore the code in IntelliJ IDEA or VS Code
 
-### Day 2: Understanding Flyway
-1. Read [5_FLYWAY_WORKFLOW.md](5_FLYWAY_WORKFLOW.md)
-2. Practice: Add a simple field to an entity
-3. Create your first migration
-4. Apply and verify
+### Day 2: Understanding Prisma + Spring Boot
+1. Read [5_PRISMA_SPRING_WORKFLOW.md](5_PRISMA_SPRING_WORKFLOW.md)
+2. Practice: Add a simple field with Prisma
+3. Convert to JPA entity (use LLM!)
+4. Verify in Spring Boot API
 
 ### Day 3: Rust Integration
 1. Read [6_RUST_INTEGRATION.md](6_RUST_INTEGRATION.md)
@@ -444,7 +463,7 @@ For more troubleshooting, see [3_COMPLETE_SETUP_GUIDE.md](3_COMPLETE_SETUP_GUIDE
 | **2_OVERVIEW.md** | Overview (this file) | Start here |
 | **3_COMPLETE_SETUP_GUIDE.md** | Complete setup guide | Setting up for first time |
 | **4_QUICK_START.md** | Quick reference | Need fast commands |
-| **5_FLYWAY_WORKFLOW.md** | Database migrations | Changing schema |
+| **5_PRISMA_SPRING_WORKFLOW.md** | Prisma + Spring Boot workflow | Changing schema |
 | **6_RUST_INTEGRATION.md** | Rust integration | Connecting Rust to Spring |
 | **backend-spring/README.md** | Project README | Understanding structure |
 
@@ -457,14 +476,14 @@ For more troubleshooting, see [3_COMPLETE_SETUP_GUIDE.md](3_COMPLETE_SETUP_GUIDE
 - ✅ 4 JPA entities matching your schema
 - ✅ 4 Spring Data repositories
 - ✅ 3 REST controllers with full CRUD
-- ✅ Flyway initial migration
+- ✅ Read-only JPA configuration (Prisma handles migrations)
 - ✅ Gradle build configuration
 - ✅ Application configuration (YAML)
 
 ### Documentation
 - ✅ Complete setup guide (31 sections)
 - ✅ Quick start guide (5 minutes)
-- ✅ Flyway workflow guide (with examples)
+- ✅ Prisma + Spring Boot workflow guide (simple!)
 - ✅ Rust integration guide (with full code)
 - ✅ Project README
 - ✅ This overview
@@ -472,7 +491,7 @@ For more troubleshooting, see [3_COMPLETE_SETUP_GUIDE.md](3_COMPLETE_SETUP_GUIDE
 ### Configuration
 - ✅ Gradle wrapper (no Gradle install needed)
 - ✅ SQLite dialect configured
-- ✅ Flyway enabled and configured
+- ✅ Read-only mode (Prisma handles migrations)
 - ✅ Development mode ready
 - ✅ Production mode documented
 
@@ -501,7 +520,8 @@ All questions should be answered in the documentation. If not:
 ---
 
 **Created**: October 30, 2025  
-**Technology**: Spring Boot 3.2.0 + Kotlin 1.9.20 + SQLite + Flyway  
+**Updated**: November 1, 2025 (Simplified to Prisma + Spring Boot hybrid)  
+**Technology**: Spring Boot 3.2.0 + Kotlin 1.9.20 + SQLite + Prisma  
 **Status**: ✅ Complete and ready for development  
 
 Happy coding! 🚀

@@ -6259,6 +6259,7 @@ dependencies = [
  "objc",
  "prisma-client-rust",
  "prisma-client-rust-cli",
+ "reqwest 0.11.27",
  "serde",
  "serde_json",
  "tauri",

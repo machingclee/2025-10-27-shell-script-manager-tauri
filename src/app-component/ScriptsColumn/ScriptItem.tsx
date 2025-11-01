@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
+import { ScriptsFolderDTO } from "@/types/dto";
 
 export default function ScriptItem({ script, folderId }: { script: Script; folderId: number }) {
     const [runScript] = scriptApi.endpoints.runScript.useMutation();
@@ -68,11 +69,13 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
     };
 
     const handleUpdate = async () => {
-        await updateScript({
+        const finalScriptDTO = {
+            ...script as unknown as ScriptsFolderDTO,
             id: script.id,
             name: editName,
-            content: editCommand,
-        });
+            command: editCommand,
+        }
+        await updateScript(finalScriptDTO);
         setIsEditOpen(false);
     };
 

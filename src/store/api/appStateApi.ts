@@ -1,52 +1,47 @@
+import { AppStateDTO } from '@/types/dto';
 import { setSelectedFolderId } from '../slices/folderSlice';
 import { baseApi } from './baseApi';
 
-export interface AppState {
-  id: number;
-  last_opened_folder_id: number | null;
-  dark_mode: boolean;
-}
-
 export const appStateApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getAppState: builder.query<AppState | null, void>({
+    getAppState: builder.query<AppStateDTO | null, void>({
       query: () => ({
-        command: 'get_app_state',
-        args: {},
+        url: '/app-state',
+        method: 'GET',
       }),
       keepUnusedDataFor: 0,
       providesTags: ['AppState'],
       onQueryStarted: async (_, { queryFulfilled, dispatch }) => {
         const { data } = await queryFulfilled;
         console.log('[appStateApi] getAppState data:', data);
-        if (data?.last_opened_folder_id) {
-          dispatch(setSelectedFolderId(data.last_opened_folder_id));
+        if (data?.lastOpenedFolderId) {
+          dispatch(setSelectedFolderId(data.lastOpenedFolderId));
         }
       },
     }),
 
-    setLastOpenedFolder: builder.mutation<AppState, number>({
-      query: (folderId) => ({
-        command: 'set_last_opened_folder',
-        args: { folderId }
+    updateAppState: builder.mutation<AppStateDTO, AppStateDTO>({
+      query: (updates) => ({
+        url: '/app-state',
+        method: 'PUT',
+        body: updates,
       }),
       invalidatesTags: ['AppState'],
-    }),
-
-    getDarkMode: builder.query<boolean, void>({
-      query: () => ({
-        command: 'get_dark_mode',
-        args: {},
-      }),
-      providesTags: ['DarkMode'],
-    }),
-
-    setDarkMode: builder.mutation<boolean, boolean>({
-      query: (enabled) => ({
-        command: 'set_dark_mode',
-        args: { enabled }
-      }),
-      invalidatesTags: ['DarkMode', 'AppState'],
+      // Optimistic update
+      async onQueryStarted(updates, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          appStateApi.util.updateQueryData('getAppState', undefined, (draft) => {
+            if (draft) {
+              Object.assign(draft, updates);
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
   }),
 });

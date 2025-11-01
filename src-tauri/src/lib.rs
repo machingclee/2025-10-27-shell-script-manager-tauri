@@ -13,10 +13,12 @@ use crate::db::repository::folder_repository::FolderRepository;
 use crate::db::repository::script_repository::ScriptRepository;
 use crate::prisma::PrismaClient;
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
+use std::process::{Child, Command};
+use std::sync::{Arc, Mutex, OnceLock};
 
 pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
 pub static PRISMA_CLIENT: OnceLock<PrismaClient> = OnceLock::new();
+pub static SPRING_BOOT_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Folder {
@@ -343,6 +345,19 @@ async fn custom_command(name: String) -> Result<serde_json::Value, String> {
     }))
 }
 
+#[tauri::command]
+async fn check_backend_health() -> Result<bool, String> {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(2))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+
+    match client.get("http://localhost:7070/health").send().await {
+        Ok(response) => Ok(response.status().is_success()),
+        Err(_) => Ok(false),
+    }
+}
+
 pub fn run_terminal_command(command: String) {
     let rt_handle = RT_HANDLE.get().expect("Runtime handle not initialized");
     rt_handle.spawn(async move {
@@ -450,6 +465,7 @@ pub fn run() {
             get_dark_mode,
             set_dark_mode,
             set_title_bar_color,
+            check_backend_health,
         ])
         .setup(|app| {
             // Setup window appearance for macOS
@@ -608,6 +624,54 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+pub fn start_spring_boot() {
+    // Initialize the Spring Boot process storage
+    SPRING_BOOT_PROCESS.set(Arc::new(Mutex::new(None))).ok();
+
+    // Get the project root directory (parent of src-tauri)
+    let backend_dir = std::env::current_dir()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("backend-spring");
+
+    #[cfg(debug_assertions)]
+    println!("Starting Spring Boot from: {}", backend_dir.display());
+
+    // Launch Spring Boot using gradlew bootRun
+    let child = Command::new("./gradlew")
+        .arg("bootRun")
+        .current_dir(&backend_dir)
+        .spawn();
+
+    match child {
+        Ok(process) => {
+            #[cfg(debug_assertions)]
+            println!("Spring Boot started with PID: {:?}", process.id());
+
+            // Store the process handle
+            if let Some(process_lock) = SPRING_BOOT_PROCESS.get() {
+                *process_lock.lock().unwrap() = Some(process);
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to start Spring Boot: {}", e);
+            eprintln!("Make sure Java 17+ is installed and gradlew is executable");
+        }
+    }
+}
+
+pub fn shutdown_spring_boot() {
+    if let Some(process_lock) = SPRING_BOOT_PROCESS.get() {
+        if let Some(mut process) = process_lock.lock().unwrap().take() {
+            #[cfg(debug_assertions)]
+            println!("Shutting down Spring Boot...");
+
+            let _ = process.kill();
+        }
+    }
 }
 
 pub fn init_db() {

@@ -1,3 +1,4 @@
+import { ScriptsFolderDTO } from '@/types/dto';
 import { baseApi } from './baseApi';
 
 export interface Script {
@@ -22,8 +23,8 @@ export const scriptApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getScriptsByFolder: builder.query<Script[], number>({
       query: (folderId) => ({
-        command: 'get_scripts_by_folder',
-        args: { folderId },
+        url: `/scripts/folder/${folderId}`,
+        method: 'GET',
       }),
       providesTags: (_result, _error, folderId) => [
         { type: 'Script', id: `FOLDER-${folderId}` },
@@ -32,8 +33,9 @@ export const scriptApi = baseApi.injectEndpoints({
 
     createScript: builder.mutation<Script, CreateScriptRequest>({
       query: (request) => ({
-        command: 'create_script',
-        args: request,
+        url: '/scripts',
+        method: 'POST',
+        body: request,
       }),
       async onQueryStarted(request, { dispatch, queryFulfilled }) {
         try {
@@ -50,18 +52,19 @@ export const scriptApi = baseApi.injectEndpoints({
       },
     }),
 
-    updateScript: builder.mutation<Script, UpdateScriptRequest>({
+    updateScript: builder.mutation<Script, ScriptsFolderDTO>({
       query: (request) => ({
-        command: 'update_script',
-        args: request,
+        url: `/scripts/${request.id}`,
+        method: 'PUT',
+        body: request,
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: 'Script', id }, 'Script'],
     }),
 
     deleteScript: builder.mutation<void, { id: number; folderId: number }>({
       query: ({ id, folderId }) => ({
-        command: 'delete_script',
-        args: { id, folderId },
+        url: `/scripts/${id}?folderId=${folderId}`,
+        method: 'DELETE',
       }),
       async onQueryStarted({ id, folderId }, { dispatch, queryFulfilled }) {
         // Optimistically update the cache
@@ -73,7 +76,7 @@ export const scriptApi = baseApi.injectEndpoints({
             }
           })
         );
-        
+
         try {
           await queryFulfilled;
         } catch {
@@ -85,8 +88,9 @@ export const scriptApi = baseApi.injectEndpoints({
 
     reorderScripts: builder.mutation<void, { folderId: number; fromIndex: number; toIndex: number }>({
       query: ({ folderId, fromIndex, toIndex }) => ({
-        command: 'reorder_scripts',
-        args: { folderId, fromIndex, toIndex },
+        url: '/scripts/reorder',
+        method: 'POST',
+        body: { folderId, fromIndex, toIndex },
       }),
       async onQueryStarted({ folderId, fromIndex, toIndex }, { dispatch, queryFulfilled }) {
         // Optimistically update the cache
@@ -96,7 +100,7 @@ export const scriptApi = baseApi.injectEndpoints({
             draft.splice(toIndex, 0, movedItem);
           })
         );
-        
+
         try {
           await queryFulfilled;
         } catch {
@@ -108,8 +112,9 @@ export const scriptApi = baseApi.injectEndpoints({
 
     runScript: builder.mutation<void, string>({
       query: (command) => ({
-        command: 'run_script',
-        args: { command },
+        url: '/scripts/run',
+        method: 'POST',
+        body: { command },
       }),
     }),
   }),

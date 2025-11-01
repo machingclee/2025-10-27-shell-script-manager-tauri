@@ -3,12 +3,15 @@ import ReactDOM from "react-dom/client";
 import { Provider } from "react-redux";
 import App from "./App";
 import { store } from "./store/store";
+import { BackendLoadingScreen } from "./components/BackendLoadingScreen";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <Provider store={store}>
-      <App />
+      <BackendLoadingScreen>
+        <App />
+      </BackendLoadingScreen>
     </Provider>
   </React.StrictMode>
 );

@@ -1,10 +1,11 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { tauriBaseQuery } from './tauriBaseQuery';
+import { httpBaseQuery } from './baseQuery/httpBaseQuery';
+
 
 export const baseApi = createApi({
   reducerPath: 'api',
-  baseQuery: tauriBaseQuery(),
+  baseQuery: httpBaseQuery(),
   tagTypes: ['Folder', 'Script', 'User', 'AppState', 'DarkMode'],
-  endpoints: (_builder) => ({ }),
+  endpoints: (_builder) => ({}),
 });
 

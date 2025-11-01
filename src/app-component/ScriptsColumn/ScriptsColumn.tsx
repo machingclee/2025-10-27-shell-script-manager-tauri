@@ -1,5 +1,4 @@
 import React from 'react';
-import { scriptApi } from '@/store/api/scriptApi';
 import { useAppSelector } from '@/store/hooks';
 import { Plus, ScrollText, GripVertical } from 'lucide-react';
 import ScriptItem from './ScriptItem';
@@ -33,8 +32,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from 'react';
-import { Script } from '@/store/api/scriptApi';
-import { folderApi } from '@/store';
+import { Script, scriptApi } from '@/store/api/scriptApi';
+import { folderApi } from '@/store/api/folderApi';
+
 
 interface SortableScriptItemProps {
     script: Script;

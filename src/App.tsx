@@ -13,20 +13,23 @@ import {
 import { appStateApi } from "./store/api/appStateApi";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import folderSlice from "./store/slices/folderSlice";
-import { folderApi } from "./store";
+import { folderApi } from "./store/api/folderApi";
+
 
 
 
 function App() {
   const { data: appState } = appStateApi.endpoints.getAppState.useQuery();
-  const { data: darkMode } = appStateApi.endpoints.getDarkMode.useQuery();
-  const [setDarkMode] = appStateApi.endpoints.setDarkMode.useMutation();
+  const { data: appStateData } = appStateApi.endpoints.getAppState.useQueryState();
+  const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
   const dispatch = useAppDispatch();
+
+  const darkMode = appState?.darkMode ?? false;
 
   // Load the last opened folder on app start
   useEffect(() => {
-    if (appState?.last_opened_folder_id) {
-      dispatch(folderSlice.actions.setSelectedFolderId(appState.last_opened_folder_id));
+    if (appState?.lastOpenedFolderId) {
+      dispatch(folderSlice.actions.setSelectedFolderId(appState.lastOpenedFolderId));
     }
   }, [appState, dispatch]);
 
@@ -57,7 +60,9 @@ function App() {
   useEffect(() => {
     const unlisten = listen('toggle-dark-mode', async () => {
       const newDarkMode = !darkMode;
-      setDarkMode(newDarkMode);
+      if (appStateData) {
+        updateAppState({ ...appStateData, darkMode: newDarkMode });
+      }
 
       // Apply immediately for better UX
       if (newDarkMode) {
@@ -72,7 +77,7 @@ function App() {
     return () => {
       unlisten.then(fn => fn());
     };
-  }, [darkMode, setDarkMode]);
+  }, [darkMode, updateAppState]);
 
   const handleDragStart = (e: React.MouseEvent) => {
     // Only trigger on left click
