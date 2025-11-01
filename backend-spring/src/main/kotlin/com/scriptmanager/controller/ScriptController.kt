@@ -57,7 +57,7 @@ class ScriptController(
         val script = ShellScript(
             name = request.name,
             command = request.content,
-            ordering = count
+            ordering = count,
         )
         script.scriptsFolder = folder
 
