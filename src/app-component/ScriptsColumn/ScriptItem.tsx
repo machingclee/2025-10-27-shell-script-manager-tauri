@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Script, scriptApi } from "@/store/api/scriptApi";
 import { Edit, Play, Trash } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,7 +27,6 @@ import { useState, useEffect } from "react";
 import { ScriptsFolderDTO } from "@/types/dto";
 
 export default function ScriptItem({ script, folderId }: { script: Script; folderId: number }) {
-    const [runScript] = scriptApi.endpoints.runScript.useMutation();
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateScript] = scriptApi.endpoints.updateScript.useMutation();
 
@@ -44,9 +44,14 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
         }
     }, [isEditOpen, script.name, script.command]);
 
-    const handleRun = (e?: React.MouseEvent) => {
+    const handleRun = async (e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
-        runScript(script.command);
+        try {
+            console.log('Running script:', script.command);
+            await invoke('run_script', { command: script.command });
+        } catch (error) {
+            console.error('Failed to run script:', error);
+        }
     };
 
     const handleDelete = () => {

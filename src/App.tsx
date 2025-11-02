@@ -13,18 +13,40 @@ import {
 import { appStateApi } from "./store/api/appStateApi";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import folderSlice from "./store/slices/folderSlice";
+import configSlice from "./store/slices/configSlice";
 import { folderApi } from "./store/api/folderApi";
 
 
 
 
 function App() {
-  const { data: appState } = appStateApi.endpoints.getAppState.useQuery();
+  const dispatch = useAppDispatch();
+  const backendPort = useAppSelector(s => s.config.backendPort);
+
+  // Only fetch when backend port is available
+  const { data: appState } = appStateApi.endpoints.getAppState.useQuery(undefined, {
+    skip: !backendPort,
+  });
   const { data: appStateData } = appStateApi.endpoints.getAppState.useQueryState();
   const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
-  const dispatch = useAppDispatch();
 
   const darkMode = appState?.darkMode ?? false;
+
+  // Fetch backend port on mount (only in production, dev uses default 7070)
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      const fetchBackendPort = async () => {
+        try {
+          const port = await invoke<number>('get_backend_port');
+          dispatch(configSlice.actions.setBackendPort(port)); // Save to Redux
+          console.log('Backend running on port:', port);
+        } catch (error) {
+          console.error('Failed to get backend port:', error);
+        }
+      };
+      fetchBackendPort();
+    }
+  }, [dispatch]);
 
   // Load the last opened folder on app start
   useEffect(() => {

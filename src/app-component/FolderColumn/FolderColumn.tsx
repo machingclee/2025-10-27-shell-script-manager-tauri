@@ -4,6 +4,7 @@ import { FolderCode, Plus } from "lucide-react";
 import { folderApi } from "../../store/api/folderApi";
 import { appStateApi } from "../../store/api/appStateApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { invoke } from '@tauri-apps/api/core';
 
 import {
     DndContext,
@@ -38,16 +39,19 @@ import { ScriptsFolderDTO } from "@/types/dto";
 
 
 export default function FolderColumn() {
+    const dispatch = useAppDispatch();
+    const selectedFolderId = useAppSelector(s => s.folder.selectedFolderId);
+    const isReordering = useAppSelector(s => s.folder.isReorderingFolder);
+    const backendPort = useAppSelector(s => s.config.backendPort);
+
     const { data: folders, isLoading } = folderApi.endpoints.getAllFolders.useQuery(undefined, {
+        skip: !backendPort,
         // Stabilize the reference to prevent unnecessary re-renders
         selectFromResult: (result) => ({
             ...result,
             data: result.data ?? [],
         }),
     });
-    const dispatch = useAppDispatch();
-    const selectedFolderId = useAppSelector(s => s.folder.selectedFolderId);
-    const isReordering = useAppSelector(s => s.folder.isReorderingFolder);
     const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
     const [reorderFolders] = folderApi.endpoints.reorderFolders.useMutation();
     const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
@@ -56,8 +60,11 @@ export default function FolderColumn() {
 
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [newFolderName, setNewFolderName] = useState("");
+    const [isBackendClicked, setIsBackendClicked] = useState(false);
 
-    const { data: appState } = appStateApi.endpoints.getAppState.useQuery();
+    const { data: appState } = appStateApi.endpoints.getAppState.useQuery(undefined, {
+        skip: !backendPort,
+    });
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -114,6 +121,33 @@ export default function FolderColumn() {
         }
     };
 
+    const handleOpenBackendApi = async () => {
+        // Trigger click animation
+        setIsBackendClicked(true);
+        setTimeout(() => setIsBackendClicked(false), 200);
+
+        const url = `http://localhost:${backendPort}/api`;
+        try {
+            // Use shell command to open URL in default browser
+            // macOS: open, Windows: start, Linux: xdg-open
+            const isMac = navigator.userAgent.includes('Mac');
+            const isWindows = navigator.userAgent.includes('Windows');
+
+            let command: string;
+            if (isMac) {
+                command = `open "${url}"`;
+            } else if (isWindows) {
+                command = `start "${url}"`;
+            } else {
+                command = `xdg-open "${url}"`;
+            }
+
+            await invoke('run_script', { command });
+        } catch (error) {
+            console.error('Failed to open backend API:', error);
+        }
+    };
+
     const folderIds = React.useMemo(() => folders.map(f => f.id), [folders]);
 
     return (
@@ -162,6 +196,18 @@ export default function FolderColumn() {
                         </SortableContext>
                     </DndContext>
                 )}
+            </div>
+
+            {/* Backend Port Info */}
+            <div
+                className={`border-t border-gray-400 dark:border-neutral-600 p-2 text-xs text-neutral-500 dark:text-neutral-400 text-center cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all duration-200 select-none ${isBackendClicked
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                    : ''
+                    }`}
+                onClick={handleOpenBackendApi}
+                title="Click to open backend API in browser"
+            >
+                Backend: localhost:{backendPort}/api
             </div>
 
             {/* Create Folder Dialog */}

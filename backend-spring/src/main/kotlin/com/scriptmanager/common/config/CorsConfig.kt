@@ -1,4 +1,4 @@
-package com.scriptmanager.config
+package com.scriptmanager.common.config
 
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.servlet.config.annotation.CorsRegistry

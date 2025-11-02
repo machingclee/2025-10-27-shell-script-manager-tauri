@@ -12,10 +12,6 @@ export interface CreateFolderRequest {
 }
 
 // Response structure from Spring Boot
-interface FolderResponse {
-  folder: Folder;
-  scripts: any[];
-}
 
 export const folderApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({

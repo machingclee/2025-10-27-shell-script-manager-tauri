@@ -1,4 +1,4 @@
-package com.scriptmanager.config
+package com.scriptmanager.common.config
 
 import org.springframework.boot.jdbc.DataSourceBuilder
 import org.springframework.context.annotation.Bean
@@ -13,7 +13,7 @@ class DatabaseConfig(private val env: Environment) {
     fun dataSource(): DataSource {
         val dbUrl = getDatabaseUrl()
         println("Configuring database with URL: $dbUrl")
-        
+
         return DataSourceBuilder.create()
             .driverClassName("org.sqlite.JDBC")
             .url(dbUrl)

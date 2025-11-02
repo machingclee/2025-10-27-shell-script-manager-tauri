@@ -1,17 +1,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    // Initialize database
-    shell_script_manager_lib::init_db();
-
-    // Start Spring Boot backend
-    // DISABLED: Launch Spring Boot manually from IntelliJ instead
-    // shell_script_manager_lib::start_spring_boot();
-
     // Run the Tauri app
+    // - Database initialization happens in setup via init_db()
+    // - Spring Boot auto-starts in production mode only (not in dev)
+    // - Spring Boot cleanup is handled via window close events
     shell_script_manager_lib::run();
-
-    // Cleanup: Shutdown Spring Boot when app closes
-    // DISABLED: Since we're not auto-starting, no need to auto-shutdown
-    // shell_script_manager_lib::shutdown_spring_boot();
 }

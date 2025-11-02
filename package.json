@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "start:dev": "tauri dev",
-    "build:prod": "tauri build",
+    "bundle": "sh build-production.sh",
     "icon": "tauri icon"
   },
   "dependencies": {

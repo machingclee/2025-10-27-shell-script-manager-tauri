@@ -97,12 +97,15 @@ const SortableScriptItem = React.memo(function SortableScriptItem({ script, fold
 
 export default function ScriptsColumn() {
     const selectedFolderId = useAppSelector(s => s.folder.selectedFolderId);
+    const backendPort = useAppSelector(s => s.config.backendPort);
     const { data: selectedFolder } = folderApi.endpoints.getAllFolders.useQueryState(undefined, {
         selectFromResult: (result) => ({
             data: result.data?.find(f => f.id === selectedFolderId)
         })
     })
-    const { data: scripts, isLoading } = scriptApi.endpoints.getScriptsByFolder.useQuery(selectedFolderId ?? 0);
+    const { data: scripts, isLoading } = scriptApi.endpoints.getScriptsByFolder.useQuery(selectedFolderId ?? 0, {
+        skip: !backendPort || !selectedFolderId,
+    });
     const [createScript] = scriptApi.endpoints.createScript.useMutation();
     const [reorderScripts] = scriptApi.endpoints.reorderScripts.useMutation();
 

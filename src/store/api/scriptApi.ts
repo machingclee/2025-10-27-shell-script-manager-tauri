@@ -109,14 +109,6 @@ export const scriptApi = baseApi.injectEndpoints({
         }
       },
     }),
-
-    runScript: builder.mutation<void, string>({
-      query: (command) => ({
-        url: '/scripts/run',
-        method: 'POST',
-        body: { command },
-      }),
-    }),
   }),
 });
 

@@ -1,6 +1,12 @@
 import { BaseQueryFn } from '@reduxjs/toolkit/query';
+import type { RootState } from '../../store';
 
-const BACKEND_URL = 'http://localhost:7070';
+// Helper to get backend URL from Redux state
+function getBackendUrl(getState: () => unknown): string {
+  const state = getState() as RootState;
+  const port = state.config.backendPort;
+  return `http://localhost:${port}`;
+}
 
 export interface HttpQueryArgs {
   url: string;
@@ -19,10 +25,13 @@ export const httpBaseQuery = (): BaseQueryFn<
   unknown,
   HttpQueryError
 > => {
-  return async ({ url, method = 'GET', body, params }) => {
+  return async ({ url, method = 'GET', body, params }, api) => {
     try {
+      // Get dynamic backend URL from Redux state
+      const backendUrl = getBackendUrl(api.getState);
+
       // Build URL with query params if provided
-      const fullUrl = new URL(`${BACKEND_URL}${url}`);
+      const fullUrl = new URL(`${backendUrl}${url}`);
       if (params) {
         Object.entries(params).forEach(([key, value]) => {
           fullUrl.searchParams.append(key, value);

@@ -5,7 +5,7 @@ export function useBackendHealth() {
   const [isBackendReady, setIsBackendReady] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [checkAttempts, setCheckAttempts] = useState(0);
-  const maxAttempts = 30; // 30 attempts = 30 seconds max
+  const maxAttempts = 60; // Show for 60 seconds before giving hint
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -14,33 +14,26 @@ export function useBackendHealth() {
         if (healthy) {
           setIsBackendReady(true);
           setIsChecking(false);
-        } else if (checkAttempts < maxAttempts) {
-          // Not ready yet, will retry
-          setCheckAttempts(prev => prev + 1);
+          console.log('Backend is ready after', checkAttempts, 'attempts');
         } else {
-          // Max attempts reached
-          setIsChecking(false);
-          console.error('Backend failed to start after 30 seconds');
+          // Not ready yet, will keep retrying indefinitely
+          setCheckAttempts(prev => prev + 1);
         }
       } catch (error) {
-        console.error('Error checking backend health:', error);
-        if (checkAttempts < maxAttempts) {
-          setCheckAttempts(prev => prev + 1);
-        } else {
-          setIsChecking(false);
-        }
+        // Network error or backend not ready, keep retrying
+        setCheckAttempts(prev => prev + 1);
       }
     };
 
     if (isChecking && !isBackendReady) {
       // Check immediately on mount
       checkHealth();
-      
-      // Then check every second
+
+      // Then check every second indefinitely
       const interval = setInterval(checkHealth, 1000);
       return () => clearInterval(interval);
     }
-  }, [isChecking, isBackendReady, checkAttempts, maxAttempts]);
+  }, [isChecking, isBackendReady, checkAttempts]);
 
   return {
     isBackendReady,

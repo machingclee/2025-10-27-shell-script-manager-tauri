@@ -9,7 +9,7 @@ spring:
     name: script-manager-backend
 
   datasource:
-    url: jdbc:sqlite:../src-tauri/database.db
+    url: jdbc:sqlite:${DB_PATH:/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/database.db}
     driver-class-name: org.sqlite.JDBC
 
   jpa:
