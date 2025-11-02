@@ -7,6 +7,7 @@ plugins {
     kotlin("plugin.spring") version "1.9.10"
     kotlin("plugin.jpa") version "1.9.10"
     id("com.google.devtools.ksp") version "1.9.10-1.0.13"
+    id("org.graalvm.buildtools.native") version "0.10.1"
 }
 
 group = "com.scriptmanager"
@@ -67,4 +68,21 @@ tasks.register<Jar>("fatJar") {
     }
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
     from(sourceSets.main.get().output)
+}
+
+// GraalVM Native Image configuration
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("backend-native")
+            mainClass.set("com.scriptmanager.ApplicationKt")
+            
+            buildArgs.add("--verbose")
+            buildArgs.add("-H:+ReportExceptionStackTraces")
+            buildArgs.add("--initialize-at-build-time=org.slf4j")
+            buildArgs.add("--initialize-at-run-time=io.netty.handler.ssl")
+            buildArgs.add("-H:+AddAllCharsets")
+            buildArgs.add("-H:EnableURLProtocols=http,https")
+        }
+    }
 }

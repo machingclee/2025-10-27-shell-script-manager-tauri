@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Production Build Script for Shell Script Manager
-# This script builds the Spring Boot backend, downloads JRE, and builds the Tauri app
+# This script compiles the backend to a GraalVM native image and builds the Tauri app
 
 set -e
 
@@ -15,56 +15,51 @@ echo "Building Shell Script Manager Production"
 echo "========================================="
 echo ""
 
-# Step 1: Build Spring Boot JAR
-echo "Step 1: Building Spring Boot JAR..."
+# Step 1: Build GraalVM Native Image
+echo "Step 1: Building GraalVM Native Image (this may take 5-10 minutes)..."
 cd "$BACKEND_DIR"
-./gradlew clean bootJar
-echo "✓ Spring Boot JAR built successfully"
-echo ""
 
-# Step 2: Download JRE if not exists
-echo "Step 2: Checking for JRE..."
-if [ ! -d "$BACKEND_DIR/jre" ]; then
-    echo "JRE not found. Downloading..."
-    cd "$BACKEND_DIR"
-    ./download-jre.sh
+# Detect GraalVM installation
+if [ -d "/Library/Java/JavaVirtualMachines/graalvm-jdk-17/Contents/Home" ]; then
+    export JAVA_HOME="/Library/Java/JavaVirtualMachines/graalvm-jdk-17/Contents/Home"
+    echo "Using GraalVM at: $JAVA_HOME"
+elif command -v java &> /dev/null && java -version 2>&1 | grep -q "GraalVM"; then
+    echo "Using GraalVM from PATH"
 else
-    echo "✓ JRE already exists"
-fi
-echo ""
-
-# Step 3: Create resources directory structure
-echo "Step 3: Preparing Tauri resources..."
-mkdir -p "$RESOURCES_DIR/backend-spring"
-
-# Copy the JAR file
-echo "Copying Spring Boot JAR..."
-JAR_FILE=$(find "$BACKEND_DIR/build/libs" -name "*.jar" -not -name "*-plain.jar" | head -n 1)
-if [ -z "$JAR_FILE" ]; then
-    echo "ERROR: Could not find Spring Boot JAR file"
+    echo "ERROR: GraalVM not found. Please install GraalVM 17:"
+    echo "  brew install --cask graalvm/tap/graalvm-jdk17"
     exit 1
 fi
-cp "$JAR_FILE" "$RESOURCES_DIR/backend-spring/app.jar"
-echo "✓ JAR copied to: $RESOURCES_DIR/backend-spring/app.jar"
 
-# Copy the JRE
-echo "Copying JRE..."
-if [ -d "$RESOURCES_DIR/backend-spring/jre" ]; then
-    rm -rf "$RESOURCES_DIR/backend-spring/jre"
-fi
-cp -R "$BACKEND_DIR/jre" "$RESOURCES_DIR/backend-spring/jre"
-echo "✓ JRE copied to: $RESOURCES_DIR/backend-spring/jre"
+./gradlew clean nativeCompile
+echo "✓ Native image built successfully"
 echo ""
 
-# Step 4: Build frontend
-echo "Step 4: Building frontend..."
+# Step 2: Create resources directory structure
+echo "Step 2: Preparing Tauri resources..."
+mkdir -p "$RESOURCES_DIR/backend-spring"
+
+# Copy the native binary
+echo "Copying native binary..."
+NATIVE_BINARY="$BACKEND_DIR/build/native/nativeCompile/backend-native"
+if [ ! -f "$NATIVE_BINARY" ]; then
+    echo "ERROR: Native binary not found at $NATIVE_BINARY"
+    exit 1
+fi
+cp "$NATIVE_BINARY" "$RESOURCES_DIR/backend-spring/backend-native"
+chmod +x "$RESOURCES_DIR/backend-spring/backend-native"
+echo "✓ Native binary copied to: $RESOURCES_DIR/backend-spring/backend-native"
+echo ""
+
+# Step 3: Build frontend
+echo "Step 3: Building frontend..."
 cd "$PROJECT_ROOT"
 yarn build
 echo "✓ Frontend built successfully"
 echo ""
 
-# Step 5: Build Tauri app
-echo "Step 5: Building Tauri application..."
+# Step 4: Build Tauri app
+echo "Step 4: Building Tauri application..."
 cd "$PROJECT_ROOT"
 yarn tauri build
 echo ""

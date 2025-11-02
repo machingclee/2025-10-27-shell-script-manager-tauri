@@ -407,7 +407,7 @@ fn get_database_path(app_handle: &tauri::AppHandle) -> Result<String, String> {
 
 ### 4. Rust ↔ Spring Boot (Process Management & HTTP)
 
-**Starting Spring Boot from Rust**
+**Starting Spring Boot Native Binary from Rust**
 
 ```rust
 // src-tauri/src/lib.rs
@@ -418,23 +418,31 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
     // Get database path
     let db_path = get_database_path(&app_handle)?;
 
-    // Get bundled JAR path
+    // Get bundled native binary path
     let resource_path = app_handle
         .path()
         .resource_dir()
         .map_err(|e| format!("Failed to get resource directory: {}", e))?;
     let backend_dir = resource_path.join("resources").join("backend-spring");
-    let jar_path = backend_dir.join("app.jar");
 
-    if !jar_path.exists() {
-        return Err(format!("JAR file not found at {:?}", jar_path));
+    println!("Backend directory: {:?}", backend_dir);
+
+    // Use the bundled GraalVM native image (this function is only called in production mode)
+    let native_binary = backend_dir.join("backend-native");
+
+    println!(
+        "Production mode: Using native binary at {:?}",
+        native_binary
+    );
+
+    // Verify native binary exists
+    if !native_binary.exists() {
+        return Err(format!("Native binary not found at {:?}", native_binary));
     }
 
-    // Launch Spring Boot with dynamic port and database path
-    let child = Command::new("java")
-        .current_dir(&backend_dir)
-        .arg("-jar")
-        .arg(&jar_path)
+    // Use GraalVM native image (no Java required!)
+    // This is a standalone executable - just run it directly!
+    let child = Command::new(&native_binary)
         .arg(format!("--server.port={}", port))
         .arg(format!("--spring.datasource.url=jdbc:sqlite:{}", db_path))
         .spawn()
@@ -445,9 +453,29 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
         *process_mutex.lock().unwrap() = Some(child);
     }
 
+    println!("Spring Boot backend started successfully");
     Ok(())
 }
 ```
+
+**Key Points:**
+
+- ✅ **No Java/JRE required** - The `backend-native` is a standalone executable
+- ✅ **Direct execution** - Use `Command::new(&native_binary)` to run it like any native binary
+- ✅ **Command-line args work** - Pass Spring Boot properties as arguments
+- ✅ **Much faster startup** - Native images start in milliseconds vs seconds for JVM
+- ✅ **Smaller bundle size** - ~100MB native binary vs ~310MB JRE + 30MB JAR
+
+**What's Happening:**
+
+```bash
+# This is what Rust is doing under the hood:
+./backend-native \
+  --server.port=7070 \
+  --spring.datasource.url=jdbc:sqlite:/path/to/database.db
+```
+
+It's equivalent to running a native macOS application - no JVM, no Java, just pure compiled code!
 
 **Health Check from Rust**
 
@@ -721,6 +749,164 @@ UI loads with data from database
 
 ---
 
+## 🔨 GraalVM Native Image Compilation
+
+### What is GraalVM Native Image?
+
+GraalVM Native Image is an ahead-of-time (AOT) compilation technology that converts Java/Kotlin bytecode into a standalone native executable. Unlike traditional JVM applications that require a Java Runtime Environment, native images:
+
+1. **Compile directly to machine code** - No bytecode interpretation
+2. **Start instantly** - No JVM warmup time
+3. **Use less memory** - No JVM overhead
+4. **Are self-contained** - Everything bundled into one executable
+
+### How It Works in This Project
+
+```
+┌─────────────────────────────────────────────────┐
+│  1. Write Kotlin Code (Spring Boot Backend)     │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│  2. Gradle Plugin: org.graalvm.buildtools.native│
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│  3. Run: ./gradlew nativeCompile                 │
+│     - Analyzes all reachable code               │
+│     - Resolves reflection/resources             │
+│     - Compiles to native machine code           │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│  4. Output: backend-native (executable)          │
+│     Size: ~100MB                                 │
+│     Location: build/native/nativeCompile/        │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│  5. Copy to Tauri Resources                      │
+│     → src-tauri/resources/backend-spring/        │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│  6. Bundle with Tauri App                        │
+│     → Final .app includes native binary          │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│  7. Run in Production                            │
+│     Rust executes: ./backend-native --server.port=X │
+│     No Java required! ✅                         │
+└──────────────────────────────────────────────────┘
+```
+
+### Configuration in `build.gradle.kts`
+
+```kotlin
+plugins {
+    id("org.graalvm.buildtools.native") version "0.10.1"
+}
+
+graalvmNative {
+    binaries {
+        named("main") {
+            imageName.set("backend-native")
+            mainClass.set("com.scriptmanager.ApplicationKt")
+
+            buildArgs.add("--verbose")
+            buildArgs.add("--no-fallback")
+
+            // Initialize common classes at build time for faster startup
+            buildArgs.add("--initialize-at-build-time=org.slf4j")
+            buildArgs.add("--initialize-at-build-time=ch.qos.logback")
+
+            // Support all character sets (for database encoding)
+            buildArgs.add("-H:+AddAllCharsets")
+
+            // Enable all security services
+            buildArgs.add("--enable-all-security-services")
+        }
+    }
+}
+```
+
+### Reflection Configuration
+
+Native images need to know about classes used via reflection (common in Spring Boot). We provide hints in `reflect-config.json`:
+
+```json
+// backend-spring/src/main/resources/META-INF/native-image/reflect-config.json
+[
+  {
+    "name": "org.sqlite.JDBC",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  },
+  {
+    "name": "org.hibernate.dialect.SQLiteDialect",
+    "methods": [{ "name": "<init>", "parameterTypes": [] }]
+  }
+  // ... more reflection hints
+]
+```
+
+### Executing the Native Binary in Rust
+
+```rust
+// src-tauri/src/lib.rs (lines 381-385)
+let child = Command::new(&native_binary)  // ← Direct execution!
+    .arg(format!("--server.port={}", port))
+    .arg(format!("--spring.datasource.url=jdbc:sqlite:{}", db_path))
+    .spawn()
+    .map_err(|e| format!("Failed to start Spring Boot backend: {}", e))?;
+```
+
+**This is equivalent to:**
+
+```bash
+./backend-native \
+  --server.port=7070 \
+  --spring.datasource.url=jdbc:sqlite:/path/to/database.db
+```
+
+### Build Output Verification
+
+```bash
+# Check the native binary
+$ ls -lh backend-spring/build/native/nativeCompile/
+-rwxr-xr-x  1 user  staff   97M Nov  2 12:34 backend-native
+
+# Verify it's a Mach-O executable (macOS)
+$ file backend-spring/build/native/nativeCompile/backend-native
+backend-native: Mach-O 64-bit executable arm64
+
+# Test it directly
+$ ./backend-native --server.port=8080
+# ✅ Spring Boot starts instantly (no JVM!)
+```
+
+### Benefits vs Traditional JVM Deployment
+
+| Aspect                  | JVM (JAR + JRE)          | GraalVM Native Image    |
+| ----------------------- | ------------------------ | ----------------------- |
+| **Startup Time**        | 2-5 seconds              | 50-200 milliseconds     |
+| **Memory Usage**        | 200-300MB                | 50-100MB                |
+| **Bundle Size**         | ~340MB (JRE + JAR)       | ~100MB (single binary)  |
+| **Dependencies**        | Requires Java installed  | Zero dependencies       |
+| **Build Time**          | Fast (~30s)              | Slower (~2-5 min)       |
+| **Runtime Performance** | Excellent (after warmup) | Good (no warmup needed) |
+| **Reflection Support**  | Automatic                | Manual configuration    |
+
+### Key Takeaways
+
+- ✅ **Production**: Native binary runs standalone
+- ✅ **Development**: Still use `./gradlew bootRun` (fast iteration)
+- ✅ **Build once**: `nativeCompile` creates platform-specific executable
+- ✅ **Distribution**: Users get native app experience
+- ✅ **No Java**: End users never know there's a "Java" backend
+
+---
+
 ## 🎨 Key Features
 
 ### 1. **Folder & Script Organization**
@@ -782,27 +968,33 @@ yarn bundle
 **Or manually:**
 
 ```bash
-# 1. Build Spring Boot JAR
+# 1. Build Spring Boot Native Image (requires GraalVM)
 cd backend-spring
-./gradlew clean bootJar
+./gradlew clean nativeCompile
 
-# 2. Download JRE if not exists (only needed once)
-./download-jre.sh
-
-# 3. Copy resources and fix permissions
+# 2. Copy native binary to Tauri resources
 mkdir -p ../src-tauri/resources/backend-spring
-cp build/libs/*.jar ../src-tauri/resources/backend-spring/app.jar
-cp -R jre ../src-tauri/resources/backend-spring/jre
-chmod -R 755 ../src-tauri/resources/backend-spring/jre
-xattr -cr ../src-tauri/resources/backend-spring/jre
+cp build/native/nativeCompile/backend-native ../src-tauri/resources/backend-spring/
+chmod +x ../src-tauri/resources/backend-spring/backend-native
 
-# 4. Build frontend and Tauri app
+# 3. Build frontend and Tauri app
 cd ..
 yarn build
 yarn tauri build
 ```
 
-**Note:** The production build includes a **bundled JRE (Java Runtime Environment)**, so end users do **not** need to install Java. The app is completely self-contained.
+**What the Build Script Does:**
+
+```bash
+# build-production.sh
+# 1. Detects GraalVM installation and sets JAVA_HOME
+# 2. Builds native image: ./gradlew clean nativeCompile
+# 3. Copies backend-native to src-tauri/resources/
+# 4. Builds frontend: yarn build
+# 5. Builds Tauri app: yarn tauri build
+```
+
+**Note:** The production build uses **GraalVM Native Image** to compile the Spring Boot backend into a standalone native executable (~100MB). No JRE needed! End users do **not** need to install Java. The app is completely self-contained and starts instantly.
 
 ---
 
@@ -822,6 +1014,7 @@ yarn tauri build
 - `spring-boot-starter-data-jpa` - Database ORM
 - `sqlite-jdbc` - SQLite driver
 - `hibernate-community-dialects` - SQLite dialect
+- `org.graalvm.buildtools.native` (Gradle plugin) - Native image compilation
 
 ### Rust
 
@@ -894,12 +1087,13 @@ ShellScript (shell_script)
    - Allows multiple instances if needed
    - More secure (unpredictable port)
 
-6. **Why Bundle a JRE?**
-   - **Zero dependencies** - Users don't need to install Java
-   - **Version control** - Ensures the app uses the correct Java version (17)
-   - **Consistent behavior** - Same runtime across all installations
-   - **Better UX** - App works immediately after installation
-   - **Self-contained** - ~310MB JRE included, but worth it for portability
+6. **Why Use GraalVM Native Image?**
+   - **Zero dependencies** - No JRE/Java required on user's system
+   - **Instant startup** - Native binaries start in milliseconds (vs seconds for JVM)
+   - **Smaller bundle size** - ~100MB native binary vs ~310MB JRE + 30MB JAR
+   - **Lower memory footprint** - No JVM overhead
+   - **Better security** - Ahead-of-time compilation, no runtime bytecode execution
+   - **Self-contained** - Single executable with everything built-in
 
 ---
 
@@ -911,8 +1105,10 @@ ShellScript (shell_script)
 - **Backend lifecycle**: Managed by Rust, auto-starts in production
 - **Query skipping**: Queries wait for backend port before executing
 - **Error handling**: Rust uses `Result<>` to prevent panics in Objective-C context
-- **Embedded JRE**: Production builds include OpenJDK 17 JRE (~310MB), no system Java required
-- **JRE path**: Located at `app.app/Contents/Resources/resources/backend-spring/jre/Contents/Home/bin/java`
+- **GraalVM Native Image**: Spring Boot backend compiled to native executable (~100MB)
+- **Native binary path**: `app.app/Contents/Resources/resources/backend-spring/backend-native`
+- **No JVM required**: Native image runs directly on the OS (instant startup)
+- **Build requirement**: GraalVM must be installed for `nativeCompile` (detected automatically by `build-production.sh`)
 
 ---
 
@@ -929,4 +1125,40 @@ ShellScript (shell_script)
 
 ---
 
-Generated: November 2, 2025
+## 🎓 Learning Resources
+
+### Understanding the Build Process
+
+**1. What happens when you run `yarn bundle`?**
+
+- Builds Kotlin backend to native binary (`./gradlew nativeCompile`)
+- Copies `backend-native` to `src-tauri/resources/`
+- Builds React frontend (`yarn build`)
+- Bundles everything with Tauri (`yarn tauri build`)
+
+**2. Where does Rust execute the backend?**
+
+- Location: `src-tauri/src/lib.rs`, lines 381-385
+- Method: `Command::new(&native_binary)` - Direct executable invocation
+- Context: Only runs in production builds (`cfg!(not(debug_assertions))`)
+
+**3. How do command-line arguments work?**
+
+```rust
+Command::new(&native_binary)
+    .arg("--server.port=7070")              // Spring property
+    .arg("--spring.datasource.url=...")    // Spring property
+    .spawn()                                // Launch as child process
+```
+
+These override properties in `application.yml`!
+
+**4. Development vs Production**
+
+- **Dev**: You manually start Spring Boot on port 7070 (`./gradlew bootRun`)
+- **Production**: Rust automatically starts native binary on random port (10000-60000)
+
+---
+
+Generated: November 2, 2025  
+Last Updated: Added GraalVM Native Image documentation

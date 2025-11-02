@@ -364,22 +364,21 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
     let backend_dir = resource_path.join("resources").join("backend-spring");
     println!("Backend directory: {:?}", backend_dir);
 
-    // Use the bundled JAR with system Java (this function is only called in production mode)
-    let jar_path = backend_dir.join("app.jar");
+    // Use the bundled GraalVM native image (this function is only called in production mode)
+    let native_binary = backend_dir.join("backend-native");
 
-    println!("Production mode: Using JAR at {:?}", jar_path);
-    println!("Using system Java from PATH");
+    println!(
+        "Production mode: Using native binary at {:?}",
+        native_binary
+    );
 
-    // Verify JAR exists
-    if !jar_path.exists() {
-        return Err(format!("JAR file not found at {:?}", jar_path));
+    // Verify native binary exists
+    if !native_binary.exists() {
+        return Err(format!("Native binary not found at {:?}", native_binary));
     }
 
-    // Use system Java (requires Java 17+ to be installed)
-    let child = Command::new("java")
-        .current_dir(&backend_dir)
-        .arg("-jar")
-        .arg(&jar_path)
+    // Use GraalVM native image (no Java required!)
+    let child = Command::new(&native_binary)
         .arg(format!("--server.port={}", port))
         .arg(format!("--spring.datasource.url=jdbc:sqlite:{}", db_path))
         .spawn()
@@ -478,7 +477,6 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<(), String> {
 fn find_available_port() -> Result<u16, String> {
     use rand::Rng;
     use std::net::TcpListener;
-
     let mut rng = rand::thread_rng();
 
     // Try up to 100 random ports
