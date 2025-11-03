@@ -195,10 +195,19 @@ pub fn open_terminal_with_command(command: String) {
 
         let script_path_str = script_path.to_string_lossy().to_string();
 
-        // Simple AppleScript that just runs the script file
+        // AppleScript that runs the script and closes the terminal window automatically
         let applescript = format!(
-            r#"tell application "Terminal" to do script "{}; rm '{}'; exec {}""#,
-            script_path_str, script_path_str, shell
+            r#"tell application "Terminal"
+    set newTab to do script "{}; rm '{}'; exit"
+    repeat
+        delay 0.1
+        if not busy of newTab then
+            close (first window whose tabs contains newTab)
+            exit repeat
+        end if
+    end repeat
+end tell"#,
+            script_path_str, script_path_str
         );
 
         println!("Running script via temporary file: {}", script_path_str);
