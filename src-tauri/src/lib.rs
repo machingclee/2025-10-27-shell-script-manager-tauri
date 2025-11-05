@@ -544,7 +544,6 @@ fn init_spring_boot(app_handle: tauri::AppHandle) -> Result<(), String> {
 fn setup_macos_window(app: &tauri::App) {
     use cocoa::appkit::{NSWindow, NSWindowButton, NSWindowStyleMask, NSWindowTitleVisibility};
     use cocoa::base::{id, nil, YES};
-    use cocoa::foundation::NSRect;
 
     if let Some(window) = app.get_webview_window("main") {
         unsafe {
@@ -560,7 +559,7 @@ fn setup_macos_window(app: &tauri::App) {
                 style_mask |= NSWindowStyleMask::NSFullSizeContentViewWindowMask;
                 ns_window.setStyleMask_(style_mask);
 
-                // Adjust traffic light button positions
+                // Hide native traffic light buttons (we use custom ones)
                 let close_button =
                     ns_window.standardWindowButton_(NSWindowButton::NSWindowCloseButton);
                 let miniaturize_button =
@@ -569,24 +568,15 @@ fn setup_macos_window(app: &tauri::App) {
                     ns_window.standardWindowButton_(NSWindowButton::NSWindowZoomButton);
 
                 if close_button != nil {
-                    let mut frame: NSRect = msg_send![close_button, frame];
-                    frame.origin.x = frame.origin.x + 10.0;
-                    frame.origin.y = -5.0;
-                    let _: () = msg_send![close_button, setFrame: frame];
+                    let _: () = msg_send![close_button, setHidden: YES];
                 }
 
                 if miniaturize_button != nil {
-                    let mut frame: NSRect = msg_send![miniaturize_button, frame];
-                    frame.origin.x = frame.origin.x + 10.0;
-                    frame.origin.y = -5.0;
-                    let _: () = msg_send![miniaturize_button, setFrame: frame];
+                    let _: () = msg_send![miniaturize_button, setHidden: YES];
                 }
 
                 if zoom_button != nil {
-                    let mut frame: NSRect = msg_send![zoom_button, frame];
-                    frame.origin.x = frame.origin.x + 10.0;
-                    frame.origin.y = -5.0;
-                    let _: () = msg_send![zoom_button, setFrame: frame];
+                    let _: () = msg_send![zoom_button, setHidden: YES];
                 }
             }
         }

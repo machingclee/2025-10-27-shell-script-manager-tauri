@@ -1,5 +1,5 @@
 import "./App.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -101,6 +101,8 @@ function App() {
     };
   }, [darkMode, updateAppState]);
 
+  const [isMaximized, setIsMaximized] = useState(false);
+
   const handleDragStart = (e: React.MouseEvent) => {
     // Only trigger on left click
     if (e.button !== 0) return;
@@ -111,15 +113,68 @@ function App() {
     });
   };
 
+  const handleMinimize = async () => {
+    const window = getCurrentWindow();
+    await window.minimize();
+  };
+
+  const handleMaximize = async () => {
+    const window = getCurrentWindow();
+    await window.toggleMaximize();
+    setIsMaximized(!isMaximized);
+  };
+
+  const handleClose = async () => {
+    const window = getCurrentWindow();
+    await window.close();
+  };
+
+  const handleDoubleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const window = getCurrentWindow();
+    await window.toggleMaximize();
+    setIsMaximized(!isMaximized);
+  };
+
   return (
     <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-800 flex flex-col">
-      {/* Draggable title bar area */}
+      {/* Custom title bar with window controls */}
       <div
-        className="h-12 flex-shrink-0 bg-transparent select-none dark:bg-[rgba(255,255,255,0.05)] flex items-center justify-center dark:text-white w-full"
+        className="h-12 flex-shrink-0 bg-transparent select-none dark:bg-[rgba(255,255,255,0.05)] flex items-center dark:text-white w-full relative"
         onMouseDown={handleDragStart}
-        onDoubleClick={(e) => e.preventDefault()}
+        onDoubleClick={handleDoubleClick}
       >
-        {selectedFolder?.name}
+        {/* Window control buttons (macOS style) */}
+        <div className="absolute left-4 flex gap-2 z-10">
+          <button
+            onClick={handleClose}
+            className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group"
+            aria-label="Close"
+          >
+            <span className="hidden group-hover:block text-red-900 text-xs leading-none">×</span>
+          </button>
+          <button
+            onClick={handleMinimize}
+            className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center group"
+            aria-label="Minimize"
+          >
+            <span className="hidden group-hover:block text-yellow-900 text-xs leading-none">−</span>
+          </button>
+          <button
+            onClick={handleMaximize}
+            className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center group"
+            aria-label="Maximize"
+          >
+            <span className="hidden group-hover:block text-green-900 text-xs leading-none">{isMaximized ? '−' : '+'}</span>
+          </button>
+        </div>
+
+        {/* Window title (centered) */}
+        <div className="flex-1 flex items-center justify-center">
+          {selectedFolder?.name}
+        </div>
       </div>
 
       {/* Main content */}
