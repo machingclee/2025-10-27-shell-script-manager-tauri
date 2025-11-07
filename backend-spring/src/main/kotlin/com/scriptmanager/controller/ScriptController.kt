@@ -1,8 +1,6 @@
 package com.scriptmanager.controller
 
-import com.scriptmanager.common.dto.ApiResponse
-import com.scriptmanager.common.dto.CreateScriptRequest
-import com.scriptmanager.common.dto.ReorderScriptsRequest
+import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.ShellScript
 import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.common.entity.toDTO
@@ -31,9 +29,9 @@ class ScriptController(
     }
 
     @GetMapping("/folder/{folderId}")
-    fun getScriptsByFolder(@PathVariable folderId: Int): ApiResponse<List<ShellScriptDTO>> {
-        val scripts = scriptRepository.findByFolderId(folderId).map { it.toDTO() }
-        return ApiResponse(scripts)
+    fun getScriptsByFolder(@PathVariable folderId: Int): ApiResponse<ScriptsFolderResponse> {
+        val folder = folderRepository.findByIdOrNull(folderId) ?: throw Exception("Folder not found")
+        return ApiResponse(folder.toResponse())
     }
 
     @GetMapping("/{id}")
@@ -75,7 +73,7 @@ class ScriptController(
         script.apply {
             name = scriptDetails.name
             command = scriptDetails.command
-            ordering = scriptDetails.ordering
+            showShell = scriptDetails.showShell
         }
         return script.toDTO()
     }

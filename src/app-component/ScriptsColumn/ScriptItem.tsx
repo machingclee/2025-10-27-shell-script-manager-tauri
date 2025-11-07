@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Script, scriptApi } from "@/store/api/scriptApi";
 import { Edit, Play, Trash } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -23,10 +22,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
-import { ScriptsFolderDTO } from "@/types/dto";
+import { ScriptsFolderDTO, ShellScriptDTO } from "@/types/dto";
+import { scriptApi } from "@/store/api/scriptApi";
 
-export default function ScriptItem({ script, folderId }: { script: Script; folderId: number }) {
+export default function ScriptItem({ script, folderId }: { script: ShellScriptDTO; folderId: number }) {
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateScript] = scriptApi.endpoints.updateScript.useMutation();
 
@@ -35,6 +36,7 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
     const [editName, setEditName] = useState(script.name);
     const [editCommand, setEditCommand] = useState(script.command);
     const [isSelected, setIsSelected] = useState(false);
+    const [showShell, setShowShell] = useState(false);
 
     // Reset form when dialog opens
     useEffect(() => {
@@ -55,7 +57,7 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
     };
 
     const handleDelete = () => {
-        deleteScript({ id: script.id, folderId });
+        deleteScript({ id: script.id ?? 0, folderId });
     };
 
     const handleDeleteClick = (e: React.MouseEvent) => {
@@ -74,14 +76,20 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
     };
 
     const handleUpdate = async () => {
-        const finalScriptDTO = {
+        const finalScriptDTO: ShellScriptDTO = {
             ...script as unknown as ScriptsFolderDTO,
             id: script.id,
             name: editName,
             command: editCommand,
+            showShell: showShell,
         }
         await updateScript(finalScriptDTO);
         setIsEditOpen(false);
+    };
+
+    const onShowShellChange = (checked: boolean) => {
+
+        setShowShell(checked);
     };
 
     return (
@@ -103,6 +111,14 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                     onMouseDown={(e) => e.stopPropagation()}
                     onMouseUp={(e) => e.stopPropagation()}
                 >
+                    <div className="flex items-center gap-2 mr-2">
+                        <span className="text-xs font-medium">Show Shell</span>
+                        <Switch
+                            checked={showShell}
+                            onCheckedChange={onShowShellChange}
+                            className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-neutral-600"
+                        />
+                    </div>
                     <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
                         <Button
                             variant="destructive"
@@ -131,8 +147,8 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                     >
                         <Edit className="w-4 h-4" /> Edit
                     </Button>
-                    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                        <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen} >
+                        <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
                             <DialogHeader>
                                 <DialogTitle>Edit Script</DialogTitle>
                                 <DialogDescription>
@@ -157,7 +173,7 @@ export default function ScriptItem({ script, folderId }: { script: Script; folde
                                         value={editCommand}
                                         onChange={(e) => setEditCommand(e.target.value)}
                                         placeholder="Command to execute"
-                                        rows={4}
+                                        rows={18}
                                         className="font-mono text-sm  bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
                                     />
                                 </div>

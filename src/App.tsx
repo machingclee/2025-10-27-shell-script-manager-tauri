@@ -55,7 +55,7 @@ function App() {
     }
   }, [appState, dispatch]);
 
-  // Apply dark mode class to document and update title bar
+  // Apply dark mode class to document and update database
   useEffect(() => {
     const applyDarkMode = async () => {
       if (darkMode) {

@@ -35,6 +35,27 @@ data class ScriptsFolder(
         inverseJoinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id")]
     )
     var shellScripts: MutableSet<ShellScript> = mutableSetOf()
+
+
+    @OneToMany
+    @Cascade(CascadeType.ALL)
+    @JoinTable(
+        name = "rel_folder_folder",
+        joinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id")],
+        inverseJoinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id")]
+    )
+    var subfolders: MutableSet<ScriptsFolder> = mutableSetOf()
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "rel_folder_folder",
+        joinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id")],
+        inverseJoinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id")]
+    )
+    var parentFolder: ScriptsFolder? = null
 }
+
+
+
 
 

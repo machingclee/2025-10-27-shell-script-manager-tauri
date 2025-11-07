@@ -26,6 +26,8 @@ model scripts_folder {
   created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
   created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
   rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
+  rel_parent_folder_folder      rel_folder_folder[]             @relation("ParentFolder")
+  rel_child_folder_folder       rel_folder_folder[]             @relation("ChildFolder")
 
   @@index([id])
 }
@@ -50,7 +52,21 @@ model shell_script {
   ordering                      Int
   created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
   created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+  show_shell                    Boolean                         @default(false)
   rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
 
   @@index([id])
+}
+
+model rel_folder_folder {
+  id               Int            @id @default(autoincrement())
+  parent_folder_id Int
+  child_folder_id  Int
+  created_at       Float          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+  created_at_hk    String         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+  parent_folder    scripts_folder @relation("ParentFolder", fields: [parent_folder_id], references: [id])
+  child_folder     scripts_folder @relation("ChildFolder", fields: [child_folder_id], references: [id])
+
+  @@index([parent_folder_id])
+  @@index([child_folder_id])
 }

@@ -1,27 +1,33 @@
-import { ScriptsFolderDTO } from '@/types/dto';
+import { CreateScriptRequest, ScriptsFolderResponse, ShellScriptDTO } from '@/types/dto';
 import { baseApi } from './baseApi';
 
-export interface Script {
-  id: number;
-  name: string;
-  command: string;
-}
 
-export interface CreateScriptRequest {
-  name: string;
-  content: string;
-  folderId: number;
-}
 
-export interface UpdateScriptRequest {
-  id: number;
-  name?: string;
-  content?: string;
+const getSubfolder = (folderResponse: ScriptsFolderResponse, folderId: number): ScriptsFolderResponse | null => {
+  // First check if the current folder is the target
+  if (folderResponse.id === folderId) {
+    return folderResponse;
+  }
+
+  // Then search in subfolders
+  const targetFolder = folderResponse.subfolders.find(subfolder => subfolder.id === folderId);
+  if (targetFolder) {
+    return targetFolder;
+  }
+
+  // Recursively search in nested subfolders
+  for (const subfolder of folderResponse.subfolders) {
+    const result = getSubfolder(subfolder, folderId);
+    if (result) {
+      return result;
+    }
+  }
+  return null;
 }
 
 export const scriptApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getScriptsByFolder: builder.query<Script[], number>({
+    getScriptsByFolder: builder.query<ScriptsFolderResponse, number>({
       query: (folderId) => ({
         url: `/scripts/folder/${folderId}`,
         method: 'GET',
@@ -31,7 +37,7 @@ export const scriptApi = baseApi.injectEndpoints({
       ],
     }),
 
-    createScript: builder.mutation<Script, CreateScriptRequest>({
+    createScript: builder.mutation<ShellScriptDTO, CreateScriptRequest>({
       query: (request) => ({
         url: '/scripts',
         method: 'POST',
@@ -43,7 +49,10 @@ export const scriptApi = baseApi.injectEndpoints({
           // Optimistically add the new script to the cache
           dispatch(
             scriptApi.util.updateQueryData('getScriptsByFolder', request.folderId, (draft) => {
-              draft.push(newScript);
+              const subfolder = getSubfolder(draft, request.folderId);
+              if (subfolder) {
+                subfolder.shellScripts.push(newScript);
+              }
             })
           );
         } catch {
@@ -52,7 +61,7 @@ export const scriptApi = baseApi.injectEndpoints({
       },
     }),
 
-    updateScript: builder.mutation<Script, ScriptsFolderDTO>({
+    updateScript: builder.mutation<ShellScriptDTO, ShellScriptDTO>({
       query: (request) => ({
         url: `/scripts/${request.id}`,
         method: 'PUT',
@@ -70,9 +79,13 @@ export const scriptApi = baseApi.injectEndpoints({
         // Optimistically update the cache
         const patchResult = dispatch(
           scriptApi.util.updateQueryData('getScriptsByFolder', folderId, (draft) => {
-            const index = draft.findIndex(s => s.id === id);
+            const folder = getSubfolder(draft, folderId);
+            if (!folder) {
+              return;
+            }
+            const index = folder.shellScripts.findIndex(s => s.id === id);
             if (index !== -1) {
-              draft.splice(index, 1);
+              folder.shellScripts.splice(index, 1);
             }
           })
         );
@@ -94,10 +107,18 @@ export const scriptApi = baseApi.injectEndpoints({
       }),
       async onQueryStarted({ folderId, fromIndex, toIndex }, { dispatch, queryFulfilled }) {
         // Optimistically update the cache
+
         const patchResult = dispatch(
           scriptApi.util.updateQueryData('getScriptsByFolder', folderId, (draft) => {
-            const [movedItem] = draft.splice(fromIndex, 1);
-            draft.splice(toIndex, 0, movedItem);
+            console.log('draft', draft);
+            const folder = getSubfolder(draft, folderId);
+            console.log('folder', folder);
+            if (!folder) {
+              console.log('folder not found');
+              return;
+            }
+            const [movedItem] = folder.shellScripts.splice(fromIndex, 1);
+            folder.shellScripts.splice(toIndex, 0, movedItem);
           })
         );
 

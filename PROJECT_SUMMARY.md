@@ -655,7 +655,7 @@ fn setup_menu_handlers(app: &tauri::App) {
 import { listen } from "@tauri-apps/api/event";
 
 useEffect(() => {
-  const unlisten = listen("toggle-dark-mode", async () => {
+  const unlisten = listen("toggle-dark-mode", () => {
     const newDarkMode = !darkMode;
     if (appStateData) {
       updateAppState({ ...appStateData, darkMode: newDarkMode });
@@ -664,10 +664,8 @@ useEffect(() => {
     // Apply immediately for better UX
     if (newDarkMode) {
       document.documentElement.classList.add("dark");
-      await invoke("set_title_bar_color", { isDark: true });
     } else {
       document.documentElement.classList.remove("dark");
-      await invoke("set_title_bar_color", { isDark: false });
     }
   });
 

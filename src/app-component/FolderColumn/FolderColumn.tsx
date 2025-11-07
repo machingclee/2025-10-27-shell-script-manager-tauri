@@ -57,6 +57,7 @@ export default function FolderColumn() {
     const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
     const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
     const [createFolder] = folderApi.endpoints.createFolder.useMutation();
+    const [createSubfolder] = folderApi.endpoints.createSubfolder.useMutation();
 
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [newFolderName, setNewFolderName] = useState("");
@@ -119,6 +120,10 @@ export default function FolderColumn() {
             setNewFolderName("");
             setIsCreateDialogOpen(false);
         }
+    };
+
+    const handleCreateSubfolder = async (parentId: number, subfolderName: string) => {
+        await createSubfolder({ parentFolderId: parentId, name: subfolderName });
     };
 
     const handleOpenBackendApi = async () => {
@@ -190,6 +195,7 @@ export default function FolderColumn() {
                                         onClick={() => handleFolderClick(folder.id)}
                                         onRename={(newName: string) => { handleRename(folder, newName) }}
                                         onDelete={handleDelete}
+                                        onCreateSubfolder={handleCreateSubfolder}
                                     />
                                 ))}
                             </div>

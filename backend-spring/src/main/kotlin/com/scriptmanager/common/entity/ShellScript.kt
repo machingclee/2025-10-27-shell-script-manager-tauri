@@ -22,12 +22,17 @@ data class ShellScript(
     @Column(name = "ordering", nullable = false)
     var ordering: Int = 0,
 
+    @Column(name = "show_shell")
+    var showShell: Boolean = false,
+
     @Column(name = "created_at")
     val createdAt: Double? = null,
 
     @Column(name = "created_at_hk")
     val createdAtHk: String? = null,
-) {
+
+
+    ) {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_scriptsfolder_shellscript",

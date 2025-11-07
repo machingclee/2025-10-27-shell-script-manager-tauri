@@ -1196,6 +1196,268 @@ pub mod scripts_folder {
             }
         }
     }
+    pub mod rel_parent_folder_folder {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "rel_parent_folder_folder";
+        pub struct Fetch(pub rel_folder_folder::ManyArgs);
+        impl Fetch {
+            pub fn with(mut self, params: impl Into<rel_folder_folder::WithParam>) -> Self {
+                self.0 = self.0.with(params.into());
+                self
+            }
+            pub fn order_by(mut self, param: rel_folder_folder::OrderByParam) -> Self {
+                self.0 = self.0.order_by(param);
+                self
+            }
+            pub fn skip(mut self, value: i64) -> Self {
+                self.0 = self.0.skip(value);
+                self
+            }
+            pub fn take(mut self, value: i64) -> Self {
+                self.0 = self.0.take(value);
+                self
+            }
+            pub fn cursor(mut self, value: rel_folder_folder::UniqueWhereParam) -> Self {
+                self.0 = self.0.cursor(value.into());
+                self
+            }
+        }
+        impl From<Fetch> for WithParam {
+            fn from(Fetch(v): Fetch) -> Self {
+                WithParam::RelParentFolderFolder(v)
+            }
+        }
+        pub fn fetch(params: Vec<rel_folder_folder::WhereParam>) -> Fetch {
+            Fetch(rel_folder_folder::ManyArgs::new(params))
+        }
+        pub struct Connect(pub Vec<rel_folder_folder::UniqueWhereParam>);
+        impl From<Connect> for SetParam {
+            fn from(Connect(v): Connect) -> Self {
+                Self::ConnectRelParentFolderFolder(v)
+            }
+        }
+        pub fn connect<T: From<Connect>>(params: Vec<rel_folder_folder::UniqueWhereParam>) -> T {
+            Connect(params).into()
+        }
+        pub fn disconnect(params: Vec<rel_folder_folder::UniqueWhereParam>) -> SetParam {
+            SetParam::DisconnectRelParentFolderFolder(params)
+        }
+        pub fn set(params: Vec<rel_folder_folder::UniqueWhereParam>) -> SetParam {
+            SetParam::SetRelParentFolderFolder(params)
+        }
+        pub fn some(value: Vec<rel_folder_folder::WhereParam>) -> WhereParam {
+            WhereParam::RelParentFolderFolderSome(value)
+        }
+        pub fn every(value: Vec<rel_folder_folder::WhereParam>) -> WhereParam {
+            WhereParam::RelParentFolderFolderEvery(value)
+        }
+        pub fn none(value: Vec<rel_folder_folder::WhereParam>) -> WhereParam {
+            WhereParam::RelParentFolderFolderNone(value)
+        }
+        pub enum Include {
+            Select(
+                rel_folder_folder::ManyArgs,
+                Vec<rel_folder_folder::SelectParam>,
+            ),
+            Include(
+                rel_folder_folder::ManyArgs,
+                Vec<rel_folder_folder::IncludeParam>,
+            ),
+            Fetch(rel_folder_folder::ManyArgs),
+        }
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::RelParentFolderFolder(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                let (args , selections) = match self { Self :: Select (args , selections) => (args . to_graphql () . 0 , selections . into_iter () . map (| s | s . to_selection ()) . collect ()) , Self :: Include (args , selections) => (args . to_graphql () . 0 , { let mut nested_selections = < rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () ; nested_selections . extend (selections . into_iter () . map (| s | s . to_selection ())) ; nested_selections }) , Self :: Fetch (args) => (args . to_graphql () . 0 , < rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()) } ;
+                ::prisma_client_rust::Selection::new(NAME, None, args, selections)
+            }
+            pub fn select(
+                args: rel_folder_folder::ManyArgs,
+                nested_selections: Vec<rel_folder_folder::SelectParam>,
+            ) -> Self {
+                Self::Select(args, nested_selections)
+            }
+            pub fn include(
+                args: rel_folder_folder::ManyArgs,
+                nested_selections: Vec<rel_folder_folder::IncludeParam>,
+            ) -> Self {
+                Self::Include(args, nested_selections)
+            }
+        }
+        pub enum Select {
+            Select(
+                rel_folder_folder::ManyArgs,
+                Vec<rel_folder_folder::SelectParam>,
+            ),
+            Include(
+                rel_folder_folder::ManyArgs,
+                Vec<rel_folder_folder::IncludeParam>,
+            ),
+            Fetch(rel_folder_folder::ManyArgs),
+        }
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::RelParentFolderFolder(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                let (args , selections) = match self { Self :: Select (args , selections) => (args . to_graphql () . 0 , selections . into_iter () . map (| s | s . to_selection ()) . collect ()) , Self :: Include (args , selections) => (args . to_graphql () . 0 , { let mut nested_selections = vec ! [] ; nested_selections . extend (selections . into_iter () . map (| s | s . to_selection ())) ; nested_selections }) , Self :: Fetch (args) => (args . to_graphql () . 0 , < rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()) } ;
+                ::prisma_client_rust::Selection::new(NAME, None, args, selections)
+            }
+            pub fn select(
+                args: rel_folder_folder::ManyArgs,
+                nested_selections: Vec<rel_folder_folder::SelectParam>,
+            ) -> Self {
+                Self::Select(args, nested_selections)
+            }
+            pub fn include(
+                args: rel_folder_folder::ManyArgs,
+                nested_selections: Vec<rel_folder_folder::IncludeParam>,
+            ) -> Self {
+                Self::Include(args, nested_selections)
+            }
+        }
+    }
+    pub mod rel_child_folder_folder {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "rel_child_folder_folder";
+        pub struct Fetch(pub rel_folder_folder::ManyArgs);
+        impl Fetch {
+            pub fn with(mut self, params: impl Into<rel_folder_folder::WithParam>) -> Self {
+                self.0 = self.0.with(params.into());
+                self
+            }
+            pub fn order_by(mut self, param: rel_folder_folder::OrderByParam) -> Self {
+                self.0 = self.0.order_by(param);
+                self
+            }
+            pub fn skip(mut self, value: i64) -> Self {
+                self.0 = self.0.skip(value);
+                self
+            }
+            pub fn take(mut self, value: i64) -> Self {
+                self.0 = self.0.take(value);
+                self
+            }
+            pub fn cursor(mut self, value: rel_folder_folder::UniqueWhereParam) -> Self {
+                self.0 = self.0.cursor(value.into());
+                self
+            }
+        }
+        impl From<Fetch> for WithParam {
+            fn from(Fetch(v): Fetch) -> Self {
+                WithParam::RelChildFolderFolder(v)
+            }
+        }
+        pub fn fetch(params: Vec<rel_folder_folder::WhereParam>) -> Fetch {
+            Fetch(rel_folder_folder::ManyArgs::new(params))
+        }
+        pub struct Connect(pub Vec<rel_folder_folder::UniqueWhereParam>);
+        impl From<Connect> for SetParam {
+            fn from(Connect(v): Connect) -> Self {
+                Self::ConnectRelChildFolderFolder(v)
+            }
+        }
+        pub fn connect<T: From<Connect>>(params: Vec<rel_folder_folder::UniqueWhereParam>) -> T {
+            Connect(params).into()
+        }
+        pub fn disconnect(params: Vec<rel_folder_folder::UniqueWhereParam>) -> SetParam {
+            SetParam::DisconnectRelChildFolderFolder(params)
+        }
+        pub fn set(params: Vec<rel_folder_folder::UniqueWhereParam>) -> SetParam {
+            SetParam::SetRelChildFolderFolder(params)
+        }
+        pub fn some(value: Vec<rel_folder_folder::WhereParam>) -> WhereParam {
+            WhereParam::RelChildFolderFolderSome(value)
+        }
+        pub fn every(value: Vec<rel_folder_folder::WhereParam>) -> WhereParam {
+            WhereParam::RelChildFolderFolderEvery(value)
+        }
+        pub fn none(value: Vec<rel_folder_folder::WhereParam>) -> WhereParam {
+            WhereParam::RelChildFolderFolderNone(value)
+        }
+        pub enum Include {
+            Select(
+                rel_folder_folder::ManyArgs,
+                Vec<rel_folder_folder::SelectParam>,
+            ),
+            Include(
+                rel_folder_folder::ManyArgs,
+                Vec<rel_folder_folder::IncludeParam>,
+            ),
+            Fetch(rel_folder_folder::ManyArgs),
+        }
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::RelChildFolderFolder(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                let (args , selections) = match self { Self :: Select (args , selections) => (args . to_graphql () . 0 , selections . into_iter () . map (| s | s . to_selection ()) . collect ()) , Self :: Include (args , selections) => (args . to_graphql () . 0 , { let mut nested_selections = < rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () ; nested_selections . extend (selections . into_iter () . map (| s | s . to_selection ())) ; nested_selections }) , Self :: Fetch (args) => (args . to_graphql () . 0 , < rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()) } ;
+                ::prisma_client_rust::Selection::new(NAME, None, args, selections)
+            }
+            pub fn select(
+                args: rel_folder_folder::ManyArgs,
+                nested_selections: Vec<rel_folder_folder::SelectParam>,
+            ) -> Self {
+                Self::Select(args, nested_selections)
+            }
+            pub fn include(
+                args: rel_folder_folder::ManyArgs,
+                nested_selections: Vec<rel_folder_folder::IncludeParam>,
+            ) -> Self {
+                Self::Include(args, nested_selections)
+            }
+        }
+        pub enum Select {
+            Select(
+                rel_folder_folder::ManyArgs,
+                Vec<rel_folder_folder::SelectParam>,
+            ),
+            Include(
+                rel_folder_folder::ManyArgs,
+                Vec<rel_folder_folder::IncludeParam>,
+            ),
+            Fetch(rel_folder_folder::ManyArgs),
+        }
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::RelChildFolderFolder(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                let (args , selections) = match self { Self :: Select (args , selections) => (args . to_graphql () . 0 , selections . into_iter () . map (| s | s . to_selection ()) . collect ()) , Self :: Include (args , selections) => (args . to_graphql () . 0 , { let mut nested_selections = vec ! [] ; nested_selections . extend (selections . into_iter () . map (| s | s . to_selection ())) ; nested_selections }) , Self :: Fetch (args) => (args . to_graphql () . 0 , < rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()) } ;
+                ::prisma_client_rust::Selection::new(NAME, None, args, selections)
+            }
+            pub fn select(
+                args: rel_folder_folder::ManyArgs,
+                nested_selections: Vec<rel_folder_folder::SelectParam>,
+            ) -> Self {
+                Self::Select(args, nested_selections)
+            }
+            pub fn include(
+                args: rel_folder_folder::ManyArgs,
+                nested_selections: Vec<rel_folder_folder::IncludeParam>,
+            ) -> Self {
+                Self::Include(args, nested_selections)
+            }
+        }
+    }
     pub fn create(
         name: String,
         ordering: i32,
@@ -1211,7 +1473,7 @@ pub mod scripts_folder {
         (name, ordering, _params)
     }
     #[macro_export]
-    macro_rules ! _select_scripts_folder { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: scripts_folder :: select ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: scripts_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn select ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: scripts_folder :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: scripts_folder :: select ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: scripts_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: scripts_folder :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { id , name , ordering , created_at , created_at_hk , rel_scriptsfolder_shellscript } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { $ (pub $ field : crate :: prisma :: scripts_folder :: select ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) +] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: scripts_folder :: $ field :: NAME , & self . $ field) ? ;) * state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: scripts_folder :: $ field :: NAME) , + ,] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: scripts_folder :: $ field :: NAME => Ok (Field :: $ field)) , * , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * while let Some (key) = map . next_key () ? { match key { $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: $ field :: NAME)) ? ;) * Ok (Data { $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "name" , "ordering" , "created_at" , "created_at_hk" , "rel_scriptsfolder_shellscript"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: scripts_folder :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; id) => { i32 } ; (@ field_type ; name) => { String } ; (@ field_type ; ordering) => { i32 } ; (@ field_type ; created_at) => { f64 } ; (@ field_type ; created_at_hk) => { String } ; (@ field_type ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_scriptsfolder_shellscript) => { Vec < crate :: prisma :: rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "ScriptsFolder" , available relations are "id, name, ordering, created_at, created_at_hk, rel_scriptsfolder_shellscript")) } ; (@ field_module ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; id) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: id :: Select) } ; (@ selection_field_to_selection_param ; name) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: name :: Select) } ; (@ selection_field_to_selection_param ; ordering) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: ordering :: Select) } ; (@ selection_field_to_selection_param ; created_at) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: created_at :: Select) } ; (@ selection_field_to_selection_param ; created_at_hk) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: created_at_hk :: Select) } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: rel_scriptsfolder_shellscript :: Select :: $ selection_mode (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: rel_scriptsfolder_shellscript :: Select :: Fetch (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: scripts_folder :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; name) => { "name" } ; (@ field_serde_name ; ordering) => { "ordering" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; rel_scriptsfolder_shellscript) => { "rel_scriptsfolder_shellscript" } ; }
+    macro_rules ! _select_scripts_folder { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: scripts_folder :: select ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: scripts_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn select ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: scripts_folder :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: scripts_folder :: select ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: scripts_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: scripts_folder :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { id , name , ordering , created_at , created_at_hk , rel_scriptsfolder_shellscript , rel_parent_folder_folder , rel_child_folder_folder } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { $ (pub $ field : crate :: prisma :: scripts_folder :: select ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) +] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: scripts_folder :: $ field :: NAME , & self . $ field) ? ;) * state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: scripts_folder :: $ field :: NAME) , + ,] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: scripts_folder :: $ field :: NAME => Ok (Field :: $ field)) , * , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * while let Some (key) = map . next_key () ? { match key { $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: $ field :: NAME)) ? ;) * Ok (Data { $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "name" , "ordering" , "created_at" , "created_at_hk" , "rel_scriptsfolder_shellscript" , "rel_parent_folder_folder" , "rel_child_folder_folder"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: scripts_folder :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; id) => { i32 } ; (@ field_type ; name) => { String } ; (@ field_type ; ordering) => { i32 } ; (@ field_type ; created_at) => { f64 } ; (@ field_type ; created_at_hk) => { String } ; (@ field_type ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_scriptsfolder_shellscript) => { Vec < crate :: prisma :: rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_parent_folder_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_parent_folder_folder :: Data > } ; (@ field_type ; rel_parent_folder_folder) => { Vec < crate :: prisma :: rel_folder_folder :: Data > } ; (@ field_type ; rel_child_folder_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_child_folder_folder :: Data > } ; (@ field_type ; rel_child_folder_folder) => { Vec < crate :: prisma :: rel_folder_folder :: Data > } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "ScriptsFolder" , available relations are "id, name, ordering, created_at, created_at_hk, rel_scriptsfolder_shellscript, rel_parent_folder_folder, rel_child_folder_folder")) } ; (@ field_module ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; rel_parent_folder_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_folder_folder :: select ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; rel_child_folder_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_folder_folder :: select ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; id) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: id :: Select) } ; (@ selection_field_to_selection_param ; name) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: name :: Select) } ; (@ selection_field_to_selection_param ; ordering) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: ordering :: Select) } ; (@ selection_field_to_selection_param ; created_at) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: created_at :: Select) } ; (@ selection_field_to_selection_param ; created_at_hk) => { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: created_at_hk :: Select) } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: rel_scriptsfolder_shellscript :: Select :: $ selection_mode (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: rel_scriptsfolder_shellscript :: Select :: Fetch (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; rel_parent_folder_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: rel_parent_folder_folder :: Select :: $ selection_mode (crate :: prisma :: rel_folder_folder :: ManyArgs :: new (crate :: prisma :: rel_folder_folder :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_folder_folder :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_parent_folder_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: rel_parent_folder_folder :: Select :: Fetch (crate :: prisma :: rel_folder_folder :: ManyArgs :: new (crate :: prisma :: rel_folder_folder :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; rel_child_folder_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: rel_child_folder_folder :: Select :: $ selection_mode (crate :: prisma :: rel_folder_folder :: ManyArgs :: new (crate :: prisma :: rel_folder_folder :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_folder_folder :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_child_folder_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: scripts_folder :: SelectParam > :: into (crate :: prisma :: scripts_folder :: rel_child_folder_folder :: Select :: Fetch (crate :: prisma :: rel_folder_folder :: ManyArgs :: new (crate :: prisma :: rel_folder_folder :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: scripts_folder :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; name) => { "name" } ; (@ field_serde_name ; ordering) => { "ordering" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; rel_scriptsfolder_shellscript) => { "rel_scriptsfolder_shellscript" } ; (@ field_serde_name ; rel_parent_folder_folder) => { "rel_parent_folder_folder" } ; (@ field_serde_name ; rel_child_folder_folder) => { "rel_child_folder_folder" } ; }
     pub use _select_scripts_folder as select;
     pub enum SelectParam {
         Id(id::Select),
@@ -1220,6 +1482,8 @@ pub mod scripts_folder {
         CreatedAt(created_at::Select),
         CreatedAtHk(created_at_hk::Select),
         RelScriptsfolderShellscript(rel_scriptsfolder_shellscript::Select),
+        RelParentFolderFolder(rel_parent_folder_folder::Select),
+        RelChildFolderFolder(rel_child_folder_folder::Select),
     }
     impl SelectParam {
         pub fn to_selection(self) -> ::prisma_client_rust::Selection {
@@ -1230,11 +1494,13 @@ pub mod scripts_folder {
                 Self::CreatedAt(data) => data.to_selection(),
                 Self::CreatedAtHk(data) => data.to_selection(),
                 Self::RelScriptsfolderShellscript(data) => data.to_selection(),
+                Self::RelParentFolderFolder(data) => data.to_selection(),
+                Self::RelChildFolderFolder(data) => data.to_selection(),
             }
         }
     }
     #[macro_export]
-    macro_rules ! _include_scripts_folder { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: scripts_folder :: include ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: scripts_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn include ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: scripts_folder :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: scripts_folder :: include ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: scripts_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: scripts_folder :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { rel_scriptsfolder_shellscript } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { pub id : i32 , pub name : String , pub ordering : i32 , pub created_at : f64 , pub created_at_hk : String , $ (pub $ field : crate :: prisma :: scripts_folder :: include ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) + stringify ! (id) , stringify ! (name) , stringify ! (ordering) , stringify ! (created_at) , stringify ! (created_at_hk)] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: scripts_folder :: $ field :: NAME , & self . $ field) ? ;) * state . serialize_field (crate :: prisma :: scripts_folder :: id :: NAME , & self . id) ? ; state . serialize_field (crate :: prisma :: scripts_folder :: name :: NAME , & self . name) ? ; state . serialize_field (crate :: prisma :: scripts_folder :: ordering :: NAME , & self . ordering) ? ; state . serialize_field (crate :: prisma :: scripts_folder :: created_at :: NAME , & self . created_at) ? ; state . serialize_field (crate :: prisma :: scripts_folder :: created_at_hk :: NAME , & self . created_at_hk) ? ; state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , id , name , ordering , created_at , created_at_hk } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: scripts_folder :: $ field :: NAME) , + , crate :: prisma :: scripts_folder :: id :: NAME , crate :: prisma :: scripts_folder :: name :: NAME , crate :: prisma :: scripts_folder :: ordering :: NAME , crate :: prisma :: scripts_folder :: created_at :: NAME , crate :: prisma :: scripts_folder :: created_at_hk :: NAME] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: scripts_folder :: $ field :: NAME => Ok (Field :: $ field)) , * , crate :: prisma :: scripts_folder :: id :: NAME => Ok (Field :: id) , crate :: prisma :: scripts_folder :: name :: NAME => Ok (Field :: name) , crate :: prisma :: scripts_folder :: ordering :: NAME => Ok (Field :: ordering) , crate :: prisma :: scripts_folder :: created_at :: NAME => Ok (Field :: created_at) , crate :: prisma :: scripts_folder :: created_at_hk :: NAME => Ok (Field :: created_at_hk) , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * let mut id = None ; let mut name = None ; let mut ordering = None ; let mut created_at = None ; let mut created_at_hk = None ; while let Some (key) = map . next_key () ? { match key { Field :: id => { if id . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: id :: NAME)) ; } id = Some (map . next_value () ?) ; } Field :: name => { if name . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: name :: NAME)) ; } name = Some (map . next_value () ?) ; } Field :: ordering => { if ordering . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: ordering :: NAME)) ; } ordering = Some (map . next_value () ?) ; } Field :: created_at => { if created_at . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: created_at :: NAME)) ; } created_at = Some (map . next_value () ?) ; } Field :: created_at_hk => { if created_at_hk . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: created_at_hk :: NAME)) ; } created_at_hk = Some (map . next_value () ?) ; } $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: $ field :: NAME)) ? ;) * let id = id . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: id :: NAME)) ? ; let name = name . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: name :: NAME)) ? ; let ordering = ordering . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: ordering :: NAME)) ? ; let created_at = created_at . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: created_at :: NAME)) ? ; let created_at_hk = created_at_hk . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: created_at_hk :: NAME)) ? ; Ok (Data { id , name , ordering , created_at , created_at_hk , $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "name" , "ordering" , "created_at" , "created_at_hk" , "rel_scriptsfolder_shellscript"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: scripts_folder :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_scriptsfolder_shellscript) => { Vec < crate :: prisma :: rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "ScriptsFolder" , available relations are "rel_scriptsfolder_shellscript")) } ; (@ field_module ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: scripts_folder :: IncludeParam > :: into (crate :: prisma :: scripts_folder :: rel_scriptsfolder_shellscript :: Include :: $ selection_mode (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: scripts_folder :: IncludeParam > :: into (crate :: prisma :: scripts_folder :: rel_scriptsfolder_shellscript :: Include :: Fetch (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: scripts_folder :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; name) => { "name" } ; (@ field_serde_name ; ordering) => { "ordering" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; rel_scriptsfolder_shellscript) => { "rel_scriptsfolder_shellscript" } ; }
+    macro_rules ! _include_scripts_folder { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: scripts_folder :: include ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: scripts_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn include ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: scripts_folder :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: scripts_folder :: include ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: scripts_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: scripts_folder :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { rel_scriptsfolder_shellscript , rel_parent_folder_folder , rel_child_folder_folder } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { pub id : i32 , pub name : String , pub ordering : i32 , pub created_at : f64 , pub created_at_hk : String , $ (pub $ field : crate :: prisma :: scripts_folder :: include ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) + stringify ! (id) , stringify ! (name) , stringify ! (ordering) , stringify ! (created_at) , stringify ! (created_at_hk)] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: scripts_folder :: $ field :: NAME , & self . $ field) ? ;) * state . serialize_field (crate :: prisma :: scripts_folder :: id :: NAME , & self . id) ? ; state . serialize_field (crate :: prisma :: scripts_folder :: name :: NAME , & self . name) ? ; state . serialize_field (crate :: prisma :: scripts_folder :: ordering :: NAME , & self . ordering) ? ; state . serialize_field (crate :: prisma :: scripts_folder :: created_at :: NAME , & self . created_at) ? ; state . serialize_field (crate :: prisma :: scripts_folder :: created_at_hk :: NAME , & self . created_at_hk) ? ; state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , id , name , ordering , created_at , created_at_hk } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: scripts_folder :: $ field :: NAME) , + , crate :: prisma :: scripts_folder :: id :: NAME , crate :: prisma :: scripts_folder :: name :: NAME , crate :: prisma :: scripts_folder :: ordering :: NAME , crate :: prisma :: scripts_folder :: created_at :: NAME , crate :: prisma :: scripts_folder :: created_at_hk :: NAME] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: scripts_folder :: $ field :: NAME => Ok (Field :: $ field)) , * , crate :: prisma :: scripts_folder :: id :: NAME => Ok (Field :: id) , crate :: prisma :: scripts_folder :: name :: NAME => Ok (Field :: name) , crate :: prisma :: scripts_folder :: ordering :: NAME => Ok (Field :: ordering) , crate :: prisma :: scripts_folder :: created_at :: NAME => Ok (Field :: created_at) , crate :: prisma :: scripts_folder :: created_at_hk :: NAME => Ok (Field :: created_at_hk) , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * let mut id = None ; let mut name = None ; let mut ordering = None ; let mut created_at = None ; let mut created_at_hk = None ; while let Some (key) = map . next_key () ? { match key { Field :: id => { if id . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: id :: NAME)) ; } id = Some (map . next_value () ?) ; } Field :: name => { if name . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: name :: NAME)) ; } name = Some (map . next_value () ?) ; } Field :: ordering => { if ordering . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: ordering :: NAME)) ; } ordering = Some (map . next_value () ?) ; } Field :: created_at => { if created_at . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: created_at :: NAME)) ; } created_at = Some (map . next_value () ?) ; } Field :: created_at_hk => { if created_at_hk . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: created_at_hk :: NAME)) ; } created_at_hk = Some (map . next_value () ?) ; } $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: scripts_folder :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: $ field :: NAME)) ? ;) * let id = id . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: id :: NAME)) ? ; let name = name . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: name :: NAME)) ? ; let ordering = ordering . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: ordering :: NAME)) ? ; let created_at = created_at . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: created_at :: NAME)) ? ; let created_at_hk = created_at_hk . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: scripts_folder :: created_at_hk :: NAME)) ? ; Ok (Data { id , name , ordering , created_at , created_at_hk , $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "name" , "ordering" , "created_at" , "created_at_hk" , "rel_scriptsfolder_shellscript" , "rel_parent_folder_folder" , "rel_child_folder_folder"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: scripts_folder :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_scriptsfolder_shellscript) => { Vec < crate :: prisma :: rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_parent_folder_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_parent_folder_folder :: Data > } ; (@ field_type ; rel_parent_folder_folder) => { Vec < crate :: prisma :: rel_folder_folder :: Data > } ; (@ field_type ; rel_child_folder_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_child_folder_folder :: Data > } ; (@ field_type ; rel_child_folder_folder) => { Vec < crate :: prisma :: rel_folder_folder :: Data > } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "ScriptsFolder" , available relations are "rel_scriptsfolder_shellscript, rel_parent_folder_folder, rel_child_folder_folder")) } ; (@ field_module ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; rel_parent_folder_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_folder_folder :: include ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; rel_child_folder_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_folder_folder :: include ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: scripts_folder :: IncludeParam > :: into (crate :: prisma :: scripts_folder :: rel_scriptsfolder_shellscript :: Include :: $ selection_mode (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: scripts_folder :: IncludeParam > :: into (crate :: prisma :: scripts_folder :: rel_scriptsfolder_shellscript :: Include :: Fetch (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; rel_parent_folder_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: scripts_folder :: IncludeParam > :: into (crate :: prisma :: scripts_folder :: rel_parent_folder_folder :: Include :: $ selection_mode (crate :: prisma :: rel_folder_folder :: ManyArgs :: new (crate :: prisma :: rel_folder_folder :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_folder_folder :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_parent_folder_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: scripts_folder :: IncludeParam > :: into (crate :: prisma :: scripts_folder :: rel_parent_folder_folder :: Include :: Fetch (crate :: prisma :: rel_folder_folder :: ManyArgs :: new (crate :: prisma :: rel_folder_folder :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; rel_child_folder_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: scripts_folder :: IncludeParam > :: into (crate :: prisma :: scripts_folder :: rel_child_folder_folder :: Include :: $ selection_mode (crate :: prisma :: rel_folder_folder :: ManyArgs :: new (crate :: prisma :: rel_folder_folder :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_folder_folder :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_child_folder_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: scripts_folder :: IncludeParam > :: into (crate :: prisma :: scripts_folder :: rel_child_folder_folder :: Include :: Fetch (crate :: prisma :: rel_folder_folder :: ManyArgs :: new (crate :: prisma :: rel_folder_folder :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: scripts_folder :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; name) => { "name" } ; (@ field_serde_name ; ordering) => { "ordering" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; rel_scriptsfolder_shellscript) => { "rel_scriptsfolder_shellscript" } ; (@ field_serde_name ; rel_parent_folder_folder) => { "rel_parent_folder_folder" } ; (@ field_serde_name ; rel_child_folder_folder) => { "rel_child_folder_folder" } ; }
     pub use _include_scripts_folder as include;
     pub enum IncludeParam {
         Id(id::Include),
@@ -1243,6 +1509,8 @@ pub mod scripts_folder {
         CreatedAt(created_at::Include),
         CreatedAtHk(created_at_hk::Include),
         RelScriptsfolderShellscript(rel_scriptsfolder_shellscript::Include),
+        RelParentFolderFolder(rel_parent_folder_folder::Include),
+        RelChildFolderFolder(rel_child_folder_folder::Include),
     }
     impl IncludeParam {
         pub fn to_selection(self) -> ::prisma_client_rust::Selection {
@@ -1253,6 +1521,8 @@ pub mod scripts_folder {
                 Self::CreatedAt(data) => data.to_selection(),
                 Self::CreatedAtHk(data) => data.to_selection(),
                 Self::RelScriptsfolderShellscript(data) => data.to_selection(),
+                Self::RelParentFolderFolder(data) => data.to_selection(),
+                Self::RelChildFolderFolder(data) => data.to_selection(),
             }
         }
     }
@@ -1273,6 +1543,10 @@ pub mod scripts_folder {
         pub created_at_hk: String,
         #[serde(rename = "rel_scriptsfolder_shellscript")]
         pub rel_scriptsfolder_shellscript: Option<Vec<super::rel_scriptsfolder_shellscript::Data>>,
+        #[serde(rename = "rel_parent_folder_folder")]
+        pub rel_parent_folder_folder: Option<Vec<super::rel_folder_folder::Data>>,
+        #[serde(rename = "rel_child_folder_folder")]
+        pub rel_child_folder_folder: Option<Vec<super::rel_folder_folder::Data>>,
     }
     impl Data {
         pub fn rel_scriptsfolder_shellscript(
@@ -1287,10 +1561,36 @@ pub mod scripts_folder {
                 )),
             )
         }
+        pub fn rel_parent_folder_folder(
+            &self,
+        ) -> Result<
+            &Vec<super::rel_folder_folder::Data>,
+            ::prisma_client_rust::RelationNotFetchedError,
+        > {
+            self.rel_parent_folder_folder.as_ref().ok_or(
+                ::prisma_client_rust::RelationNotFetchedError::new(stringify!(
+                    rel_parent_folder_folder
+                )),
+            )
+        }
+        pub fn rel_child_folder_folder(
+            &self,
+        ) -> Result<
+            &Vec<super::rel_folder_folder::Data>,
+            ::prisma_client_rust::RelationNotFetchedError,
+        > {
+            self.rel_child_folder_folder.as_ref().ok_or(
+                ::prisma_client_rust::RelationNotFetchedError::new(stringify!(
+                    rel_child_folder_folder
+                )),
+            )
+        }
     }
     #[derive(Clone)]
     pub enum WithParam {
         RelScriptsfolderShellscript(super::rel_scriptsfolder_shellscript::ManyArgs),
+        RelParentFolderFolder(super::rel_folder_folder::ManyArgs),
+        RelChildFolderFolder(super::rel_folder_folder::ManyArgs),
     }
     impl Into<::prisma_client_rust::Selection> for WithParam {
         fn into(self) -> ::prisma_client_rust::Selection {
@@ -1300,6 +1600,26 @@ pub mod scripts_folder {
                     nested_selections . extend (< super :: rel_scriptsfolder_shellscript :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()) ;
                     ::prisma_client_rust::Selection::new(
                         rel_scriptsfolder_shellscript::NAME,
+                        None,
+                        arguments,
+                        nested_selections,
+                    )
+                }
+                Self::RelParentFolderFolder(args) => {
+                    let (arguments, mut nested_selections) = args.to_graphql();
+                    nested_selections . extend (< super :: rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()) ;
+                    ::prisma_client_rust::Selection::new(
+                        rel_parent_folder_folder::NAME,
+                        None,
+                        arguments,
+                        nested_selections,
+                    )
+                }
+                Self::RelChildFolderFolder(args) => {
+                    let (arguments, mut nested_selections) = args.to_graphql();
+                    nested_selections . extend (< super :: rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()) ;
+                    ::prisma_client_rust::Selection::new(
+                        rel_child_folder_folder::NAME,
                         None,
                         arguments,
                         nested_selections,
@@ -1334,10 +1654,16 @@ pub mod scripts_folder {
             Vec<super::rel_scriptsfolder_shellscript::UniqueWhereParam>,
         ),
         SetRelScriptsfolderShellscript(Vec<super::rel_scriptsfolder_shellscript::UniqueWhereParam>),
+        ConnectRelParentFolderFolder(Vec<super::rel_folder_folder::UniqueWhereParam>),
+        DisconnectRelParentFolderFolder(Vec<super::rel_folder_folder::UniqueWhereParam>),
+        SetRelParentFolderFolder(Vec<super::rel_folder_folder::UniqueWhereParam>),
+        ConnectRelChildFolderFolder(Vec<super::rel_folder_folder::UniqueWhereParam>),
+        DisconnectRelChildFolderFolder(Vec<super::rel_folder_folder::UniqueWhereParam>),
+        SetRelChildFolderFolder(Vec<super::rel_folder_folder::UniqueWhereParam>),
     }
     impl From<SetParam> for (String, ::prisma_client_rust::PrismaValue) {
         fn from(param: SetParam) -> Self {
-            match param { SetParam :: SetId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetName (value) => (name :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: SetOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ())) , SetParam :: IncrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DecrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: MultiplyCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DivideCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: SetCreatedAtHk (value) => (created_at_hk :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: ConnectRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("connect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: DisconnectRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("disconnect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: SetRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("set" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) }
+            match param { SetParam :: SetId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetName (value) => (name :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: SetOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ())) , SetParam :: IncrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DecrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: MultiplyCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DivideCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: SetCreatedAtHk (value) => (created_at_hk :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: ConnectRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("connect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: DisconnectRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("disconnect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: SetRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("set" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: ConnectRelParentFolderFolder (where_params) => (rel_parent_folder_folder :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("connect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_folder_folder :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: DisconnectRelParentFolderFolder (where_params) => (rel_parent_folder_folder :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("disconnect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_folder_folder :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: SetRelParentFolderFolder (where_params) => (rel_parent_folder_folder :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("set" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_folder_folder :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: ConnectRelChildFolderFolder (where_params) => (rel_child_folder_folder :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("connect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_folder_folder :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: DisconnectRelChildFolderFolder (where_params) => (rel_child_folder_folder :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("disconnect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_folder_folder :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: SetRelChildFolderFolder (where_params) => (rel_child_folder_folder :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("set" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_folder_folder :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) }
         }
     }
     #[derive(Clone)]
@@ -1406,6 +1732,12 @@ pub mod scripts_folder {
         RelScriptsfolderShellscriptSome(Vec<super::rel_scriptsfolder_shellscript::WhereParam>),
         RelScriptsfolderShellscriptEvery(Vec<super::rel_scriptsfolder_shellscript::WhereParam>),
         RelScriptsfolderShellscriptNone(Vec<super::rel_scriptsfolder_shellscript::WhereParam>),
+        RelParentFolderFolderSome(Vec<super::rel_folder_folder::WhereParam>),
+        RelParentFolderFolderEvery(Vec<super::rel_folder_folder::WhereParam>),
+        RelParentFolderFolderNone(Vec<super::rel_folder_folder::WhereParam>),
+        RelChildFolderFolderSome(Vec<super::rel_folder_folder::WhereParam>),
+        RelChildFolderFolderEvery(Vec<super::rel_folder_folder::WhereParam>),
+        RelChildFolderFolderNone(Vec<super::rel_folder_folder::WhereParam>),
     }
     impl ::prisma_client_rust::WhereInput for WhereParam {
         fn serialize(self) -> ::prisma_client_rust::SerializedWhereInput {
@@ -1479,6 +1811,84 @@ pub mod scripts_folder {
                 ),
                 Self::RelScriptsfolderShellscriptNone(where_params) => (
                     rel_scriptsfolder_shellscript::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "none".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::RelParentFolderFolderSome(where_params) => (
+                    rel_parent_folder_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "some".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::RelParentFolderFolderEvery(where_params) => (
+                    rel_parent_folder_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "every".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::RelParentFolderFolderNone(where_params) => (
+                    rel_parent_folder_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "none".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::RelChildFolderFolderSome(where_params) => (
+                    rel_child_folder_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "some".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::RelChildFolderFolderEvery(where_params) => (
+                    rel_child_folder_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "every".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::RelChildFolderFolderNone(where_params) => (
+                    rel_child_folder_folder::NAME,
                     ::prisma_client_rust::SerializedWhereValue::Object(vec![(
                         "none".to_string(),
                         ::prisma_client_rust::PrismaValue::Object(
@@ -3100,6 +3510,63 @@ pub mod shell_script {
             }
         }
     }
+    pub mod show_shell {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "show_shell";
+        pub struct Set(pub bool);
+        impl From<Set> for SetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::SetShowShell(v)
+            }
+        }
+        impl From<Set> for UncheckedSetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::ShowShell(v)
+            }
+        }
+        pub fn set<T: From<Set>>(value: bool) -> T {
+            Set(value).into()
+        }
+        pub fn order(direction: ::prisma_client_rust::Direction) -> OrderByParam {
+            OrderByParam::ShowShell(direction)
+        }
+        pub fn equals(value: bool) -> WhereParam {
+            WhereParam::ShowShell(_prisma::read_filters::BoolFilter::Equals(value))
+        }
+        ::prisma_client_rust::scalar_where_param_fns!(
+            _prisma::read_filters::BoolFilter,
+            ShowShell,
+            {
+                fn not(_: bool) -> Not;
+            }
+        );
+        pub struct Include;
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::ShowShell(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+        pub struct Select;
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::ShowShell(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+    }
     pub mod rel_scriptsfolder_shellscript {
         use super::super::*;
         use super::_prisma::*;
@@ -3258,7 +3725,7 @@ pub mod shell_script {
         (name, command, ordering, _params)
     }
     #[macro_export]
-    macro_rules ! _select_shell_script { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: shell_script :: select ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: shell_script :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn select ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: shell_script :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: shell_script :: select ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: shell_script :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: shell_script :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { id , name , command , ordering , created_at , created_at_hk , rel_scriptsfolder_shellscript } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { $ (pub $ field : crate :: prisma :: shell_script :: select ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) +] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: shell_script :: $ field :: NAME , & self . $ field) ? ;) * state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: shell_script :: $ field :: NAME) , + ,] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: shell_script :: $ field :: NAME => Ok (Field :: $ field)) , * , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * while let Some (key) = map . next_key () ? { match key { $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: $ field :: NAME)) ? ;) * Ok (Data { $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "name" , "command" , "ordering" , "created_at" , "created_at_hk" , "rel_scriptsfolder_shellscript"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: shell_script :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; id) => { i32 } ; (@ field_type ; name) => { String } ; (@ field_type ; command) => { String } ; (@ field_type ; ordering) => { i32 } ; (@ field_type ; created_at) => { f64 } ; (@ field_type ; created_at_hk) => { String } ; (@ field_type ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_scriptsfolder_shellscript) => { Vec < crate :: prisma :: rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "ShellScript" , available relations are "id, name, command, ordering, created_at, created_at_hk, rel_scriptsfolder_shellscript")) } ; (@ field_module ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; id) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: id :: Select) } ; (@ selection_field_to_selection_param ; name) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: name :: Select) } ; (@ selection_field_to_selection_param ; command) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: command :: Select) } ; (@ selection_field_to_selection_param ; ordering) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: ordering :: Select) } ; (@ selection_field_to_selection_param ; created_at) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: created_at :: Select) } ; (@ selection_field_to_selection_param ; created_at_hk) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: created_at_hk :: Select) } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: rel_scriptsfolder_shellscript :: Select :: $ selection_mode (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: rel_scriptsfolder_shellscript :: Select :: Fetch (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: shell_script :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; name) => { "name" } ; (@ field_serde_name ; command) => { "command" } ; (@ field_serde_name ; ordering) => { "ordering" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; rel_scriptsfolder_shellscript) => { "rel_scriptsfolder_shellscript" } ; }
+    macro_rules ! _select_shell_script { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: shell_script :: select ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: shell_script :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn select ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: shell_script :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: shell_script :: select ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: shell_script :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: shell_script :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { id , name , command , ordering , created_at , created_at_hk , show_shell , rel_scriptsfolder_shellscript } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { $ (pub $ field : crate :: prisma :: shell_script :: select ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) +] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: shell_script :: $ field :: NAME , & self . $ field) ? ;) * state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: shell_script :: $ field :: NAME) , + ,] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: shell_script :: $ field :: NAME => Ok (Field :: $ field)) , * , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * while let Some (key) = map . next_key () ? { match key { $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: $ field :: NAME)) ? ;) * Ok (Data { $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "name" , "command" , "ordering" , "created_at" , "created_at_hk" , "show_shell" , "rel_scriptsfolder_shellscript"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: shell_script :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; id) => { i32 } ; (@ field_type ; name) => { String } ; (@ field_type ; command) => { String } ; (@ field_type ; ordering) => { i32 } ; (@ field_type ; created_at) => { f64 } ; (@ field_type ; created_at_hk) => { String } ; (@ field_type ; show_shell) => { bool } ; (@ field_type ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_scriptsfolder_shellscript) => { Vec < crate :: prisma :: rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "ShellScript" , available relations are "id, name, command, ordering, created_at, created_at_hk, show_shell, rel_scriptsfolder_shellscript")) } ; (@ field_module ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; id) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: id :: Select) } ; (@ selection_field_to_selection_param ; name) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: name :: Select) } ; (@ selection_field_to_selection_param ; command) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: command :: Select) } ; (@ selection_field_to_selection_param ; ordering) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: ordering :: Select) } ; (@ selection_field_to_selection_param ; created_at) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: created_at :: Select) } ; (@ selection_field_to_selection_param ; created_at_hk) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: created_at_hk :: Select) } ; (@ selection_field_to_selection_param ; show_shell) => { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: show_shell :: Select) } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: rel_scriptsfolder_shellscript :: Select :: $ selection_mode (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: shell_script :: SelectParam > :: into (crate :: prisma :: shell_script :: rel_scriptsfolder_shellscript :: Select :: Fetch (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: shell_script :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; name) => { "name" } ; (@ field_serde_name ; command) => { "command" } ; (@ field_serde_name ; ordering) => { "ordering" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; show_shell) => { "show_shell" } ; (@ field_serde_name ; rel_scriptsfolder_shellscript) => { "rel_scriptsfolder_shellscript" } ; }
     pub use _select_shell_script as select;
     pub enum SelectParam {
         Id(id::Select),
@@ -3267,6 +3734,7 @@ pub mod shell_script {
         Ordering(ordering::Select),
         CreatedAt(created_at::Select),
         CreatedAtHk(created_at_hk::Select),
+        ShowShell(show_shell::Select),
         RelScriptsfolderShellscript(rel_scriptsfolder_shellscript::Select),
     }
     impl SelectParam {
@@ -3278,12 +3746,13 @@ pub mod shell_script {
                 Self::Ordering(data) => data.to_selection(),
                 Self::CreatedAt(data) => data.to_selection(),
                 Self::CreatedAtHk(data) => data.to_selection(),
+                Self::ShowShell(data) => data.to_selection(),
                 Self::RelScriptsfolderShellscript(data) => data.to_selection(),
             }
         }
     }
     #[macro_export]
-    macro_rules ! _include_shell_script { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: shell_script :: include ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: shell_script :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn include ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: shell_script :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: shell_script :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: shell_script :: include ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: shell_script :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: shell_script :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: shell_script :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { rel_scriptsfolder_shellscript } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { pub id : i32 , pub name : String , pub command : String , pub ordering : i32 , pub created_at : f64 , pub created_at_hk : String , $ (pub $ field : crate :: prisma :: shell_script :: include ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) + stringify ! (id) , stringify ! (name) , stringify ! (command) , stringify ! (ordering) , stringify ! (created_at) , stringify ! (created_at_hk)] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: shell_script :: $ field :: NAME , & self . $ field) ? ;) * state . serialize_field (crate :: prisma :: shell_script :: id :: NAME , & self . id) ? ; state . serialize_field (crate :: prisma :: shell_script :: name :: NAME , & self . name) ? ; state . serialize_field (crate :: prisma :: shell_script :: command :: NAME , & self . command) ? ; state . serialize_field (crate :: prisma :: shell_script :: ordering :: NAME , & self . ordering) ? ; state . serialize_field (crate :: prisma :: shell_script :: created_at :: NAME , & self . created_at) ? ; state . serialize_field (crate :: prisma :: shell_script :: created_at_hk :: NAME , & self . created_at_hk) ? ; state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , id , name , command , ordering , created_at , created_at_hk } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: shell_script :: $ field :: NAME) , + , crate :: prisma :: shell_script :: id :: NAME , crate :: prisma :: shell_script :: name :: NAME , crate :: prisma :: shell_script :: command :: NAME , crate :: prisma :: shell_script :: ordering :: NAME , crate :: prisma :: shell_script :: created_at :: NAME , crate :: prisma :: shell_script :: created_at_hk :: NAME] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: shell_script :: $ field :: NAME => Ok (Field :: $ field)) , * , crate :: prisma :: shell_script :: id :: NAME => Ok (Field :: id) , crate :: prisma :: shell_script :: name :: NAME => Ok (Field :: name) , crate :: prisma :: shell_script :: command :: NAME => Ok (Field :: command) , crate :: prisma :: shell_script :: ordering :: NAME => Ok (Field :: ordering) , crate :: prisma :: shell_script :: created_at :: NAME => Ok (Field :: created_at) , crate :: prisma :: shell_script :: created_at_hk :: NAME => Ok (Field :: created_at_hk) , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * let mut id = None ; let mut name = None ; let mut command = None ; let mut ordering = None ; let mut created_at = None ; let mut created_at_hk = None ; while let Some (key) = map . next_key () ? { match key { Field :: id => { if id . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: id :: NAME)) ; } id = Some (map . next_value () ?) ; } Field :: name => { if name . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: name :: NAME)) ; } name = Some (map . next_value () ?) ; } Field :: command => { if command . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: command :: NAME)) ; } command = Some (map . next_value () ?) ; } Field :: ordering => { if ordering . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: ordering :: NAME)) ; } ordering = Some (map . next_value () ?) ; } Field :: created_at => { if created_at . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: created_at :: NAME)) ; } created_at = Some (map . next_value () ?) ; } Field :: created_at_hk => { if created_at_hk . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: created_at_hk :: NAME)) ; } created_at_hk = Some (map . next_value () ?) ; } $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: $ field :: NAME)) ? ;) * let id = id . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: id :: NAME)) ? ; let name = name . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: name :: NAME)) ? ; let command = command . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: command :: NAME)) ? ; let ordering = ordering . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: ordering :: NAME)) ? ; let created_at = created_at . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: created_at :: NAME)) ? ; let created_at_hk = created_at_hk . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: created_at_hk :: NAME)) ? ; Ok (Data { id , name , command , ordering , created_at , created_at_hk , $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "name" , "command" , "ordering" , "created_at" , "created_at_hk" , "rel_scriptsfolder_shellscript"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: shell_script :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_scriptsfolder_shellscript) => { Vec < crate :: prisma :: rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "ShellScript" , available relations are "rel_scriptsfolder_shellscript")) } ; (@ field_module ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: shell_script :: IncludeParam > :: into (crate :: prisma :: shell_script :: rel_scriptsfolder_shellscript :: Include :: $ selection_mode (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: shell_script :: IncludeParam > :: into (crate :: prisma :: shell_script :: rel_scriptsfolder_shellscript :: Include :: Fetch (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: shell_script :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; name) => { "name" } ; (@ field_serde_name ; command) => { "command" } ; (@ field_serde_name ; ordering) => { "ordering" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; rel_scriptsfolder_shellscript) => { "rel_scriptsfolder_shellscript" } ; }
+    macro_rules ! _include_shell_script { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: shell_script :: include ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: shell_script :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn include ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: shell_script :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: shell_script :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: shell_script :: include ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: shell_script :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: shell_script :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: shell_script :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { rel_scriptsfolder_shellscript } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { pub id : i32 , pub name : String , pub command : String , pub ordering : i32 , pub created_at : f64 , pub created_at_hk : String , pub show_shell : bool , $ (pub $ field : crate :: prisma :: shell_script :: include ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) + stringify ! (id) , stringify ! (name) , stringify ! (command) , stringify ! (ordering) , stringify ! (created_at) , stringify ! (created_at_hk) , stringify ! (show_shell)] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: shell_script :: $ field :: NAME , & self . $ field) ? ;) * state . serialize_field (crate :: prisma :: shell_script :: id :: NAME , & self . id) ? ; state . serialize_field (crate :: prisma :: shell_script :: name :: NAME , & self . name) ? ; state . serialize_field (crate :: prisma :: shell_script :: command :: NAME , & self . command) ? ; state . serialize_field (crate :: prisma :: shell_script :: ordering :: NAME , & self . ordering) ? ; state . serialize_field (crate :: prisma :: shell_script :: created_at :: NAME , & self . created_at) ? ; state . serialize_field (crate :: prisma :: shell_script :: created_at_hk :: NAME , & self . created_at_hk) ? ; state . serialize_field (crate :: prisma :: shell_script :: show_shell :: NAME , & self . show_shell) ? ; state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , id , name , command , ordering , created_at , created_at_hk , show_shell } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: shell_script :: $ field :: NAME) , + , crate :: prisma :: shell_script :: id :: NAME , crate :: prisma :: shell_script :: name :: NAME , crate :: prisma :: shell_script :: command :: NAME , crate :: prisma :: shell_script :: ordering :: NAME , crate :: prisma :: shell_script :: created_at :: NAME , crate :: prisma :: shell_script :: created_at_hk :: NAME , crate :: prisma :: shell_script :: show_shell :: NAME] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: shell_script :: $ field :: NAME => Ok (Field :: $ field)) , * , crate :: prisma :: shell_script :: id :: NAME => Ok (Field :: id) , crate :: prisma :: shell_script :: name :: NAME => Ok (Field :: name) , crate :: prisma :: shell_script :: command :: NAME => Ok (Field :: command) , crate :: prisma :: shell_script :: ordering :: NAME => Ok (Field :: ordering) , crate :: prisma :: shell_script :: created_at :: NAME => Ok (Field :: created_at) , crate :: prisma :: shell_script :: created_at_hk :: NAME => Ok (Field :: created_at_hk) , crate :: prisma :: shell_script :: show_shell :: NAME => Ok (Field :: show_shell) , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * let mut id = None ; let mut name = None ; let mut command = None ; let mut ordering = None ; let mut created_at = None ; let mut created_at_hk = None ; let mut show_shell = None ; while let Some (key) = map . next_key () ? { match key { Field :: id => { if id . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: id :: NAME)) ; } id = Some (map . next_value () ?) ; } Field :: name => { if name . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: name :: NAME)) ; } name = Some (map . next_value () ?) ; } Field :: command => { if command . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: command :: NAME)) ; } command = Some (map . next_value () ?) ; } Field :: ordering => { if ordering . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: ordering :: NAME)) ; } ordering = Some (map . next_value () ?) ; } Field :: created_at => { if created_at . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: created_at :: NAME)) ; } created_at = Some (map . next_value () ?) ; } Field :: created_at_hk => { if created_at_hk . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: created_at_hk :: NAME)) ; } created_at_hk = Some (map . next_value () ?) ; } Field :: show_shell => { if show_shell . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: show_shell :: NAME)) ; } show_shell = Some (map . next_value () ?) ; } $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: shell_script :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: $ field :: NAME)) ? ;) * let id = id . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: id :: NAME)) ? ; let name = name . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: name :: NAME)) ? ; let command = command . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: command :: NAME)) ? ; let ordering = ordering . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: ordering :: NAME)) ? ; let created_at = created_at . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: created_at :: NAME)) ? ; let created_at_hk = created_at_hk . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: created_at_hk :: NAME)) ? ; let show_shell = show_shell . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: shell_script :: show_shell :: NAME)) ? ; Ok (Data { id , name , command , ordering , created_at , created_at_hk , show_shell , $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "name" , "command" , "ordering" , "created_at" , "created_at_hk" , "show_shell" , "rel_scriptsfolder_shellscript"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: shell_script :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { Vec < rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; rel_scriptsfolder_shellscript) => { Vec < crate :: prisma :: rel_scriptsfolder_shellscript :: Data > } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "ShellScript" , available relations are "rel_scriptsfolder_shellscript")) } ; (@ field_module ; rel_scriptsfolder_shellscript : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: shell_script :: IncludeParam > :: into (crate :: prisma :: shell_script :: rel_scriptsfolder_shellscript :: Include :: $ selection_mode (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ? , crate :: prisma :: rel_scriptsfolder_shellscript :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; rel_scriptsfolder_shellscript $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: shell_script :: IncludeParam > :: into (crate :: prisma :: shell_script :: rel_scriptsfolder_shellscript :: Include :: Fetch (crate :: prisma :: rel_scriptsfolder_shellscript :: ManyArgs :: new (crate :: prisma :: rel_scriptsfolder_shellscript :: include ! (@ filters_to_args ; $ ($ ($ filters) +) ?)) $ ($ (. $ arg ($ ($ arg_params) *)) *) ?) ,) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: shell_script :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; name) => { "name" } ; (@ field_serde_name ; command) => { "command" } ; (@ field_serde_name ; ordering) => { "ordering" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; show_shell) => { "show_shell" } ; (@ field_serde_name ; rel_scriptsfolder_shellscript) => { "rel_scriptsfolder_shellscript" } ; }
     pub use _include_shell_script as include;
     pub enum IncludeParam {
         Id(id::Include),
@@ -3292,6 +3761,7 @@ pub mod shell_script {
         Ordering(ordering::Include),
         CreatedAt(created_at::Include),
         CreatedAtHk(created_at_hk::Include),
+        ShowShell(show_shell::Include),
         RelScriptsfolderShellscript(rel_scriptsfolder_shellscript::Include),
     }
     impl IncludeParam {
@@ -3303,12 +3773,13 @@ pub mod shell_script {
                 Self::Ordering(data) => data.to_selection(),
                 Self::CreatedAt(data) => data.to_selection(),
                 Self::CreatedAtHk(data) => data.to_selection(),
+                Self::ShowShell(data) => data.to_selection(),
                 Self::RelScriptsfolderShellscript(data) => data.to_selection(),
             }
         }
     }
     #[macro_export]
-    macro_rules ! _partial_unchecked_shell_script { ($ struct_name : ident { $ ($ scalar_field : ident) + }) => { :: prisma_client_rust :: macros :: partial_unchecked ! { crate :: prisma :: shell_script struct $ struct_name { # [serde (rename = "id")] pub id : i32 , # [serde (rename = "name")] pub name : String , # [serde (rename = "command")] pub command : String , # [serde (rename = "ordering")] pub ordering : i32 , # [serde (rename = "created_at")] pub created_at : f64 , # [serde (rename = "created_at_hk")] pub created_at_hk : String } [$ ($ scalar_field) , +] } } ; }
+    macro_rules ! _partial_unchecked_shell_script { ($ struct_name : ident { $ ($ scalar_field : ident) + }) => { :: prisma_client_rust :: macros :: partial_unchecked ! { crate :: prisma :: shell_script struct $ struct_name { # [serde (rename = "id")] pub id : i32 , # [serde (rename = "name")] pub name : String , # [serde (rename = "command")] pub command : String , # [serde (rename = "ordering")] pub ordering : i32 , # [serde (rename = "created_at")] pub created_at : f64 , # [serde (rename = "created_at_hk")] pub created_at_hk : String , # [serde (rename = "show_shell")] pub show_shell : bool } [$ ($ scalar_field) , +] } } ; }
     pub use _partial_unchecked_shell_script as partial_unchecked;
     #[derive(Debug, Clone, :: serde :: Serialize, :: serde :: Deserialize)]
     pub struct Data {
@@ -3324,6 +3795,8 @@ pub mod shell_script {
         pub created_at: f64,
         #[serde(rename = "created_at_hk")]
         pub created_at_hk: String,
+        #[serde(rename = "show_shell")]
+        pub show_shell: bool,
         #[serde(rename = "rel_scriptsfolder_shellscript")]
         pub rel_scriptsfolder_shellscript: Option<Vec<super::rel_scriptsfolder_shellscript::Data>>,
     }
@@ -3381,6 +3854,7 @@ pub mod shell_script {
         MultiplyCreatedAt(f64),
         DivideCreatedAt(f64),
         SetCreatedAtHk(String),
+        SetShowShell(bool),
         ConnectRelScriptsfolderShellscript(
             Vec<super::rel_scriptsfolder_shellscript::UniqueWhereParam>,
         ),
@@ -3391,7 +3865,7 @@ pub mod shell_script {
     }
     impl From<SetParam> for (String, ::prisma_client_rust::PrismaValue) {
         fn from(param: SetParam) -> Self {
-            match param { SetParam :: SetId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetName (value) => (name :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: SetCommand (value) => (command :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: SetOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ())) , SetParam :: IncrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DecrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: MultiplyCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DivideCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: SetCreatedAtHk (value) => (created_at_hk :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: ConnectRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("connect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: DisconnectRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("disconnect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: SetRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("set" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) }
+            match param { SetParam :: SetId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetName (value) => (name :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: SetCommand (value) => (command :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: SetOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideOrdering (value) => (ordering :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ())) , SetParam :: IncrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DecrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: MultiplyCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DivideCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: SetCreatedAtHk (value) => (created_at_hk :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: SetShowShell (value) => (show_shell :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Boolean (value)) , SetParam :: ConnectRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("connect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: DisconnectRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("disconnect" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) , SetParam :: SetRelScriptsfolderShellscript (where_params) => (rel_scriptsfolder_shellscript :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("set" . to_string () , :: prisma_client_rust :: PrismaValue :: List (where_params . into_iter () . map (Into :: < super :: rel_scriptsfolder_shellscript :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . map (| v | :: prisma_client_rust :: PrismaValue :: Object (vec ! [v])) . collect ()))])) }
         }
     }
     #[derive(Clone)]
@@ -3402,6 +3876,7 @@ pub mod shell_script {
         Ordering(i32),
         CreatedAt(f64),
         CreatedAtHk(String),
+        ShowShell(bool),
     }
     impl From<UncheckedSetParam> for SetParam {
         fn from(param: UncheckedSetParam) -> Self {
@@ -3412,6 +3887,7 @@ pub mod shell_script {
                 UncheckedSetParam::Ordering(value) => Self::SetOrdering(value),
                 UncheckedSetParam::CreatedAt(value) => Self::SetCreatedAt(value),
                 UncheckedSetParam::CreatedAtHk(value) => Self::SetCreatedAtHk(value),
+                UncheckedSetParam::ShowShell(value) => Self::SetShowShell(value),
             }
         }
     }
@@ -3423,6 +3899,7 @@ pub mod shell_script {
         Ordering(::prisma_client_rust::Direction),
         CreatedAt(::prisma_client_rust::Direction),
         CreatedAtHk(::prisma_client_rust::Direction),
+        ShowShell(::prisma_client_rust::Direction),
     }
     impl Into<(String, ::prisma_client_rust::PrismaValue)> for OrderByParam {
         fn into(self) -> (String, ::prisma_client_rust::PrismaValue) {
@@ -3451,6 +3928,10 @@ pub mod shell_script {
                     created_at_hk::NAME.to_string(),
                     ::prisma_client_rust::PrismaValue::String(direction.to_string()),
                 ),
+                Self::ShowShell(direction) => (
+                    show_shell::NAME.to_string(),
+                    ::prisma_client_rust::PrismaValue::String(direction.to_string()),
+                ),
             }
         }
     }
@@ -3465,6 +3946,7 @@ pub mod shell_script {
         Ordering(_prisma::read_filters::IntFilter),
         CreatedAt(_prisma::read_filters::FloatFilter),
         CreatedAtHk(_prisma::read_filters::StringFilter),
+        ShowShell(_prisma::read_filters::BoolFilter),
         RelScriptsfolderShellscriptSome(Vec<super::rel_scriptsfolder_shellscript::WhereParam>),
         RelScriptsfolderShellscriptEvery(Vec<super::rel_scriptsfolder_shellscript::WhereParam>),
         RelScriptsfolderShellscriptNone(Vec<super::rel_scriptsfolder_shellscript::WhereParam>),
@@ -3514,6 +3996,7 @@ pub mod shell_script {
                 Self::Ordering(value) => (ordering::NAME, value.into()),
                 Self::CreatedAt(value) => (created_at::NAME, value.into()),
                 Self::CreatedAtHk(value) => (created_at_hk::NAME, value.into()),
+                Self::ShowShell(value) => (show_shell::NAME, value.into()),
                 Self::RelScriptsfolderShellscriptSome(where_params) => (
                     rel_scriptsfolder_shellscript::NAME,
                     ::prisma_client_rust::SerializedWhereValue::Object(vec![(
@@ -3598,6 +4081,7 @@ pub mod shell_script {
                 ::prisma_client_rust::sel(ordering::NAME),
                 ::prisma_client_rust::sel(created_at::NAME),
                 ::prisma_client_rust::sel(created_at_hk::NAME),
+                ::prisma_client_rust::sel(show_shell::NAME),
             ]
         }
     }
@@ -3719,6 +4203,1032 @@ pub mod shell_script {
         }
     }
 }
+pub mod rel_folder_folder {
+    use super::_prisma::*;
+    use super::*;
+    pub const NAME: &str = "rel_folder_folder";
+    pub mod id {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "id";
+        pub struct Set(pub i32);
+        impl From<Set> for SetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::SetId(v)
+            }
+        }
+        impl From<Set> for UncheckedSetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::Id(v)
+            }
+        }
+        pub fn set<T: From<Set>>(value: i32) -> T {
+            Set(value).into()
+        }
+        pub fn order(direction: ::prisma_client_rust::Direction) -> OrderByParam {
+            OrderByParam::Id(direction)
+        }
+        pub fn equals<T: From<UniqueWhereParam>>(value: i32) -> T {
+            UniqueWhereParam::IdEquals(value).into()
+        }
+        ::prisma_client_rust::scalar_where_param_fns!(_prisma::read_filters::IntFilter, Id, {
+            fn in_vec(_: Vec<i32>) -> InVec;
+            fn not_in_vec(_: Vec<i32>) -> NotInVec;
+            fn lt(_: i32) -> Lt;
+            fn lte(_: i32) -> Lte;
+            fn gt(_: i32) -> Gt;
+            fn gte(_: i32) -> Gte;
+            fn not(_: i32) -> Not;
+        });
+        pub fn increment(value: i32) -> SetParam {
+            SetParam::IncrementId(value)
+        }
+        pub fn decrement(value: i32) -> SetParam {
+            SetParam::DecrementId(value)
+        }
+        pub fn multiply(value: i32) -> SetParam {
+            SetParam::MultiplyId(value)
+        }
+        pub fn divide(value: i32) -> SetParam {
+            SetParam::DivideId(value)
+        }
+        pub struct Include;
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::Id(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+        pub struct Select;
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::Id(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+    }
+    pub mod parent_folder_id {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "parent_folder_id";
+        pub struct Set(pub i32);
+        impl From<Set> for SetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::SetParentFolderId(v)
+            }
+        }
+        impl From<Set> for UncheckedSetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::ParentFolderId(v)
+            }
+        }
+        pub fn set<T: From<Set>>(value: i32) -> T {
+            Set(value).into()
+        }
+        pub fn order(direction: ::prisma_client_rust::Direction) -> OrderByParam {
+            OrderByParam::ParentFolderId(direction)
+        }
+        pub fn equals(value: i32) -> WhereParam {
+            WhereParam::ParentFolderId(_prisma::read_filters::IntFilter::Equals(value))
+        }
+        ::prisma_client_rust::scalar_where_param_fns!(
+            _prisma::read_filters::IntFilter,
+            ParentFolderId,
+            {
+                fn in_vec(_: Vec<i32>) -> InVec;
+                fn not_in_vec(_: Vec<i32>) -> NotInVec;
+                fn lt(_: i32) -> Lt;
+                fn lte(_: i32) -> Lte;
+                fn gt(_: i32) -> Gt;
+                fn gte(_: i32) -> Gte;
+                fn not(_: i32) -> Not;
+            }
+        );
+        pub fn increment(value: i32) -> SetParam {
+            SetParam::IncrementParentFolderId(value)
+        }
+        pub fn decrement(value: i32) -> SetParam {
+            SetParam::DecrementParentFolderId(value)
+        }
+        pub fn multiply(value: i32) -> SetParam {
+            SetParam::MultiplyParentFolderId(value)
+        }
+        pub fn divide(value: i32) -> SetParam {
+            SetParam::DivideParentFolderId(value)
+        }
+        pub struct Include;
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::ParentFolderId(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+        pub struct Select;
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::ParentFolderId(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+    }
+    pub mod child_folder_id {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "child_folder_id";
+        pub struct Set(pub i32);
+        impl From<Set> for SetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::SetChildFolderId(v)
+            }
+        }
+        impl From<Set> for UncheckedSetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::ChildFolderId(v)
+            }
+        }
+        pub fn set<T: From<Set>>(value: i32) -> T {
+            Set(value).into()
+        }
+        pub fn order(direction: ::prisma_client_rust::Direction) -> OrderByParam {
+            OrderByParam::ChildFolderId(direction)
+        }
+        pub fn equals(value: i32) -> WhereParam {
+            WhereParam::ChildFolderId(_prisma::read_filters::IntFilter::Equals(value))
+        }
+        ::prisma_client_rust::scalar_where_param_fns!(
+            _prisma::read_filters::IntFilter,
+            ChildFolderId,
+            {
+                fn in_vec(_: Vec<i32>) -> InVec;
+                fn not_in_vec(_: Vec<i32>) -> NotInVec;
+                fn lt(_: i32) -> Lt;
+                fn lte(_: i32) -> Lte;
+                fn gt(_: i32) -> Gt;
+                fn gte(_: i32) -> Gte;
+                fn not(_: i32) -> Not;
+            }
+        );
+        pub fn increment(value: i32) -> SetParam {
+            SetParam::IncrementChildFolderId(value)
+        }
+        pub fn decrement(value: i32) -> SetParam {
+            SetParam::DecrementChildFolderId(value)
+        }
+        pub fn multiply(value: i32) -> SetParam {
+            SetParam::MultiplyChildFolderId(value)
+        }
+        pub fn divide(value: i32) -> SetParam {
+            SetParam::DivideChildFolderId(value)
+        }
+        pub struct Include;
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::ChildFolderId(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+        pub struct Select;
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::ChildFolderId(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+    }
+    pub mod created_at {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "created_at";
+        pub struct Set(pub f64);
+        impl From<Set> for SetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::SetCreatedAt(v)
+            }
+        }
+        impl From<Set> for UncheckedSetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::CreatedAt(v)
+            }
+        }
+        pub fn set<T: From<Set>>(value: f64) -> T {
+            Set(value).into()
+        }
+        pub fn order(direction: ::prisma_client_rust::Direction) -> OrderByParam {
+            OrderByParam::CreatedAt(direction)
+        }
+        pub fn equals(value: f64) -> WhereParam {
+            WhereParam::CreatedAt(_prisma::read_filters::FloatFilter::Equals(value))
+        }
+        ::prisma_client_rust::scalar_where_param_fns!(
+            _prisma::read_filters::FloatFilter,
+            CreatedAt,
+            {
+                fn in_vec(_: Vec<f64>) -> InVec;
+                fn not_in_vec(_: Vec<f64>) -> NotInVec;
+                fn lt(_: f64) -> Lt;
+                fn lte(_: f64) -> Lte;
+                fn gt(_: f64) -> Gt;
+                fn gte(_: f64) -> Gte;
+                fn not(_: f64) -> Not;
+            }
+        );
+        pub fn increment(value: f64) -> SetParam {
+            SetParam::IncrementCreatedAt(value)
+        }
+        pub fn decrement(value: f64) -> SetParam {
+            SetParam::DecrementCreatedAt(value)
+        }
+        pub fn multiply(value: f64) -> SetParam {
+            SetParam::MultiplyCreatedAt(value)
+        }
+        pub fn divide(value: f64) -> SetParam {
+            SetParam::DivideCreatedAt(value)
+        }
+        pub struct Include;
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::CreatedAt(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+        pub struct Select;
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::CreatedAt(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+    }
+    pub mod created_at_hk {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "created_at_hk";
+        pub struct Set(pub String);
+        impl From<Set> for SetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::SetCreatedAtHk(v)
+            }
+        }
+        impl From<Set> for UncheckedSetParam {
+            fn from(Set(v): Set) -> Self {
+                Self::CreatedAtHk(v)
+            }
+        }
+        pub fn set<T: From<Set>>(value: String) -> T {
+            Set(value).into()
+        }
+        pub fn order(direction: ::prisma_client_rust::Direction) -> OrderByParam {
+            OrderByParam::CreatedAtHk(direction)
+        }
+        pub fn equals(value: String) -> WhereParam {
+            WhereParam::CreatedAtHk(_prisma::read_filters::StringFilter::Equals(value))
+        }
+        ::prisma_client_rust::scalar_where_param_fns!(
+            _prisma::read_filters::StringFilter,
+            CreatedAtHk,
+            {
+                fn in_vec(_: Vec<String>) -> InVec;
+                fn not_in_vec(_: Vec<String>) -> NotInVec;
+                fn lt(_: String) -> Lt;
+                fn lte(_: String) -> Lte;
+                fn gt(_: String) -> Gt;
+                fn gte(_: String) -> Gte;
+                fn contains(_: String) -> Contains;
+                fn starts_with(_: String) -> StartsWith;
+                fn ends_with(_: String) -> EndsWith;
+                fn not(_: String) -> Not;
+            }
+        );
+        pub struct Include;
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::CreatedAtHk(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+        pub struct Select;
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::CreatedAtHk(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                ::prisma_client_rust::sel(NAME)
+            }
+        }
+    }
+    pub mod parent_folder {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "parent_folder";
+        pub struct Fetch(pub scripts_folder::UniqueArgs);
+        impl Fetch {
+            pub fn with(mut self, params: impl Into<scripts_folder::WithParam>) -> Self {
+                self.0 = self.0.with(params.into());
+                self
+            }
+        }
+        impl From<Fetch> for WithParam {
+            fn from(Fetch(v): Fetch) -> Self {
+                WithParam::ParentFolder(v)
+            }
+        }
+        pub fn fetch() -> Fetch {
+            Fetch(scripts_folder::UniqueArgs::new())
+        }
+        pub struct Connect(scripts_folder::UniqueWhereParam);
+        impl From<Connect> for SetParam {
+            fn from(Connect(v): Connect) -> Self {
+                Self::ConnectParentFolder(v)
+            }
+        }
+        pub fn connect<T: From<Connect>>(value: scripts_folder::UniqueWhereParam) -> T {
+            Connect(value).into()
+        }
+        pub fn is(value: Vec<scripts_folder::WhereParam>) -> WhereParam {
+            WhereParam::ParentFolderIs(value)
+        }
+        pub fn is_not(value: Vec<scripts_folder::WhereParam>) -> WhereParam {
+            WhereParam::ParentFolderIsNot(value)
+        }
+        pub enum Include {
+            Select(Vec<scripts_folder::SelectParam>),
+            Include(Vec<scripts_folder::IncludeParam>),
+            Fetch,
+        }
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::ParentFolder(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                let selections = match self { Self :: Select (selections) => { selections . into_iter () . map (| s | s . to_selection ()) . collect () } , Self :: Include (selections) => { let mut nested_selections = < scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () ; nested_selections . extend (selections . into_iter () . map (| s | s . to_selection ())) ; nested_selections } , Self :: Fetch => { < scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () } } ;
+                ::prisma_client_rust::Selection::new("parent_folder", None, [], selections)
+            }
+            pub fn select(nested_selections: Vec<scripts_folder::SelectParam>) -> Self {
+                Self::Select(nested_selections)
+            }
+            pub fn include(nested_selections: Vec<scripts_folder::IncludeParam>) -> Self {
+                Self::Include(nested_selections)
+            }
+        }
+        pub enum Select {
+            Select(Vec<scripts_folder::SelectParam>),
+            Include(Vec<scripts_folder::IncludeParam>),
+            Fetch,
+        }
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::ParentFolder(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                let selections = match self { Self :: Select (selections) => { selections . into_iter () . map (| s | s . to_selection ()) . collect () } , Self :: Include (selections) => { let mut nested_selections = vec ! [] ; nested_selections . extend (selections . into_iter () . map (| s | s . to_selection ())) ; nested_selections } , Self :: Fetch => { < scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () } } ;
+                ::prisma_client_rust::Selection::new("parent_folder", None, [], selections)
+            }
+            pub fn select(nested_selections: Vec<scripts_folder::SelectParam>) -> Self {
+                Self::Select(nested_selections)
+            }
+            pub fn include(nested_selections: Vec<scripts_folder::IncludeParam>) -> Self {
+                Self::Include(nested_selections)
+            }
+        }
+    }
+    pub mod child_folder {
+        use super::super::*;
+        use super::_prisma::*;
+        use super::{
+            OrderByParam, SetParam, UncheckedSetParam, UniqueWhereParam, WhereParam, WithParam,
+        };
+        pub const NAME: &str = "child_folder";
+        pub struct Fetch(pub scripts_folder::UniqueArgs);
+        impl Fetch {
+            pub fn with(mut self, params: impl Into<scripts_folder::WithParam>) -> Self {
+                self.0 = self.0.with(params.into());
+                self
+            }
+        }
+        impl From<Fetch> for WithParam {
+            fn from(Fetch(v): Fetch) -> Self {
+                WithParam::ChildFolder(v)
+            }
+        }
+        pub fn fetch() -> Fetch {
+            Fetch(scripts_folder::UniqueArgs::new())
+        }
+        pub struct Connect(scripts_folder::UniqueWhereParam);
+        impl From<Connect> for SetParam {
+            fn from(Connect(v): Connect) -> Self {
+                Self::ConnectChildFolder(v)
+            }
+        }
+        pub fn connect<T: From<Connect>>(value: scripts_folder::UniqueWhereParam) -> T {
+            Connect(value).into()
+        }
+        pub fn is(value: Vec<scripts_folder::WhereParam>) -> WhereParam {
+            WhereParam::ChildFolderIs(value)
+        }
+        pub fn is_not(value: Vec<scripts_folder::WhereParam>) -> WhereParam {
+            WhereParam::ChildFolderIsNot(value)
+        }
+        pub enum Include {
+            Select(Vec<scripts_folder::SelectParam>),
+            Include(Vec<scripts_folder::IncludeParam>),
+            Fetch,
+        }
+        impl Into<super::IncludeParam> for Include {
+            fn into(self) -> super::IncludeParam {
+                super::IncludeParam::ChildFolder(self)
+            }
+        }
+        impl Include {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                let selections = match self { Self :: Select (selections) => { selections . into_iter () . map (| s | s . to_selection ()) . collect () } , Self :: Include (selections) => { let mut nested_selections = < scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () ; nested_selections . extend (selections . into_iter () . map (| s | s . to_selection ())) ; nested_selections } , Self :: Fetch => { < scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () } } ;
+                ::prisma_client_rust::Selection::new("child_folder", None, [], selections)
+            }
+            pub fn select(nested_selections: Vec<scripts_folder::SelectParam>) -> Self {
+                Self::Select(nested_selections)
+            }
+            pub fn include(nested_selections: Vec<scripts_folder::IncludeParam>) -> Self {
+                Self::Include(nested_selections)
+            }
+        }
+        pub enum Select {
+            Select(Vec<scripts_folder::SelectParam>),
+            Include(Vec<scripts_folder::IncludeParam>),
+            Fetch,
+        }
+        impl Into<super::SelectParam> for Select {
+            fn into(self) -> super::SelectParam {
+                super::SelectParam::ChildFolder(self)
+            }
+        }
+        impl Select {
+            pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+                let selections = match self { Self :: Select (selections) => { selections . into_iter () . map (| s | s . to_selection ()) . collect () } , Self :: Include (selections) => { let mut nested_selections = vec ! [] ; nested_selections . extend (selections . into_iter () . map (| s | s . to_selection ())) ; nested_selections } , Self :: Fetch => { < scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () } } ;
+                ::prisma_client_rust::Selection::new("child_folder", None, [], selections)
+            }
+            pub fn select(nested_selections: Vec<scripts_folder::SelectParam>) -> Self {
+                Self::Select(nested_selections)
+            }
+            pub fn include(nested_selections: Vec<scripts_folder::IncludeParam>) -> Self {
+                Self::Include(nested_selections)
+            }
+        }
+    }
+    pub fn create(
+        parent_folder: super::scripts_folder::UniqueWhereParam,
+        child_folder: super::scripts_folder::UniqueWhereParam,
+        _params: Vec<SetParam>,
+    ) -> (
+        super::scripts_folder::UniqueWhereParam,
+        super::scripts_folder::UniqueWhereParam,
+        Vec<SetParam>,
+    ) {
+        (parent_folder, child_folder, _params)
+    }
+    pub fn create_unchecked(
+        parent_folder_id: i32,
+        child_folder_id: i32,
+        _params: Vec<SetParam>,
+    ) -> (i32, i32, Vec<SetParam>) {
+        (parent_folder_id, child_folder_id, _params)
+    }
+    #[macro_export]
+    macro_rules ! _select_rel_folder_folder { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: rel_folder_folder :: select ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: rel_folder_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn select ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: rel_folder_folder :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: rel_folder_folder :: select ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: SelectType for Selection { type Data = Data ; type ModelData = crate :: prisma :: rel_folder_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: rel_folder_folder :: select ! (@ selections_to_params ; : select { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () ,] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { id , parent_folder_id , child_folder_id , created_at , created_at_hk , parent_folder , child_folder } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { $ (pub $ field : crate :: prisma :: rel_folder_folder :: select ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) +] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: rel_folder_folder :: $ field :: NAME , & self . $ field) ? ;) * state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: rel_folder_folder :: $ field :: NAME) , + ,] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: rel_folder_folder :: $ field :: NAME => Ok (Field :: $ field)) , * , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * while let Some (key) = map . next_key () ? { match key { $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: rel_folder_folder :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: rel_folder_folder :: $ field :: NAME)) ? ;) * Ok (Data { $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "parent_folder_id" , "child_folder_id" , "created_at" , "created_at_hk" , "parent_folder" , "child_folder"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: rel_folder_folder :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; id) => { i32 } ; (@ field_type ; parent_folder_id) => { i32 } ; (@ field_type ; child_folder_id) => { i32 } ; (@ field_type ; created_at) => { f64 } ; (@ field_type ; created_at_hk) => { String } ; (@ field_type ; parent_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { parent_folder :: Data } ; (@ field_type ; parent_folder) => { crate :: prisma :: scripts_folder :: Data } ; (@ field_type ; child_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { child_folder :: Data } ; (@ field_type ; child_folder) => { crate :: prisma :: scripts_folder :: Data } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "RelFolderFolder" , available relations are "id, parent_folder_id, child_folder_id, created_at, created_at_hk, parent_folder, child_folder")) } ; (@ field_module ; parent_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: scripts_folder :: select ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; child_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: scripts_folder :: select ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; id) => { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: id :: Select) } ; (@ selection_field_to_selection_param ; parent_folder_id) => { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: parent_folder_id :: Select) } ; (@ selection_field_to_selection_param ; child_folder_id) => { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: child_folder_id :: Select) } ; (@ selection_field_to_selection_param ; created_at) => { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: created_at :: Select) } ; (@ selection_field_to_selection_param ; created_at_hk) => { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: created_at_hk :: Select) } ; (@ selection_field_to_selection_param ; parent_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: parent_folder :: Select :: $ selection_mode (crate :: prisma :: scripts_folder :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; parent_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: parent_folder :: Select :: Fetch) } } ; (@ selection_field_to_selection_param ; child_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: child_folder :: Select :: $ selection_mode (crate :: prisma :: scripts_folder :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; child_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: rel_folder_folder :: SelectParam > :: into (crate :: prisma :: rel_folder_folder :: child_folder :: Select :: Fetch) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: rel_folder_folder :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; parent_folder_id) => { "parent_folder_id" } ; (@ field_serde_name ; child_folder_id) => { "child_folder_id" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; parent_folder) => { "parent_folder" } ; (@ field_serde_name ; child_folder) => { "child_folder" } ; }
+    pub use _select_rel_folder_folder as select;
+    pub enum SelectParam {
+        Id(id::Select),
+        ParentFolderId(parent_folder_id::Select),
+        ChildFolderId(child_folder_id::Select),
+        CreatedAt(created_at::Select),
+        CreatedAtHk(created_at_hk::Select),
+        ParentFolder(parent_folder::Select),
+        ChildFolder(child_folder::Select),
+    }
+    impl SelectParam {
+        pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+            match self {
+                Self::Id(data) => data.to_selection(),
+                Self::ParentFolderId(data) => data.to_selection(),
+                Self::ChildFolderId(data) => data.to_selection(),
+                Self::CreatedAt(data) => data.to_selection(),
+                Self::CreatedAtHk(data) => data.to_selection(),
+                Self::ParentFolder(data) => data.to_selection(),
+                Self::ChildFolder(data) => data.to_selection(),
+            }
+        }
+    }
+    #[macro_export]
+    macro_rules ! _include_rel_folder_folder { ($ (($ ($ func_arg : ident : $ func_arg_ty : ty) , +) =>) ? $ module_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { # [allow (warnings)] pub mod $ module_name { crate :: prisma :: rel_folder_folder :: include ! (@ definitions ; $ module_name ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; use super :: * ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: rel_folder_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } pub fn include ($ ($ ($ func_arg : $ func_arg_ty) , +) ?) -> Selection { Selection ([crate :: prisma :: rel_folder_folder :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } } ; ({ $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { { crate :: prisma :: rel_folder_folder :: include ! (@ definitions ; ; $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) +) ; pub struct Selection (Vec < :: prisma_client_rust :: Selection >) ; impl :: prisma_client_rust :: IncludeType for Selection { type Data = Data ; type ModelData = crate :: prisma :: rel_folder_folder :: Data ; fn to_selections (self) -> Vec < :: prisma_client_rust :: Selection > { self . 0 } } Selection ([crate :: prisma :: rel_folder_folder :: include ! (@ selections_to_params ; : include { $ ($ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) + }) . into_iter () . map (| p | p . to_selection ()) . collect :: < Vec < _ >> () , < crate :: prisma :: rel_folder_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections ()] . into_iter () . flatten () . collect :: < Vec < _ >> ()) } } ; (@ definitions ; $ ($ module_name : ident) ? ; $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) +) => { # [allow (warnings)] enum Fields { parent_folder , child_folder } # [allow (warnings)] impl Fields { fn selections () { $ (let _ = Fields :: $ field ;) + } } # [allow (warnings)] # [derive (std :: fmt :: Debug , Clone)] pub struct Data { pub id : i32 , pub parent_folder_id : i32 , pub child_folder_id : i32 , pub created_at : f64 , pub created_at_hk : String , $ (pub $ field : crate :: prisma :: rel_folder_folder :: include ! (@ field_type ; $ field $ (: $ selection_mode { $ ($ selections) + }) ?) ,) + } impl :: serde :: Serialize for Data { fn serialize < S > (& self , serializer : S) -> Result < S :: Ok , S :: Error > where S : :: serde :: Serializer , { use :: serde :: ser :: SerializeStruct ; let mut state = serializer . serialize_struct ("Data" , [$ (stringify ! ($ field) ,) + stringify ! (id) , stringify ! (parent_folder_id) , stringify ! (child_folder_id) , stringify ! (created_at) , stringify ! (created_at_hk)] . len ()) ? ; $ (state . serialize_field (crate :: prisma :: rel_folder_folder :: $ field :: NAME , & self . $ field) ? ;) * state . serialize_field (crate :: prisma :: rel_folder_folder :: id :: NAME , & self . id) ? ; state . serialize_field (crate :: prisma :: rel_folder_folder :: parent_folder_id :: NAME , & self . parent_folder_id) ? ; state . serialize_field (crate :: prisma :: rel_folder_folder :: child_folder_id :: NAME , & self . child_folder_id) ? ; state . serialize_field (crate :: prisma :: rel_folder_folder :: created_at :: NAME , & self . created_at) ? ; state . serialize_field (crate :: prisma :: rel_folder_folder :: created_at_hk :: NAME , & self . created_at_hk) ? ; state . end () } } impl < 'de > :: serde :: Deserialize < 'de > for Data { fn deserialize < D > (deserializer : D) -> Result < Self , D :: Error > where D : :: serde :: Deserializer < 'de > , { # [allow (warnings)] enum Field { $ ($ field) , + , id , parent_folder_id , child_folder_id , created_at , created_at_hk } impl < 'de > :: serde :: Deserialize < 'de > for Field { fn deserialize < D > (deserializer : D) -> Result < Field , D :: Error > where D : :: serde :: Deserializer < 'de > , { struct FieldVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for FieldVisitor { type Value = Field ; fn expecting (& self , formatter : & mut :: std :: fmt :: Formatter) -> :: std :: fmt :: Result { formatter . write_str (& [$ (crate :: prisma :: rel_folder_folder :: $ field :: NAME) , + , crate :: prisma :: rel_folder_folder :: id :: NAME , crate :: prisma :: rel_folder_folder :: parent_folder_id :: NAME , crate :: prisma :: rel_folder_folder :: child_folder_id :: NAME , crate :: prisma :: rel_folder_folder :: created_at :: NAME , crate :: prisma :: rel_folder_folder :: created_at_hk :: NAME] . into_iter () . collect :: < Vec < _ >> () . join (", ")) } fn visit_str < E > (self , value : & str) -> Result < Field , E > where E : :: serde :: de :: Error , { match value { $ (crate :: prisma :: rel_folder_folder :: $ field :: NAME => Ok (Field :: $ field)) , * , crate :: prisma :: rel_folder_folder :: id :: NAME => Ok (Field :: id) , crate :: prisma :: rel_folder_folder :: parent_folder_id :: NAME => Ok (Field :: parent_folder_id) , crate :: prisma :: rel_folder_folder :: child_folder_id :: NAME => Ok (Field :: child_folder_id) , crate :: prisma :: rel_folder_folder :: created_at :: NAME => Ok (Field :: created_at) , crate :: prisma :: rel_folder_folder :: created_at_hk :: NAME => Ok (Field :: created_at_hk) , _ => Err (:: serde :: de :: Error :: unknown_field (value , FIELDS)) , } } } deserializer . deserialize_identifier (FieldVisitor) } } struct DataVisitor ; impl < 'de > :: serde :: de :: Visitor < 'de > for DataVisitor { type Value = Data ; fn expecting (& self , formatter : & mut std :: fmt :: Formatter) -> std :: fmt :: Result { formatter . write_str ("struct Data") } fn visit_map < V > (self , mut map : V) -> Result < Data , V :: Error > where V : :: serde :: de :: MapAccess < 'de > , { $ (let mut $ field = None ;) * let mut id = None ; let mut parent_folder_id = None ; let mut child_folder_id = None ; let mut created_at = None ; let mut created_at_hk = None ; while let Some (key) = map . next_key () ? { match key { Field :: id => { if id . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: rel_folder_folder :: id :: NAME)) ; } id = Some (map . next_value () ?) ; } Field :: parent_folder_id => { if parent_folder_id . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: rel_folder_folder :: parent_folder_id :: NAME)) ; } parent_folder_id = Some (map . next_value () ?) ; } Field :: child_folder_id => { if child_folder_id . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: rel_folder_folder :: child_folder_id :: NAME)) ; } child_folder_id = Some (map . next_value () ?) ; } Field :: created_at => { if created_at . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: rel_folder_folder :: created_at :: NAME)) ; } created_at = Some (map . next_value () ?) ; } Field :: created_at_hk => { if created_at_hk . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: rel_folder_folder :: created_at_hk :: NAME)) ; } created_at_hk = Some (map . next_value () ?) ; } $ (Field :: $ field => { if $ field . is_some () { return Err (:: serde :: de :: Error :: duplicate_field (crate :: prisma :: rel_folder_folder :: $ field :: NAME)) ; } $ field = Some (map . next_value () ?) ; }) * } } $ (let $ field = $ field . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: rel_folder_folder :: $ field :: NAME)) ? ;) * let id = id . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: rel_folder_folder :: id :: NAME)) ? ; let parent_folder_id = parent_folder_id . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: rel_folder_folder :: parent_folder_id :: NAME)) ? ; let child_folder_id = child_folder_id . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: rel_folder_folder :: child_folder_id :: NAME)) ? ; let created_at = created_at . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: rel_folder_folder :: created_at :: NAME)) ? ; let created_at_hk = created_at_hk . ok_or_else (|| serde :: de :: Error :: missing_field (crate :: prisma :: rel_folder_folder :: created_at_hk :: NAME)) ? ; Ok (Data { id , parent_folder_id , child_folder_id , created_at , created_at_hk , $ ($ field) , * }) } } const FIELDS : & 'static [& 'static str] = & ["id" , "parent_folder_id" , "child_folder_id" , "created_at" , "created_at_hk" , "parent_folder" , "child_folder"] ; deserializer . deserialize_struct ("Data" , FIELDS , DataVisitor) } } $ ($ (pub mod $ field { crate :: prisma :: rel_folder_folder :: $ selection_mode ! (@ field_module ; $ field : $ selection_mode { $ ($ selections) + }) ; }) ?) + } ; (@ field_type ; parent_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { parent_folder :: Data } ; (@ field_type ; parent_folder) => { crate :: prisma :: scripts_folder :: Data } ; (@ field_type ; child_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { child_folder :: Data } ; (@ field_type ; child_folder) => { crate :: prisma :: scripts_folder :: Data } ; (@ field_type ; $ field : ident $ ($ tokens : tt) *) => { compile_error ! (stringify ! (Cannot include nonexistent relation $ field on model "RelFolderFolder" , available relations are "parent_folder, child_folder")) } ; (@ field_module ; parent_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: scripts_folder :: include ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; child_folder : $ selection_mode : ident { $ ($ selections : tt) + }) => { crate :: prisma :: scripts_folder :: include ! (@ definitions ; ; $ ($ selections) +) ; } ; (@ field_module ; $ ($ tokens : tt) *) => { } ; (@ selection_field_to_selection_param ; parent_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: rel_folder_folder :: IncludeParam > :: into (crate :: prisma :: rel_folder_folder :: parent_folder :: Include :: $ selection_mode (crate :: prisma :: scripts_folder :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; parent_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: rel_folder_folder :: IncludeParam > :: into (crate :: prisma :: rel_folder_folder :: parent_folder :: Include :: Fetch) } } ; (@ selection_field_to_selection_param ; child_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? : $ selection_mode : ident { $ ($ selections : tt) + }) => { { Into :: < crate :: prisma :: rel_folder_folder :: IncludeParam > :: into (crate :: prisma :: rel_folder_folder :: child_folder :: Include :: $ selection_mode (crate :: prisma :: scripts_folder :: select ! (@ selections_to_params ; : $ selection_mode { $ ($ selections) + }) . into_iter () . collect ())) } } ; (@ selection_field_to_selection_param ; child_folder $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ?) => { { Into :: < crate :: prisma :: rel_folder_folder :: IncludeParam > :: into (crate :: prisma :: rel_folder_folder :: child_folder :: Include :: Fetch) } } ; (@ selection_field_to_selection_param ; $ ($ tokens : tt) *) => { compile_error ! (stringify ! ($ ($ tokens) *)) } ; (@ selections_to_params ; : $ macro_name : ident { $ ($ field : ident $ (($ ($ filters : tt) +) $ (. $ arg : ident ($ ($ arg_params : tt) *)) *) ? $ (: $ selection_mode : ident { $ ($ selections : tt) + }) ?) + }) => { [$ (crate :: prisma :: rel_folder_folder :: $ macro_name ! (@ selection_field_to_selection_param ; $ field $ (($ ($ filters) +) $ (. $ arg ($ ($ arg_params) *)) *) ? $ (: $ selection_mode { $ ($ selections) + }) ?) ,) +] } ; (@ filters_to_args ;) => { vec ! [] } ; (@ filters_to_args ; $ ($ t : tt) *) => { $ ($ t) * } ; (@ field_serde_name ; id) => { "id" } ; (@ field_serde_name ; parent_folder_id) => { "parent_folder_id" } ; (@ field_serde_name ; child_folder_id) => { "child_folder_id" } ; (@ field_serde_name ; created_at) => { "created_at" } ; (@ field_serde_name ; created_at_hk) => { "created_at_hk" } ; (@ field_serde_name ; parent_folder) => { "parent_folder" } ; (@ field_serde_name ; child_folder) => { "child_folder" } ; }
+    pub use _include_rel_folder_folder as include;
+    pub enum IncludeParam {
+        Id(id::Include),
+        ParentFolderId(parent_folder_id::Include),
+        ChildFolderId(child_folder_id::Include),
+        CreatedAt(created_at::Include),
+        CreatedAtHk(created_at_hk::Include),
+        ParentFolder(parent_folder::Include),
+        ChildFolder(child_folder::Include),
+    }
+    impl IncludeParam {
+        pub fn to_selection(self) -> ::prisma_client_rust::Selection {
+            match self {
+                Self::Id(data) => data.to_selection(),
+                Self::ParentFolderId(data) => data.to_selection(),
+                Self::ChildFolderId(data) => data.to_selection(),
+                Self::CreatedAt(data) => data.to_selection(),
+                Self::CreatedAtHk(data) => data.to_selection(),
+                Self::ParentFolder(data) => data.to_selection(),
+                Self::ChildFolder(data) => data.to_selection(),
+            }
+        }
+    }
+    #[macro_export]
+    macro_rules ! _partial_unchecked_rel_folder_folder { ($ struct_name : ident { $ ($ scalar_field : ident) + }) => { :: prisma_client_rust :: macros :: partial_unchecked ! { crate :: prisma :: rel_folder_folder struct $ struct_name { # [serde (rename = "id")] pub id : i32 , # [serde (rename = "parent_folder_id")] pub parent_folder_id : i32 , # [serde (rename = "child_folder_id")] pub child_folder_id : i32 , # [serde (rename = "created_at")] pub created_at : f64 , # [serde (rename = "created_at_hk")] pub created_at_hk : String } [$ ($ scalar_field) , +] } } ; }
+    pub use _partial_unchecked_rel_folder_folder as partial_unchecked;
+    #[derive(Debug, Clone, :: serde :: Serialize, :: serde :: Deserialize)]
+    pub struct Data {
+        #[serde(rename = "id")]
+        pub id: i32,
+        #[serde(rename = "parent_folder_id")]
+        pub parent_folder_id: i32,
+        #[serde(rename = "child_folder_id")]
+        pub child_folder_id: i32,
+        #[serde(rename = "created_at")]
+        pub created_at: f64,
+        #[serde(rename = "created_at_hk")]
+        pub created_at_hk: String,
+        #[serde(rename = "parent_folder")]
+        pub parent_folder: Option<Box<super::scripts_folder::Data>>,
+        #[serde(rename = "child_folder")]
+        pub child_folder: Option<Box<super::scripts_folder::Data>>,
+    }
+    impl Data {
+        pub fn parent_folder(
+            &self,
+        ) -> Result<&super::scripts_folder::Data, ::prisma_client_rust::RelationNotFetchedError>
+        {
+            self.parent_folder
+                .as_ref()
+                .ok_or(::prisma_client_rust::RelationNotFetchedError::new(
+                    stringify!(parent_folder),
+                ))
+                .map(|v| v.as_ref())
+        }
+        pub fn child_folder(
+            &self,
+        ) -> Result<&super::scripts_folder::Data, ::prisma_client_rust::RelationNotFetchedError>
+        {
+            self.child_folder
+                .as_ref()
+                .ok_or(::prisma_client_rust::RelationNotFetchedError::new(
+                    stringify!(child_folder),
+                ))
+                .map(|v| v.as_ref())
+        }
+    }
+    #[derive(Clone)]
+    pub enum WithParam {
+        ParentFolder(super::scripts_folder::UniqueArgs),
+        ChildFolder(super::scripts_folder::UniqueArgs),
+    }
+    impl Into<::prisma_client_rust::Selection> for WithParam {
+        fn into(self) -> ::prisma_client_rust::Selection {
+            match self {
+                Self::ParentFolder(args) => {
+                    let mut selections = < super :: scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () ;
+                    selections.extend(
+                        args.with_params
+                            .into_iter()
+                            .map(Into::<::prisma_client_rust::Selection>::into),
+                    );
+                    ::prisma_client_rust::Selection::new(parent_folder::NAME, None, [], selections)
+                }
+                Self::ChildFolder(args) => {
+                    let mut selections = < super :: scripts_folder :: Types as :: prisma_client_rust :: ModelTypes > :: scalar_selections () ;
+                    selections.extend(
+                        args.with_params
+                            .into_iter()
+                            .map(Into::<::prisma_client_rust::Selection>::into),
+                    );
+                    ::prisma_client_rust::Selection::new(child_folder::NAME, None, [], selections)
+                }
+            }
+        }
+    }
+    #[derive(Clone)]
+    pub enum SetParam {
+        SetId(i32),
+        IncrementId(i32),
+        DecrementId(i32),
+        MultiplyId(i32),
+        DivideId(i32),
+        SetParentFolderId(i32),
+        IncrementParentFolderId(i32),
+        DecrementParentFolderId(i32),
+        MultiplyParentFolderId(i32),
+        DivideParentFolderId(i32),
+        SetChildFolderId(i32),
+        IncrementChildFolderId(i32),
+        DecrementChildFolderId(i32),
+        MultiplyChildFolderId(i32),
+        DivideChildFolderId(i32),
+        SetCreatedAt(f64),
+        IncrementCreatedAt(f64),
+        DecrementCreatedAt(f64),
+        MultiplyCreatedAt(f64),
+        DivideCreatedAt(f64),
+        SetCreatedAtHk(String),
+        ConnectParentFolder(super::scripts_folder::UniqueWhereParam),
+        ConnectChildFolder(super::scripts_folder::UniqueWhereParam),
+    }
+    impl From<SetParam> for (String, ::prisma_client_rust::PrismaValue) {
+        fn from(param: SetParam) -> Self {
+            match param { SetParam :: SetId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideId (value) => (id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetParentFolderId (value) => (parent_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementParentFolderId (value) => (parent_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementParentFolderId (value) => (parent_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyParentFolderId (value) => (parent_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideParentFolderId (value) => (parent_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetChildFolderId (value) => (child_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64)) , SetParam :: IncrementChildFolderId (value) => (child_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DecrementChildFolderId (value) => (child_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: MultiplyChildFolderId (value) => (child_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: DivideChildFolderId (value) => (child_folder_id :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Int (value as i64))])) , SetParam :: SetCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ())) , SetParam :: IncrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("increment" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DecrementCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("decrement" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: MultiplyCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("multiply" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: DivideCreatedAt (value) => (created_at :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("divide" . to_string () , :: prisma_client_rust :: PrismaValue :: Float (< :: prisma_client_rust :: bigdecimal :: BigDecimal as :: prisma_client_rust :: bigdecimal :: FromPrimitive > :: from_f64 (value) . unwrap () . normalized ()))])) , SetParam :: SetCreatedAtHk (value) => (created_at_hk :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: String (value)) , SetParam :: ConnectParentFolder (where_param) => (parent_folder :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("connect" . to_string () , :: prisma_client_rust :: PrismaValue :: Object ([where_param] . into_iter () . map (Into :: < super :: scripts_folder :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . collect ()))])) , SetParam :: ConnectChildFolder (where_param) => (child_folder :: NAME . to_string () , :: prisma_client_rust :: PrismaValue :: Object (vec ! [("connect" . to_string () , :: prisma_client_rust :: PrismaValue :: Object ([where_param] . into_iter () . map (Into :: < super :: scripts_folder :: WhereParam > :: into) . map (:: prisma_client_rust :: WhereInput :: serialize) . map (:: prisma_client_rust :: SerializedWhereInput :: transform_equals) . collect ()))])) }
+        }
+    }
+    #[derive(Clone)]
+    pub enum UncheckedSetParam {
+        Id(i32),
+        ParentFolderId(i32),
+        ChildFolderId(i32),
+        CreatedAt(f64),
+        CreatedAtHk(String),
+    }
+    impl From<UncheckedSetParam> for SetParam {
+        fn from(param: UncheckedSetParam) -> Self {
+            match param {
+                UncheckedSetParam::Id(value) => Self::SetId(value),
+                UncheckedSetParam::ParentFolderId(value) => Self::SetParentFolderId(value),
+                UncheckedSetParam::ChildFolderId(value) => Self::SetChildFolderId(value),
+                UncheckedSetParam::CreatedAt(value) => Self::SetCreatedAt(value),
+                UncheckedSetParam::CreatedAtHk(value) => Self::SetCreatedAtHk(value),
+            }
+        }
+    }
+    #[derive(Clone)]
+    pub enum OrderByParam {
+        Id(::prisma_client_rust::Direction),
+        ParentFolderId(::prisma_client_rust::Direction),
+        ChildFolderId(::prisma_client_rust::Direction),
+        CreatedAt(::prisma_client_rust::Direction),
+        CreatedAtHk(::prisma_client_rust::Direction),
+    }
+    impl Into<(String, ::prisma_client_rust::PrismaValue)> for OrderByParam {
+        fn into(self) -> (String, ::prisma_client_rust::PrismaValue) {
+            match self {
+                Self::Id(direction) => (
+                    id::NAME.to_string(),
+                    ::prisma_client_rust::PrismaValue::String(direction.to_string()),
+                ),
+                Self::ParentFolderId(direction) => (
+                    parent_folder_id::NAME.to_string(),
+                    ::prisma_client_rust::PrismaValue::String(direction.to_string()),
+                ),
+                Self::ChildFolderId(direction) => (
+                    child_folder_id::NAME.to_string(),
+                    ::prisma_client_rust::PrismaValue::String(direction.to_string()),
+                ),
+                Self::CreatedAt(direction) => (
+                    created_at::NAME.to_string(),
+                    ::prisma_client_rust::PrismaValue::String(direction.to_string()),
+                ),
+                Self::CreatedAtHk(direction) => (
+                    created_at_hk::NAME.to_string(),
+                    ::prisma_client_rust::PrismaValue::String(direction.to_string()),
+                ),
+            }
+        }
+    }
+    #[derive(Clone)]
+    pub enum WhereParam {
+        Not(Vec<WhereParam>),
+        Or(Vec<WhereParam>),
+        And(Vec<WhereParam>),
+        Id(_prisma::read_filters::IntFilter),
+        ParentFolderId(_prisma::read_filters::IntFilter),
+        ChildFolderId(_prisma::read_filters::IntFilter),
+        CreatedAt(_prisma::read_filters::FloatFilter),
+        CreatedAtHk(_prisma::read_filters::StringFilter),
+        ParentFolderIs(Vec<super::scripts_folder::WhereParam>),
+        ParentFolderIsNot(Vec<super::scripts_folder::WhereParam>),
+        ChildFolderIs(Vec<super::scripts_folder::WhereParam>),
+        ChildFolderIsNot(Vec<super::scripts_folder::WhereParam>),
+    }
+    impl ::prisma_client_rust::WhereInput for WhereParam {
+        fn serialize(self) -> ::prisma_client_rust::SerializedWhereInput {
+            let (name, value) = match self {
+                Self::Not(value) => (
+                    "NOT",
+                    ::prisma_client_rust::SerializedWhereValue::Object(
+                        ::prisma_client_rust::merge_fields(
+                            value
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(Into::into)
+                                .collect(),
+                        ),
+                    ),
+                ),
+                Self::Or(value) => (
+                    "OR",
+                    ::prisma_client_rust::SerializedWhereValue::List(
+                        value
+                            .into_iter()
+                            .map(::prisma_client_rust::WhereInput::serialize)
+                            .map(Into::into)
+                            .map(|v| vec![v])
+                            .map(::prisma_client_rust::PrismaValue::Object)
+                            .collect(),
+                    ),
+                ),
+                Self::And(value) => (
+                    "AND",
+                    ::prisma_client_rust::SerializedWhereValue::Object(
+                        ::prisma_client_rust::merge_fields(
+                            value
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(Into::into)
+                                .collect(),
+                        ),
+                    ),
+                ),
+                Self::Id(value) => (id::NAME, value.into()),
+                Self::ParentFolderId(value) => (parent_folder_id::NAME, value.into()),
+                Self::ChildFolderId(value) => (child_folder_id::NAME, value.into()),
+                Self::CreatedAt(value) => (created_at::NAME, value.into()),
+                Self::CreatedAtHk(value) => (created_at_hk::NAME, value.into()),
+                Self::ParentFolderIs(where_params) => (
+                    parent_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "is".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::ParentFolderIsNot(where_params) => (
+                    parent_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "isNot".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::ChildFolderIs(where_params) => (
+                    child_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "is".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+                Self::ChildFolderIsNot(where_params) => (
+                    child_folder::NAME,
+                    ::prisma_client_rust::SerializedWhereValue::Object(vec![(
+                        "isNot".to_string(),
+                        ::prisma_client_rust::PrismaValue::Object(
+                            where_params
+                                .into_iter()
+                                .map(::prisma_client_rust::WhereInput::serialize)
+                                .map(::prisma_client_rust::SerializedWhereInput::transform_equals)
+                                .collect(),
+                        ),
+                    )]),
+                ),
+            };
+            ::prisma_client_rust::SerializedWhereInput::new(name, value.into())
+        }
+    }
+    #[derive(Clone)]
+    pub enum UniqueWhereParam {
+        IdEquals(i32),
+    }
+    impl From<UniqueWhereParam> for WhereParam {
+        fn from(value: UniqueWhereParam) -> Self {
+            match value {
+                UniqueWhereParam::IdEquals(value) => {
+                    Self::Id(_prisma::read_filters::IntFilter::Equals(value))
+                }
+            }
+        }
+    }
+    impl From<::prisma_client_rust::Operator<Self>> for WhereParam {
+        fn from(op: ::prisma_client_rust::Operator<Self>) -> Self {
+            match op {
+                ::prisma_client_rust::Operator::Not(value) => Self::Not(value),
+                ::prisma_client_rust::Operator::And(value) => Self::And(value),
+                ::prisma_client_rust::Operator::Or(value) => Self::Or(value),
+            }
+        }
+    }
+    #[derive(Clone)]
+    pub struct Types;
+    impl ::prisma_client_rust::ModelTypes for Types {
+        type Data = Data;
+        type Where = WhereParam;
+        type UncheckedSet = UncheckedSetParam;
+        type Set = SetParam;
+        type With = WithParam;
+        type OrderBy = OrderByParam;
+        type Cursor = UniqueWhereParam;
+        const MODEL: &'static str = NAME;
+        fn scalar_selections() -> Vec<::prisma_client_rust::Selection> {
+            vec![
+                ::prisma_client_rust::sel(id::NAME),
+                ::prisma_client_rust::sel(parent_folder_id::NAME),
+                ::prisma_client_rust::sel(child_folder_id::NAME),
+                ::prisma_client_rust::sel(created_at::NAME),
+                ::prisma_client_rust::sel(created_at_hk::NAME),
+            ]
+        }
+    }
+    pub type UniqueArgs = ::prisma_client_rust::UniqueArgs<Types>;
+    pub type ManyArgs = ::prisma_client_rust::ManyArgs<Types>;
+    pub type Count<'a> = ::prisma_client_rust::Count<'a, Types>;
+    pub type Create<'a> = ::prisma_client_rust::Create<'a, Types>;
+    pub type CreateMany<'a> = ::prisma_client_rust::CreateMany<'a, Types>;
+    pub type FindUnique<'a> = ::prisma_client_rust::FindUnique<'a, Types>;
+    pub type FindMany<'a> = ::prisma_client_rust::FindMany<'a, Types>;
+    pub type FindFirst<'a> = ::prisma_client_rust::FindFirst<'a, Types>;
+    pub type Update<'a> = ::prisma_client_rust::Update<'a, Types>;
+    pub type UpdateMany<'a> = ::prisma_client_rust::UpdateMany<'a, Types>;
+    pub type Upsert<'a> = ::prisma_client_rust::Upsert<'a, Types>;
+    pub type Delete<'a> = ::prisma_client_rust::Delete<'a, Types>;
+    pub type DeleteMany<'a> = ::prisma_client_rust::DeleteMany<'a, Types>;
+    #[derive(Clone)]
+    pub struct Actions<'a> {
+        pub client: &'a ::prisma_client_rust::PrismaClientInternals,
+    }
+    impl<'a> Actions<'a> {
+        pub fn find_unique(self, _where: UniqueWhereParam) -> FindUnique<'a> {
+            FindUnique::new(self.client, _where.into())
+        }
+        pub fn find_first(self, _where: Vec<WhereParam>) -> FindFirst<'a> {
+            FindFirst::new(self.client, _where)
+        }
+        pub fn find_many(self, _where: Vec<WhereParam>) -> FindMany<'a> {
+            FindMany::new(self.client, _where)
+        }
+        pub fn create(
+            self,
+            parent_folder: super::scripts_folder::UniqueWhereParam,
+            child_folder: super::scripts_folder::UniqueWhereParam,
+            mut _params: Vec<SetParam>,
+        ) -> Create<'a> {
+            _params.extend([
+                parent_folder::connect(parent_folder),
+                child_folder::connect(child_folder),
+            ]);
+            Create::new(self.client, _params)
+        }
+        pub fn create_unchecked(
+            self,
+            parent_folder_id: i32,
+            child_folder_id: i32,
+            mut _params: Vec<UncheckedSetParam>,
+        ) -> Create<'a> {
+            _params.extend([
+                parent_folder_id::set(parent_folder_id),
+                child_folder_id::set(child_folder_id),
+            ]);
+            Create::new(self.client, _params.into_iter().map(Into::into).collect())
+        }
+        pub fn create_many(self, data: Vec<(i32, i32, Vec<SetParam>)>) -> CreateMany<'a> {
+            let data = data
+                .into_iter()
+                .map(|(parent_folder_id, child_folder_id, mut _params)| {
+                    _params.extend([
+                        parent_folder_id::set(parent_folder_id),
+                        child_folder_id::set(child_folder_id),
+                    ]);
+                    _params
+                })
+                .collect();
+            CreateMany::new(self.client, data)
+        }
+        pub fn update(self, _where: UniqueWhereParam, _params: Vec<SetParam>) -> Update<'a> {
+            Update::new(self.client, _where.into(), _params, vec![])
+        }
+        pub fn update_unchecked(
+            self,
+            _where: UniqueWhereParam,
+            _params: Vec<UncheckedSetParam>,
+        ) -> Update<'a> {
+            Update::new(
+                self.client,
+                _where.into(),
+                _params.into_iter().map(Into::into).collect(),
+                vec![],
+            )
+        }
+        pub fn update_many(
+            self,
+            _where: Vec<WhereParam>,
+            _params: Vec<SetParam>,
+        ) -> UpdateMany<'a> {
+            UpdateMany::new(self.client, _where, _params)
+        }
+        pub fn upsert(
+            self,
+            _where: UniqueWhereParam,
+            (parent_folder, child_folder, mut _params): (
+                super::scripts_folder::UniqueWhereParam,
+                super::scripts_folder::UniqueWhereParam,
+                Vec<SetParam>,
+            ),
+            _update: Vec<SetParam>,
+        ) -> Upsert<'a> {
+            _params.extend([
+                parent_folder::connect(parent_folder),
+                child_folder::connect(child_folder),
+            ]);
+            Upsert::new(self.client, _where.into(), _params, _update)
+        }
+        pub fn delete(self, _where: UniqueWhereParam) -> Delete<'a> {
+            Delete::new(self.client, _where.into(), vec![])
+        }
+        pub fn delete_many(self, _where: Vec<WhereParam>) -> DeleteMany<'a> {
+            DeleteMany::new(self.client, _where)
+        }
+        pub fn count(self, _where: Vec<WhereParam>) -> Count<'a> {
+            Count::new(self.client, _where)
+        }
+    }
+}
 pub mod _prisma {
     pub struct PrismaClientBuilder {
         url: Option<String>,
@@ -3823,6 +5333,9 @@ pub mod _prisma {
         pub fn shell_script(&self) -> super::shell_script::Actions {
             super::shell_script::Actions { client: &self.0 }
         }
+        pub fn rel_folder_folder(&self) -> super::rel_folder_folder::Actions {
+            super::rel_folder_folder::Actions { client: &self.0 }
+        }
     }
     impl ::prisma_client_rust::PrismaClient for PrismaClient {
         fn internals(&self) -> &::prisma_client_rust::PrismaClientInternals {
@@ -3854,6 +5367,30 @@ pub mod _prisma {
                 Self::Id => "id".to_string(),
                 Self::LastOpenedFolderId => "last_opened_folder_id".to_string(),
                 Self::DarkMode => "dark_mode".to_string(),
+                Self::CreatedAt => "created_at".to_string(),
+                Self::CreatedAtHk => "created_at_hk".to_string(),
+            }
+        }
+    }
+    #[derive(Debug, Clone, Copy, :: serde :: Serialize, :: serde :: Deserialize, PartialEq, Eq)]
+    pub enum RelFolderFolderScalarFieldEnum {
+        #[serde(rename = "id")]
+        Id,
+        #[serde(rename = "parent_folder_id")]
+        ParentFolderId,
+        #[serde(rename = "child_folder_id")]
+        ChildFolderId,
+        #[serde(rename = "created_at")]
+        CreatedAt,
+        #[serde(rename = "created_at_hk")]
+        CreatedAtHk,
+    }
+    impl ToString for RelFolderFolderScalarFieldEnum {
+        fn to_string(&self) -> String {
+            match self {
+                Self::Id => "id".to_string(),
+                Self::ParentFolderId => "parent_folder_id".to_string(),
+                Self::ChildFolderId => "child_folder_id".to_string(),
                 Self::CreatedAt => "created_at".to_string(),
                 Self::CreatedAtHk => "created_at_hk".to_string(),
             }
@@ -3921,6 +5458,8 @@ pub mod _prisma {
         CreatedAt,
         #[serde(rename = "created_at_hk")]
         CreatedAtHk,
+        #[serde(rename = "show_shell")]
+        ShowShell,
     }
     impl ToString for ShellScriptScalarFieldEnum {
         fn to_string(&self) -> String {
@@ -3931,6 +5470,7 @@ pub mod _prisma {
                 Self::Ordering => "ordering".to_string(),
                 Self::CreatedAt => "created_at".to_string(),
                 Self::CreatedAtHk => "created_at_hk".to_string(),
+                Self::ShowShell => "show_shell".to_string(),
             }
         }
     }

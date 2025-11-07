@@ -7,6 +7,7 @@ extern crate objc;
 mod prisma;
 
 use prisma::PrismaClient;
+use serde_json;
 use std::process::{Child, Command};
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::Manager;
@@ -70,6 +71,25 @@ async fn check_backend_health() -> Result<bool, String> {
     }
 }
 
+#[tauri::command]
+async fn set_title_bar_color(is_dark: bool) -> Result<(), String> {
+    // Use Spring Boot API to update dark mode (avoid SQLite lock conflicts with Prisma)
+    let port = get_backend_port().await?;
+    let client = reqwest::Client::new();
+
+    let url = format!("http://localhost:{}/app-state", port);
+
+    client
+        .put(&url)
+        .json(&serde_json::json!({ "darkMode": is_dark }))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to update dark mode: {}", e))?;
+
+    println!("Dark mode updated to: {}", is_dark);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -79,6 +99,7 @@ pub fn run() {
             execute_command,
             get_backend_port,
             check_backend_health,
+            set_title_bar_color,
         ])
         .setup(|app| {
             // 1. Setup macOS window appearance
@@ -607,7 +628,7 @@ fn setup_macos_menu(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> 
 
     // View menu
     let dark_mode_toggle = MenuItemBuilder::with_id("toggle_dark_mode", "Toggle Dark Mode")
-        .accelerator("Cmd+Shift+D")
+        .accelerator("Cmd+D")
         .build(app)?;
 
     let view_menu = Submenu::with_items(app, "View", true, &[&dark_mode_toggle])?;

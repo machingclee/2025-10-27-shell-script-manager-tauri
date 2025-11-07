@@ -11,15 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, FolderPlus } from "lucide-react";
 
 
-export default React.memo(function SortableFolderItem({ folder, isSelected, onClick, onRename, onDelete }: {
+export default React.memo(function SortableFolderItem({ folder, isSelected, onClick, onRename, onDelete, onCreateSubfolder }: {
     folder: { id: number; name: string; ordering: number };
     isSelected: boolean;
     onClick: () => void;
     onRename: (newName: string) => void;
     onDelete: (id: number) => void;
+    onCreateSubfolder: (parentId: number, subfolderName: string) => void;
 }) {
     const {
         attributes,
@@ -41,7 +42,9 @@ export default React.memo(function SortableFolderItem({ folder, isSelected, onCl
 
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isCreateSubfolderOpen, setIsCreateSubfolderOpen] = useState(false);
     const [newName, setNewName] = useState(folder.name);
+    const [subfolderName, setSubfolderName] = useState("");
 
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -61,6 +64,14 @@ export default React.memo(function SortableFolderItem({ folder, isSelected, onCl
     const handleDelete = () => {
         onDelete(folder.id);
         setIsDeleteOpen(false);
+    };
+
+    const handleCreateSubfolder = () => {
+        if (subfolderName.trim()) {
+            onCreateSubfolder(folder.id, subfolderName);
+            setSubfolderName("");
+            setIsCreateSubfolderOpen(false);
+        }
     };
 
     return (
@@ -98,6 +109,14 @@ export default React.memo(function SortableFolderItem({ folder, isSelected, onCl
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:border-neutral-700">
+                        <ContextMenuItem className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" onClick={() => {
+                            setSubfolderName("");
+                            setIsCreateSubfolderOpen(true);
+                            onClick();
+                        }}>
+                            <FolderPlus className="w-4 h-4 mr-2" />
+                            Create Subfolder
+                        </ContextMenuItem>
                         <ContextMenuItem className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700" onClick={() => {
                             setNewName(folder.name);
                             setIsRenameOpen(true);
@@ -164,6 +183,42 @@ export default React.memo(function SortableFolderItem({ folder, isSelected, onCl
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Create Subfolder Dialog */}
+            <Dialog open={isCreateSubfolderOpen} onOpenChange={setIsCreateSubfolderOpen}>
+                <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                    <DialogHeader>
+                        <DialogTitle>Create Subfolder</DialogTitle>
+                        <DialogDescription>
+                            Create a new subfolder inside "{folder.name}".
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="subfolder-name">Subfolder Name</Label>
+                            <Input
+                                id="subfolder-name"
+                                value={subfolderName}
+                                onChange={(e) => setSubfolderName(e.target.value)}
+                                placeholder="Subfolder name"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && subfolderName.trim()) {
+                                        handleCreateSubfolder();
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCreateSubfolderOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleCreateSubfolder} disabled={!subfolderName.trim()}>
+                            Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }, (prevProps, nextProps) => {

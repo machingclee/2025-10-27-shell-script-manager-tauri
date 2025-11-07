@@ -58,6 +58,15 @@ export const folderApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Folder'],
     }),
+
+    createSubfolder: builder.mutation<void, { parentFolderId: number; name: string }>({
+      query: ({ parentFolderId, name }) => ({
+        url: `/folders/${parentFolderId}/subfolders`,
+        method: 'POST',
+        body: { name },
+      }),
+      invalidatesTags: (_result, _error, { parentFolderId }) => [{ type: "Script", id: `FOLDER-${parentFolderId}` }],
+    }),
   }),
 });
 

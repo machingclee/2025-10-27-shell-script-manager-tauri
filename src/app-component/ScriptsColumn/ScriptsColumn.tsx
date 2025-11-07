@@ -32,12 +32,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from 'react';
-import { Script, scriptApi } from '@/store/api/scriptApi';
+import { scriptApi } from '@/store/api/scriptApi';
 import { folderApi } from '@/store/api/folderApi';
+import { ShellScriptDTO } from '@/types/dto';
 
 
 interface SortableScriptItemProps {
-    script: Script;
+    script: ShellScriptDTO;
     folderId: number;
 }
 
@@ -51,7 +52,7 @@ const SortableScriptItem = React.memo(function SortableScriptItem({ script, fold
         isDragging,
         setActivatorNodeRef,
     } = useSortable({
-        id: script.id,
+        id: script.id || 0,
         animateLayoutChanges: (args) => {
             const { wasDragging } = args;
             if (wasDragging) return false;
@@ -103,9 +104,10 @@ export default function ScriptsColumn() {
             data: result.data?.find(f => f.id === selectedFolderId)
         })
     })
-    const { data: scripts, isLoading } = scriptApi.endpoints.getScriptsByFolder.useQuery(selectedFolderId ?? 0, {
+    const { data: folderResponse, isLoading } = scriptApi.endpoints.getScriptsByFolder.useQuery(selectedFolderId ?? 0, {
         skip: !backendPort || !selectedFolderId,
     });
+    const subFolders = folderResponse?.subfolders || [];
     const [createScript] = scriptApi.endpoints.createScript.useMutation();
     const [reorderScripts] = scriptApi.endpoints.reorderScripts.useMutation();
 
@@ -122,13 +124,23 @@ export default function ScriptsColumn() {
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
+        console.log('active', active);
+        console.log('over', over);
+        if (over && active.id !== over.id && folderResponse && selectedFolderId) {
+            console.log('folderResponse', folderResponse);
+            console.log('selectedFolderId', selectedFolderId);
+            const oldIndex = folderResponse.shellScripts.findIndex((s) => s.id === active.id);
+            const newIndex = folderResponse.shellScripts.findIndex((s) => s.id === over.id);
 
-        if (over && active.id !== over.id && scripts && selectedFolderId) {
-            const oldIndex = scripts.findIndex((s) => s.id === active.id);
-            const newIndex = scripts.findIndex((s) => s.id === over.id);
-
+            console.log('oldIndex', oldIndex);
+            console.log('newIndex', newIndex);
             if (oldIndex !== -1 && newIndex !== -1) {
-                reorderScripts({ folderId: selectedFolderId, fromIndex: oldIndex, toIndex: newIndex });
+                console.log('reordering scripts');
+                reorderScripts({ folderId: selectedFolderId, fromIndex: oldIndex, toIndex: newIndex })
+                    .unwrap()
+                    .catch((error) => {
+                        console.error('Failed to reorder scripts:', error);
+                    });
             }
         }
     };
@@ -147,7 +159,7 @@ export default function ScriptsColumn() {
         setIsCreateOpen(false);
     };
 
-    const scriptIds = React.useMemo(() => scripts?.map(s => s.id) || [], [scripts]);
+    const scriptIds = React.useMemo(() => folderResponse?.shellScripts.map(s => s.id) || [], [folderResponse]);
     const displayName = () => {
         if (selectedFolder) {
             return <div>Scripts in  <span className='font-bold text-[18px]' >{selectedFolder.name}</span></div>;
@@ -215,18 +227,18 @@ export default function ScriptsColumn() {
             <div className="h-px bg-gray-400 dark:bg-neutral-600" />
             <div className="space-y-2 p-4 overflow-y-auto flex-1">
                 {isLoading && <div>Loading...</div>}
-                {scripts && scripts.length > 0 && selectedFolderId && (
+                {folderResponse && folderResponse.shellScripts && folderResponse.shellScripts.length > 0 && selectedFolderId && (
                     <DndContext
                         sensors={sensors}
                         collisionDetection={closestCenter}
                         onDragEnd={handleDragEnd}
                     >
                         <SortableContext
-                            items={scriptIds}
+                            items={folderResponse.shellScripts.map(s => ({ id: s.id || 0 }))}
                             strategy={verticalListSortingStrategy}
                         >
                             <div className="space-y-4">
-                                {scripts.map((script) => (
+                                {folderResponse.shellScripts.map((script) => (
                                     <SortableScriptItem
                                         key={script.id}
                                         script={script}
