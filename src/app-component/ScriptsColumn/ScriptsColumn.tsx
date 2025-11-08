@@ -34,9 +34,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { scriptApi } from "@/store/api/scriptApi";
 import { folderApi } from "@/store/api/folderApi";
-import { ShellScriptDTO } from "@/types/dto";
+import { ScriptsFolderResponse, ShellScriptDTO } from "@/types/dto";
 import CollapsableFolder from "./CollapsableFolder";
 import folderSlice from "@/store/slices/folderSlice";
+import SortableSubfolders from "./SortableSubfolders";
+import SortableScripts from "./SortableScripts";
 
 export default function ScriptsColumn() {
     const selectedFolderId = useAppSelector((s) => s.folder.selectedFolderId);
@@ -203,141 +205,38 @@ export default function ScriptsColumn() {
         );
     };
 
-    const subfolders = () => {
-        return (
-            <>
-                {folderResponse &&
-                    folderResponse.shellScripts &&
-                    folderResponse.shellScripts.length > 0 &&
-                    selectedFolderId && (
-                        <DndContext
-                            onDragStart={() => {
-                                dispatch(folderSlice.actions.setIsReorderingFolder(true));
-                            }}
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragFoldersEnd}
-                        >
-                            <SortableContext
-                                items={folderResponse.subfolders.map((s) => ({ id: s.id || 0 }))}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                <div className="space-y-4">
-                                    {folderResponse.subfolders.map((folder) => (
-                                        <CollapsableFolder key={folder.id} folder={folder} />
-                                    ))}
-                                </div>
-                            </SortableContext>
-                        </DndContext>
-                    )}
-            </>
-        );
-    };
-
-    const scripts = () => {
-        return (
-            <>
-                {folderResponse &&
-                    folderResponse.shellScripts &&
-                    folderResponse.shellScripts.length > 0 &&
-                    selectedFolderId && (
-                        <DndContext
-                            sensors={sensors}
-                            collisionDetection={closestCenter}
-                            onDragEnd={handleDragScriptsEnd}
-                        >
-                            <SortableContext
-                                items={folderResponse.shellScripts.map((s) => ({ id: s.id || 0 }))}
-                                strategy={verticalListSortingStrategy}
-                            >
-                                <div className="space-y-4">
-                                    {folderResponse.shellScripts.map((script) => (
-                                        <SortableScriptItem
-                                            key={script.id}
-                                            script={script}
-                                            folderId={selectedFolderId}
-                                        />
-                                    ))}
-                                </div>
-                            </SortableContext>
-                        </DndContext>
-                    )}
-            </>
-        );
-    };
-
     return (
         <div className="flex flex-col h-full dark:text-white">
             {header()}
             <div className="h-px bg-gray-400 dark:bg-neutral-600" />
             <div className="space-y-2 p-4 overflow-y-auto flex-1">
                 {isLoading && <div>Loading...</div>}
-                {subfolders()}
+
+                {folderResponse &&
+                    folderResponse.shellScripts &&
+                    folderResponse.shellScripts.length > 0 &&
+                    selectedFolderId && (
+                        <SortableSubfolders
+                            sensors={sensors}
+                            handleDragFoldersEnd={handleDragFoldersEnd}
+                            folderResponse={folderResponse}
+                        />
+                    )}
+
                 <div className="h-5"></div>
-                {scripts()}
+
+                {folderResponse &&
+                    folderResponse.shellScripts &&
+                    folderResponse.shellScripts.length > 0 &&
+                    selectedFolderId && (
+                        <SortableScripts
+                            sensors={sensors}
+                            handleDragScriptsEnd={handleDragScriptsEnd}
+                            folderResponse={folderResponse}
+                            selectedFolderId={selectedFolderId}
+                        />
+                    )}
             </div>
         </div>
     );
 }
-
-interface SortableScriptItemProps {
-    script: ShellScriptDTO;
-    folderId: number;
-}
-
-const SortableScriptItem = React.memo(
-    function SortableScriptItem({ script, folderId }: SortableScriptItemProps) {
-        const {
-            attributes,
-            listeners,
-            setNodeRef,
-            transform,
-            transition,
-            isDragging,
-            setActivatorNodeRef,
-        } = useSortable({
-            id: script.id || 0,
-            animateLayoutChanges: (args) => {
-                const { wasDragging } = args;
-                if (wasDragging) return false;
-                return defaultAnimateLayoutChanges(args);
-            },
-        });
-
-        const style: React.CSSProperties = {
-            transform: CSS.Transform.toString(transform),
-            transition: isDragging ? "none" : transition,
-            opacity: isDragging ? 0.5 : 1,
-            width: "100%",
-            touchAction: "none",
-        };
-
-        return (
-            <div
-                ref={setNodeRef}
-                style={style}
-                {...attributes}
-                className="flex items-center gap-2 w-full"
-            >
-                <div
-                    ref={setActivatorNodeRef}
-                    {...listeners}
-                    className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-neutral-700"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    <GripVertical className="w-4 h-4" />
-                </div>
-                <div className="flex-1">
-                    <ScriptItem script={script} folderId={folderId} />
-                </div>
-            </div>
-        );
-    },
-    (prevProps, nextProps) => {
-        return (
-            prevProps.script.id === nextProps.script.id &&
-            prevProps.script.name === nextProps.script.name &&
-            prevProps.script.command === nextProps.script.command
-        );
-    }
-);
