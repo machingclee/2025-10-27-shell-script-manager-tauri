@@ -38,7 +38,6 @@ import { ScriptsFolderResponse } from "@/types/dto";
 import { folderApi } from "@/store/api/folderApi";
 import { useAppSelector } from "@/store/hooks";
 import clsx from "clsx";
-import ScriptItem from "./ScriptItem";
 import SortableScriptItem from "./SortableScriptItem";
 
 export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) {
@@ -84,7 +83,7 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
     });
 
     // Make folder also a droppable target for scripts
-    const { setNodeRef: setDroppableNodeRef, isOver } = useDroppable({
+    const { setNodeRef: setDroppableNodeRef } = useDroppable({
         id: `folder-droppable-${folder.id}`,
         data: {
             type: "folder",
@@ -94,17 +93,15 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
     });
 
     // Get the active dragging item to check if it's a script
-    const { active } = useDndContext();
+    const { active, over } = useDndContext();
     const isDraggingScript = active?.data.current?.type === "script";
 
-    // Only show highlight when dragging a script over this folder
-    const showHighlight = isOver && isDraggingScript;
+    // Check if this folder's droppable OR sortable is the "over" target
+    // The folder has both IDs: the sortable ID (folder.id) and droppable ID (folder-droppable-${folder.id})
+    const isFolderOver = over?.id === `folder-droppable-${folder.id}` || over?.id === folder.id;
 
-    // Combine refs
-    const setNodeRef = (node: HTMLElement | null) => {
-        setSortableNodeRef(node);
-        setDroppableNodeRef(node);
-    };
+    // Only show highlight when dragging a script over this folder
+    const showHighlight = isFolderOver && isDraggingScript;
 
     // Close folder when dragging starts
     useEffect(() => {
@@ -147,20 +144,20 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
         }
     };
 
+    const combinedRef = (node: HTMLElement | null) => {
+        setSortableNodeRef(node);
+        setDroppableNodeRef(node);
+    };
+
     return (
         <>
-            <div
-                ref={setNodeRef}
-                style={style}
-                {...attributes}
-                className="w-full flex-shrink-0"
-                onClick={onClick}
-            >
+            <div style={style} {...attributes} className="w-full flex-shrink-0" ref={combinedRef}>
                 <ContextMenu>
                     <ContextMenuTrigger asChild>
                         <div
+                            onClick={onClick}
                             className={clsx({
-                                "flex items-center gap-3 pl-0.5 py-2 rounded-md transition-colors duration-200 w-full flex-shrink-0": true,
+                                "flex items-center gap-3 pl-0.5 py-3 rounded-md transition-colors duration-200 w-full flex-shrink-0 cursor-pointer": true,
                                 "hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-600":
                                     !showHighlight,
                                 "bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800 dark:bg-neutral-500 dark:hover:bg-neutral-600 dark:active:bg-neutral-700":
@@ -182,19 +179,19 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                                 )}
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <GripVertical className="w-4 h-4" />
+                                <GripVertical className="w-5 h-5" />
                             </div>
                             <div className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
                                 {folder.shellScripts.length > 0 ? (
                                     isExpanded ? (
-                                        <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                                        <ChevronDown className="w-5 h-5 flex-shrink-0" />
                                     ) : (
-                                        <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                                        <ChevronRight className="w-5 h-5 flex-shrink-0" />
                                     )
                                 ) : (
-                                    <div className="w-4 h-4 flex-shrink-0" />
+                                    <div className="w-5 h-5 flex-shrink-0" />
                                 )}
-                                <Folder className="w-4 h-4 flex-shrink-0" fill="currentColor" />
+                                <Folder className="w-5 h-5 flex-shrink-0" fill="currentColor" />
                                 {folder.name}
                                 {folder.shellScripts.length > 0 && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -213,7 +210,7 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                                 onClick();
                             }}
                         >
-                            <FolderPlus className="w-4 h-4 mr-2" />
+                            <FolderPlus className="w-5 h-5 mr-2" />
                             Create Subfolder
                         </ContextMenuItem>
                         <ContextMenuItem
@@ -223,14 +220,14 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                                 setIsRenameOpen(true);
                             }}
                         >
-                            <Pencil className="w-4 h-4 mr-2" />
+                            <Pencil className="w-5 h-5 mr-2" />
                             Rename
                         </ContextMenuItem>
                         <ContextMenuItem
                             onClick={() => setIsDeleteOpen(true)}
                             className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                         >
-                            <Trash2 className="w-4 h-4 mr-2" />
+                            <Trash2 className="w-5 h-5 mr-2" />
                             Delete
                         </ContextMenuItem>
                     </ContextMenuContent>

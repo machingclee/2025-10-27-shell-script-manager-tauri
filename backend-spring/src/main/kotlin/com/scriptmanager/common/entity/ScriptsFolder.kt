@@ -83,6 +83,12 @@ data class ScriptsFolder(
             f.ordering = idx
         }
     }
+
+    fun resetScriptOrders() {
+        shellScripts.sortedBy { it.ordering }.forEachIndexed { idx, s ->
+            s.ordering = idx
+        }
+    }
 }
 
 

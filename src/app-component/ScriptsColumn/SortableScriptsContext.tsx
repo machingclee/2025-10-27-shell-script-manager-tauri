@@ -20,7 +20,17 @@ export default function SortableScriptsContext({
 
     const { active } = useDndContext();
     const isDraggingScript = active?.data.current?.type === "script";
-    const showHighlight = isOver && isDraggingScript;
+
+    // Get the script's current parent folder ID
+    const draggedScript = active?.data.current?.script;
+    const scriptParentFolderId = draggedScript?.parentFolderId;
+
+    // Only show highlight when:
+    // 1. Dragging a script
+    // 2. Over this droppable
+    // 3. Script is from a different folder (subfolder, not the root folder)
+    const isDraggingFromSubfolder = isDraggingScript && scriptParentFolderId !== selectedFolderId;
+    const showHighlight = isOver && isDraggingFromSubfolder;
 
     return (
         <SortableContext
@@ -29,8 +39,10 @@ export default function SortableScriptsContext({
         >
             <div
                 ref={setNodeRef}
-                className={`space-y-4 min-h-[100px] p-2 rounded-md transition-colors ${
-                    showHighlight ? "bg-gray-100 dark:bg-neutral-700" : ""
+                className={`space-y-4 min-h-[400px] p-4 rounded-md transition-all duration-200 ${
+                    showHighlight
+                        ? "bg-neutral-200 dark:bg-neutral-700 border-2 border-neutral-400 dark:border-neutral-600"
+                        : "border-2 border-transparent"
                 }`}
             >
                 {folderResponse.shellScripts.map((script) => (

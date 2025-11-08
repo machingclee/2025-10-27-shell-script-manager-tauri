@@ -113,37 +113,31 @@ export const scriptApi = baseApi.injectEndpoints({
 
         reorderScripts: builder.mutation<
             void,
-            { folderId: number; fromIndex: number; toIndex: number }
+            { folderId: number; fromIndex: number; toIndex: number; rootFolderId?: number }
         >({
             query: ({ folderId, fromIndex, toIndex }) => ({
                 url: "/scripts/reorder",
                 method: "POST",
                 body: { folderId, fromIndex, toIndex },
             }),
-            async onQueryStarted({ folderId, fromIndex, toIndex }, { dispatch, queryFulfilled }) {
-                // Optimistically update the cache
-
-                const patchResult = dispatch(
-                    folderApi.util.updateQueryData("getFolderById", folderId, (draft) => {
-                        console.log("draft", draft);
+            async onQueryStarted(
+                { folderId, fromIndex, toIndex, rootFolderId: rootFolderId },
+                { dispatch, queryFulfilled }
+            ) {
+                await queryFulfilled;
+                console.log("rootFolderId", rootFolderId);
+                dispatch(
+                    folderApi.util.updateQueryData("getFolderById", rootFolderId || 0, (draft) => {
                         const folder = getSubfolder(draft, folderId);
-                        console.log("folder", folder);
                         if (!folder) {
-                            console.log("folder not found");
                             return;
                         }
                         const [movedItem] = folder.shellScripts.splice(fromIndex, 1);
                         folder.shellScripts.splice(toIndex, 0, movedItem);
                     })
                 );
-
-                try {
-                    await queryFulfilled;
-                } catch {
-                    // Rollback on error
-                    patchResult.undo();
-                }
             },
+            invalidatesTags: [{ type: "FolderContent" }],
         }),
     }),
 });

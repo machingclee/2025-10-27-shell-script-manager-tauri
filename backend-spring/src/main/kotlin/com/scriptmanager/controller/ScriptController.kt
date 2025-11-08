@@ -6,12 +6,12 @@ import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository
+import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.web.bind.annotation.*
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import org.hibernate.Hibernate
 
 @RestController
 @RequestMapping("/scripts")
@@ -19,6 +19,7 @@ class ScriptController(
     private val scriptRepository: ShellScriptRepository,
     private val folderRepository: ScriptsFolderRepository,
     private val shellScriptRepository: ShellScriptRepository,
+    private val entityManager: EntityManager
 ) {
     private val hkZone = ZoneId.of("Asia/Hong_Kong")
     private val hkFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -128,6 +129,11 @@ class ScriptController(
         val script = shellScriptRepository.findByIdOrNull(scriptId) ?: throw Exception("Script not found")
         val targetFolder = folderRepository.findByIdOrNull(folderId) ?: throw Exception("Folder not found")
         script.parentFolder = targetFolder
+        script.ordering = -1
+        entityManager.flush()
+        entityManager.refresh(targetFolder)
+        targetFolder.resetScriptOrders()
+        folderRepository.save(targetFolder)
         return ApiResponse()
     }
 

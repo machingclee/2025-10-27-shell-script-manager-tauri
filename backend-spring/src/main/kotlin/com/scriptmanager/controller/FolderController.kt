@@ -157,18 +157,11 @@ class FolderController(
             val movedSubfolder = subfolders[request.fromIndex]
             subfolders.removeAt(request.fromIndex)
             subfolders.add(request.toIndex, movedSubfolder)
-
-            // Update ordering values for subfolders
-            subfolders.forEachIndexed { index, subfolder ->
-                subfolder.ordering = index
+            subfolders.forEachIndexed { idx, folder ->
+                folder.ordering = idx
             }
-
-            // Save updated subfolders back to parent folder
-            parentFolder.subfolders.clear()
-            parentFolder.subfolders.addAll(subfolders)
-            folderRepository.save(parentFolder)
+            folderRepository.saveAll(subfolders)
         }
-
 
         return ApiResponse()
     }

@@ -12,7 +12,7 @@ export default function SortableSubfoldersContext({
             items={folderResponse.subfolders.map((s) => s.id || 0)}
             strategy={verticalListSortingStrategy}
         >
-            <div className="space-y-4">
+            <div className="space-y-2">
                 {folderResponse.subfolders.map((folder) => (
                     <CollapsableFolder key={folder.id} folder={folder} />
                 ))}

@@ -113,33 +113,65 @@ export default function ScriptsColumn() {
         // When dragging a script, prioritize droppable zones (folders and root folder area)
         if (isDraggingScript) {
             const pointerCollisions = pointerWithin(args);
+            const rectCollisions = rectIntersection(args);
 
-            if (pointerCollisions.length > 0) {
-                // Check if we're over any subfolder droppables
-                const folderDroppableCollision = pointerCollisions.find(({ id }) =>
-                    String(id).startsWith("folder-droppable-")
-                );
+            if (pointerCollisions.length > 0 || rectCollisions.length > 0) {
+                // Check if we're over any script items (for reordering)
+                // Exclude folders from script collisions
+                const scriptCollisions = pointerCollisions.filter(({ id, data }) => {
+                    const isDroppable = String(id).includes("droppable");
+                    const isFolder = data?.current?.type === "folder";
+                    return !isDroppable && !isFolder;
+                });
 
-                // Prioritize folder droppables (subfolders) over sortables
+                // Check if we're over any subfolder droppables (use both pointer and rect)
+                const folderDroppableCollision =
+                    pointerCollisions.find(({ id }) =>
+                        String(id).startsWith("folder-droppable-")
+                    ) ||
+                    rectCollisions.find(({ id }) => String(id).startsWith("folder-droppable-"));
+
+                // If we have script collisions, always prioritize them for sorting
+                if (scriptCollisions.length > 0) {
+                    // Collect all droppables to notify them of hover state
+                    const droppablesToInclude = [];
+
+                    // Check for root droppable
+                    const rootDroppableCollision =
+                        pointerCollisions.find(({ id }) =>
+                            String(id).startsWith("root-scripts-droppable-")
+                        ) ||
+                        rectCollisions.find(({ id }) =>
+                            String(id).startsWith("root-scripts-droppable-")
+                        );
+
+                    if (rootDroppableCollision) {
+                        droppablesToInclude.push(rootDroppableCollision);
+                    }
+
+                    if (folderDroppableCollision) {
+                        droppablesToInclude.push(folderDroppableCollision);
+                    }
+
+                    // Script collisions first for sorting, then droppables for highlight
+                    return [...scriptCollisions, ...droppablesToInclude];
+                }
+
+                // Prioritize folder droppables when moving to a different folder
                 if (folderDroppableCollision) {
                     return [folderDroppableCollision];
                 }
 
-                // Check if we're over any script items (for reordering)
-                const scriptCollisions = pointerCollisions.filter(
-                    ({ id }) => typeof id === "number" || !String(id).includes("droppable")
-                );
+                // Check for root-scripts-droppable using both pointer and rect intersection
+                const rootDroppableCollision =
+                    pointerCollisions.find(({ id }) =>
+                        String(id).startsWith("root-scripts-droppable-")
+                    ) ||
+                    rectCollisions.find(({ id }) =>
+                        String(id).startsWith("root-scripts-droppable-")
+                    );
 
-                // If we have script collisions, use them for sorting
-                if (scriptCollisions.length > 0) {
-                    return scriptCollisions;
-                }
-
-                // Finally, check for root-scripts-droppable (only when not over scripts)
-                const rootDroppableCollision = pointerCollisions.find(({ id }) =>
-                    String(id).startsWith("root-scripts-droppable-")
-                );
-
+                // If only root droppable collision (empty area)
                 if (rootDroppableCollision) {
                     return [rootDroppableCollision];
                 }
@@ -181,28 +213,12 @@ export default function ScriptsColumn() {
 
         console.log("Drag end full data:", { active, over, activeData, overData });
 
-        // Case 1: Script dropped on folder - move script to folder
+        // Case 1: Script dropped on folder (or root folder area) - move script to folder
         if (activeData?.type === "script" && overData?.type === "folder") {
             const script = activeData.script;
             const targetFolderId = overData.folderId;
 
             console.log("Moving script to folder:", script.id, "->", targetFolderId);
-
-            moveScriptIntoFolder({
-                scriptId: script.id,
-                folderId: targetFolderId,
-            })
-                .unwrap()
-                .catch((error) => {
-                    console.error("Failed to move script:", error);
-                });
-        }
-        // Case 1b: Script dropped on root folder area - move script to root folder
-        else if (activeData?.type === "script" && overData?.type === "folder") {
-            const script = activeData.script;
-            const targetFolderId = overData.folderId;
-
-            console.log("Moving script to root folder:", script.id, "->", targetFolderId);
 
             moveScriptIntoFolder({
                 scriptId: script.id,
@@ -242,6 +258,7 @@ export default function ScriptsColumn() {
                         folderId: activeFolder.id,
                         fromIndex: oldIndex,
                         toIndex: newIndex,
+                        rootFolderId: selectedFolderId,
                     })
                         .unwrap()
                         .catch((error) => {
@@ -260,11 +277,30 @@ export default function ScriptsColumn() {
                         `Moving script ${activeScript.id} from folder ${activeFolder.id} to folder ${overFolder.id} at index ${targetIndex}`
                     );
 
+                    const currentScriptCount = overFolder.shellScripts.length;
+
                     // Step 1: Move the script to the target folder
                     moveScriptIntoFolder({
                         scriptId: activeScript.id!,
                         folderId: overFolder.id,
-                    });
+                    })
+                        .unwrap()
+                        .then(() => {
+                            // Step 2: Reorder the script to the target index
+                            // After moving, the script is at the end (currentScriptCount position)
+                            const fromIndex = currentScriptCount;
+                            if (fromIndex !== targetIndex) {
+                                return reorderScripts({
+                                    folderId: overFolder.id,
+                                    fromIndex: fromIndex,
+                                    toIndex: targetIndex,
+                                    rootFolderId: selectedFolderId,
+                                }).unwrap();
+                            }
+                        })
+                        .catch((error) => {
+                            console.error("Failed to move and reorder script:", error);
+                        });
                 }
             }
         }
@@ -383,7 +419,7 @@ export default function ScriptsColumn() {
         <div className="flex flex-col h-full dark:text-white">
             {header()}
             <div className="h-px bg-gray-400 dark:bg-neutral-600" />
-            <div className="space-y-2 p-4 overflow-y-auto flex-1">
+            <div className="space-y-2 p-4 overflow-y-auto flex-1 min-h-[400px] bg-gray-50 dark:bg-neutral-800">
                 {isLoading && <div>Loading...</div>}
 
                 <DndContext
@@ -398,14 +434,12 @@ export default function ScriptsColumn() {
 
                     <div className="h-5"></div>
 
-                    {folderResponse &&
-                        folderResponse.shellScripts.length > 0 &&
-                        selectedFolderId && (
-                            <SortableScriptsContext
-                                folderResponse={folderResponse}
-                                selectedFolderId={selectedFolderId}
-                            />
-                        )}
+                    {folderResponse && selectedFolderId && (
+                        <SortableScriptsContext
+                            folderResponse={folderResponse}
+                            selectedFolderId={selectedFolderId}
+                        />
+                    )}
                     <DragOverlay>
                         {activeId &&
                             activeType === "script" &&
