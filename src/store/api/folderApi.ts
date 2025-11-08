@@ -52,7 +52,7 @@ export const folderApi = baseApi.injectEndpoints({
                 method: "PUT",
                 body: args,
             }),
-            invalidatesTags: ["Folder"],
+            invalidatesTags: ["Folder", "FolderContent"],
         }),
 
         reorderFolders: builder.mutation<

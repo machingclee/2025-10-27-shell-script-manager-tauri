@@ -1,21 +1,27 @@
 [
-  {
-    "name": "org.sqlite.JDBC",
-    "allDeclaredConstructors": true,
-    "allPublicConstructors": true,
-    "allDeclaredMethods": true,
-    "allPublicMethods": true
-  },
-  {
-    "name": "org.sqlite.SQLiteConnection",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true
-  },
-  {
-    "name": "org.hibernate.community.dialect.SQLiteDialect",
-    "allDeclaredConstructors": true,
-    "allPublicConstructors": true,
-    "allDeclaredMethods": true
-  }
+    {
+        "name": "org.sqlite.JDBC",
+        "allDeclaredConstructors": true,
+        "allPublicConstructors": true,
+        "allDeclaredMethods": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.sqlite.SQLiteConnection",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true
+    },
+    {
+        "name": "org.hibernate.community.dialect.SQLiteDialect",
+        "allDeclaredConstructors": true,
+        "allPublicConstructors": true,
+        "allDeclaredMethods": true
+    },
+    {
+        "name": "org.hibernate.generator.internal.GeneratedGeneration",
+        "allDeclaredConstructors": true,
+        "allPublicConstructors": true,
+        "allDeclaredMethods": true,
+        "allPublicMethods": true
+    }
 ]
-

@@ -43,6 +43,7 @@ import SortableScriptItem from "./SortableScriptItem";
 export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) {
     const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
+    const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
     const [isExpanded, setIsExpanded] = useState(false);
 
     const onClick = () => {
@@ -50,7 +51,13 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
     };
     const isSelected = false;
     const onRename = (newName: string) => {
-        console.log("onRename", newName);
+        updateFolder({
+            id: folder.id,
+            ordering: folder.ordering,
+            createdAt: folder.createdAt!,
+            createdAtHk: folder.createdAtHk!,
+            name: newName,
+        });
     };
     const onDelete = (id: number) => {
         deleteFolder(id);
