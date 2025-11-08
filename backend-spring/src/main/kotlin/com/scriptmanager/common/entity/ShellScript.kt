@@ -29,15 +29,13 @@ data class ShellScript(
     val createdAt: Double? = null,
 
     @Column(name = "created_at_hk")
-    val createdAtHk: String? = null,
-
-
-    ) {
+    val createdAtHk: String? = null
+) {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_scriptsfolder_shellscript",
-        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id")],
-        inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id")]
+        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", updatable = false, insertable = false)],
+        inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id", updatable = false, insertable = false)]
     )
-    var scriptsFolder: ScriptsFolder? = null
+    var parentFolder: ScriptsFolder? = null
 }

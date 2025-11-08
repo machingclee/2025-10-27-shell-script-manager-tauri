@@ -103,8 +103,8 @@ export default function FolderColumn() {
         updateFolder({ ...folder, name: newName });
     };
 
-    const handleDelete = (id: number) => {
-        deleteFolder(id);
+    const handleDelete = async (id: number) => {
+        await deleteFolder(id);
         // If the deleted folder was selected, clear selection
         if (selectedFolderId === id) {
             dispatch(folderSlice.actions.clearSelectedFolderId());

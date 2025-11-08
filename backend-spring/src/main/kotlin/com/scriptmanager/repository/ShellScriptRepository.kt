@@ -9,10 +9,12 @@ import org.springframework.stereotype.Repository
 @Repository
 interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
     fun findAllByOrderByOrderingAsc(): List<ShellScript>
-    
-    @Query("""
-        SELECT s FROM ShellScript s LEFT JOIN FETCH s.scriptsFolder WHERE s.scriptsFolder.id = :folderId ORDER BY s.ordering ASC
-    """)
+
+    @Query(
+        """
+        SELECT s FROM ShellScript s LEFT JOIN FETCH s.parentFolder WHERE s.parentFolder.id = :folderId ORDER BY s.ordering ASC
+    """
+    )
     fun findByFolderId(@Param("folderId") folderId: Int): List<ShellScript>
 }
 

@@ -1,16 +1,15 @@
-import { ShellScriptDTO } from "@/types/dto";
+import { ShellScriptResponse } from "@/types/dto";
 import { defaultAnimateLayoutChanges, useSortable } from "@dnd-kit/sortable";
 import React from "react";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import ScriptItem from "./ScriptItem";
-import { useAppSelector } from "@/store/hooks";
 
 export default function SortableScriptItem({
     script,
     folderId,
 }: {
-    script: ShellScriptDTO;
+    script: ShellScriptResponse;
     folderId: number;
 }) {
     const {
@@ -23,6 +22,10 @@ export default function SortableScriptItem({
         setActivatorNodeRef,
     } = useSortable({
         id: script.id || 0,
+        data: {
+            type: "script",
+            script: script,
+        },
         animateLayoutChanges: (args) => {
             const { wasDragging } = args;
             if (wasDragging) return false;
@@ -32,7 +35,7 @@ export default function SortableScriptItem({
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition: isDragging ? "none" : transition,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDragging ? 0 : 1,
         width: "100%",
         touchAction: "none",
     };

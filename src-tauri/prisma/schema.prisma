@@ -2,71 +2,73 @@
 // Supports automatic schema diffing and migration generation!
 
 generator client {
-  provider = "cargo prisma"
-  output   = "../src/prisma.rs"
+    provider = "cargo prisma"
+    output   = "../src/prisma.rs"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:../database.db"
+    provider = "sqlite"
+    url      = "file:../database.db"
 }
 
 model application_state {
-  id                    Int     @id @default(autoincrement())
-  last_opened_folder_id Int?
-  dark_mode             Boolean @default(false)
-  created_at            Float   @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
-  created_at_hk         String  @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    id                    Int     @id @default(autoincrement())
+    last_opened_folder_id Int?
+    dark_mode             Boolean @default(false)
+    created_at            Float   @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk         String  @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
 }
 
 model scripts_folder {
-  id                            Int                             @id @default(autoincrement())
-  name                          String
-  ordering                      Int
-  created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
-  created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
-  rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
-  rel_parent_folder_folder      rel_folder_folder[]             @relation("ParentFolder")
-  rel_child_folder_folder       rel_folder_folder[]             @relation("ChildFolder")
+    id                            Int                             @id @default(autoincrement())
+    name                          String
+    ordering                      Int
+    created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
+    rel_parent_folder_folder      rel_folder_folder[]             @relation("ParentFolder")
+    rel_child_folder_folder       rel_folder_folder[]             @relation("ChildFolder")
 
-  @@index([id])
+    @@index([id])
 }
 
 model rel_scriptsfolder_shellscript {
-  id                Int            @id @default(autoincrement())
-  scripts_folder_id Int
-  shell_script_id   Int
-  created_at        Float          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
-  created_at_hk     String         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
-  shell_script      shell_script   @relation(fields: [shell_script_id], references: [id])
-  scripts_folder    scripts_folder @relation(fields: [scripts_folder_id], references: [id])
+    id                Int            @id @default(autoincrement())
+    scripts_folder_id Int
+    shell_script_id   Int
+    created_at        Float          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk     String         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    shell_script      shell_script   @relation(fields: [shell_script_id], references: [id])
+    scripts_folder    scripts_folder @relation(fields: [scripts_folder_id], references: [id])
 
-  @@index([scripts_folder_id])
-  @@index([shell_script_id])
+    @@unique([shell_script_id, scripts_folder_id])
+    @@index([scripts_folder_id])
+    @@index([shell_script_id])
 }
 
 model shell_script {
-  id                            Int                             @id @default(autoincrement())
-  name                          String
-  command                       String
-  ordering                      Int
-  created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
-  created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
-  show_shell                    Boolean                         @default(false)
-  rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
+    id                            Int                             @id @default(autoincrement())
+    name                          String
+    command                       String
+    ordering                      Int
+    created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    show_shell                    Boolean                         @default(false)
+    rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
 
-  @@index([id])
+    @@index([id])
 }
 
 model rel_folder_folder {
-  id               Int            @id @default(autoincrement())
-  parent_folder_id Int
-  child_folder_id  Int
-  created_at       Float          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
-  created_at_hk    String         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
-  parent_folder    scripts_folder @relation("ParentFolder", fields: [parent_folder_id], references: [id])
-  child_folder     scripts_folder @relation("ChildFolder", fields: [child_folder_id], references: [id])
+    id               Int            @id @default(autoincrement())
+    parent_folder_id Int
+    child_folder_id  Int
+    created_at       Float          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk    String         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    parent_folder    scripts_folder @relation("ParentFolder", fields: [parent_folder_id], references: [id])
+    child_folder     scripts_folder @relation("ChildFolder", fields: [child_folder_id], references: [id])
 
-  @@index([parent_folder_id])
-  @@index([child_folder_id])
+    @@unique([parent_folder_id, child_folder_id])
+    @@index([parent_folder_id])
+    @@index([child_folder_id])
 }

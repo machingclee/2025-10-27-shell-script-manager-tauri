@@ -1,4 +1,9 @@
-import { CreateScriptRequest, ScriptsFolderResponse, ShellScriptDTO } from "@/types/dto";
+import {
+    CreateScriptRequest,
+    ScriptsFolderResponse,
+    ShellScriptDTO,
+    ShellScriptResponse,
+} from "@/types/dto";
 import { baseApi } from "./baseApi";
 import { folderApi } from "./folderApi";
 
@@ -29,7 +34,7 @@ const getSubfolder = (
 
 export const scriptApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        createScript: builder.mutation<ShellScriptDTO, CreateScriptRequest>({
+        createScript: builder.mutation<ShellScriptResponse, CreateScriptRequest>({
             query: (request) => ({
                 url: "/scripts",
                 method: "POST",
@@ -56,7 +61,18 @@ export const scriptApi = baseApi.injectEndpoints({
                 }
             },
         }),
-
+        moveScriptIntoFolder: builder.mutation<
+            ShellScriptDTO,
+            { scriptId: number; folderId: number }
+        >({
+            query: ({ scriptId, folderId }) => ({
+                url: `/scripts/${scriptId}/folder/${folderId}/move`,
+                method: "PUT",
+            }),
+            invalidatesTags: (_result, _error, { scriptId: _scriptId }) => [
+                { type: "FolderContent" },
+            ],
+        }),
         updateScript: builder.mutation<ShellScriptDTO, ShellScriptDTO>({
             query: (request) => ({
                 url: `/scripts/${request.id}`,
@@ -74,7 +90,7 @@ export const scriptApi = baseApi.injectEndpoints({
             async onQueryStarted({ id, folderId }, { dispatch, queryFulfilled }) {
                 // Optimistically update the cache
                 const patchResult = dispatch(
-                    scriptApi.util.updateQueryData("getScriptsByFolder", folderId, (draft) => {
+                    folderApi.util.updateQueryData("getFolderById", folderId, (draft) => {
                         const folder = getSubfolder(draft, folderId);
                         if (!folder) {
                             return;

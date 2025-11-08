@@ -36,7 +36,7 @@ class ScriptController(
 
     @PostMapping
     @Transactional
-    fun createScript(@RequestBody request: CreateScriptRequest): ApiResponse<ShellScriptDTO> {
+    fun createScript(@RequestBody request: CreateScriptRequest): ApiResponse<ShellScriptResponse> {
         // Verify folder exists
         val folder = folderRepository.findByIdOrNull(request.folderId)
             ?: throw Exception("Folder not found")
@@ -51,10 +51,10 @@ class ScriptController(
             command = request.content,
             ordering = count,
         )
-        script.scriptsFolder = folder
+        script.parentFolder = folder
 
         val savedScript = scriptRepository.save(script)
-        return ApiResponse(savedScript.toDTO())
+        return ApiResponse(savedScript.toResponse())
     }
 
     @Transactional
@@ -117,4 +117,19 @@ class ScriptController(
         scriptRepository.saveAll(scripts)
         return ApiResponse()
     }
+
+    @PutMapping("/{scriptId}/folder/{folderId}/move")
+    @Transactional
+    fun moveScriptToFolder(
+        @PathVariable scriptId: Int,
+        @PathVariable folderId: Int
+    ): ApiResponse<Unit> {
+        val script = shellScriptRepository.findByIdOrNull(scriptId) ?: throw Exception("Script not found")
+        val newFolder = folderRepository.findByIdOrNull(folderId) ?: throw Exception("Folder not found")
+
+        script.parentFolder?.removeScript(script)
+        newFolder?.addScript(script)
+        return ApiResponse()
+    }
+
 }

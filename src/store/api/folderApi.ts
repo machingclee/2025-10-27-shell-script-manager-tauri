@@ -43,7 +43,7 @@ export const folderApi = baseApi.injectEndpoints({
                 url: `/folders/${id}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["FolderContent"],
+            invalidatesTags: ["FolderContent", "Folder"],
         }),
 
         updateFolder: builder.mutation<void, ScriptsFolderDTO>({

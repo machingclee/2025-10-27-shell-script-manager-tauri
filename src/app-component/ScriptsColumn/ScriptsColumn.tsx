@@ -1,25 +1,20 @@
-import React from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { Plus, ScrollText, GripVertical } from "lucide-react";
-import ScriptItem from "./ScriptItem";
+import { Plus, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DndContext,
-    closestCenter,
     KeyboardSensor,
     PointerSensor,
     useSensor,
     useSensors,
     DragEndEvent,
+    DragStartEvent,
+    DragOverlay,
+    pointerWithin,
+    rectIntersection,
 } from "@dnd-kit/core";
-import {
-    SortableContext,
-    sortableKeyboardCoordinates,
-    useSortable,
-    verticalListSortingStrategy,
-    defaultAnimateLayoutChanges,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import type { CollisionDetection } from "@dnd-kit/core";
+import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import {
     Dialog,
     DialogContent,
@@ -34,11 +29,49 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { scriptApi } from "@/store/api/scriptApi";
 import { folderApi } from "@/store/api/folderApi";
-import { ScriptsFolderResponse, ShellScriptDTO } from "@/types/dto";
-import CollapsableFolder from "./CollapsableFolder";
+import { ShellScriptDTO, ScriptsFolderResponse, ShellScriptResponse } from "@/types/dto";
 import folderSlice from "@/store/slices/folderSlice";
-import SortableSubfolders from "./SortableSubfolders";
-import SortableScripts from "./SortableScripts";
+import SortableSubfoldersContext from "./SortableSubfoldersContext";
+import SortableScriptsContext from "./SortableScriptsContext";
+import ScriptItem from "./ScriptItem";
+import CollapsableFolder from "./SortatbleCollapsableFolder";
+
+// Helper function to find script recursively in folders and subfolders
+const findScriptRecursive = (
+    folderResponse: ScriptsFolderResponse,
+    scriptId: number
+): ShellScriptDTO | null => {
+    // Search in current folder's scripts
+    const script = folderResponse.shellScripts.find((s) => s.id === scriptId);
+    if (script) return script;
+
+    // Search in subfolders
+    for (const subfolder of folderResponse.subfolders) {
+        const found = findScriptRecursive(subfolder, scriptId);
+        if (found) return found;
+    }
+
+    return null;
+};
+
+// Helper function to find which folder contains a specific script
+const findFolderContainingScript = (
+    folderResponse: ScriptsFolderResponse,
+    scriptId: number
+): ScriptsFolderResponse | null => {
+    // Check if script is in current folder
+    if (folderResponse.shellScripts.some((s) => s.id === scriptId)) {
+        return folderResponse;
+    }
+
+    // Search in subfolders
+    for (const subfolder of folderResponse.subfolders) {
+        const found = findFolderContainingScript(subfolder, scriptId);
+        if (found) return found;
+    }
+
+    return null;
+};
 
 export default function ScriptsColumn() {
     const selectedFolderId = useAppSelector((s) => s.folder.selectedFolderId);
@@ -58,9 +91,12 @@ export default function ScriptsColumn() {
     const [createScript] = scriptApi.endpoints.createScript.useMutation();
     const [reorderScripts] = scriptApi.endpoints.reorderScripts.useMutation();
     const [reorderSubfolders] = folderApi.endpoints.reorderFolders.useMutation();
+    const [moveScriptIntoFolder] = scriptApi.endpoints.moveScriptIntoFolder.useMutation();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [newName, setNewName] = useState("");
     const [newCommand, setNewCommand] = useState("");
+    const [activeId, setActiveId] = useState<number | null>(null);
+    const [activeType, setActiveType] = useState<"script" | "folder" | null>(null);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -69,41 +105,194 @@ export default function ScriptsColumn() {
         })
     );
 
-    const handleDragScriptsEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        console.log("active", active);
-        console.log("over", over);
-        if (over && active.id !== over.id && folderResponse && selectedFolderId) {
-            const oldIndex = folderResponse.shellScripts.findIndex((s) => s.id === active.id);
-            const newIndex = folderResponse.shellScripts.findIndex((s) => s.id === over.id);
+    // Custom collision detection that prioritizes droppable zones when dragging scripts
+    const customCollisionDetection: CollisionDetection = (args) => {
+        const { active } = args;
+        const isDraggingScript = active?.data.current?.type === "script";
 
-            console.log("oldIndex", oldIndex);
-            console.log("newIndex", newIndex);
-            if (oldIndex !== -1 && newIndex !== -1) {
-                console.log("reordering scripts");
-                reorderScripts({
-                    folderId: selectedFolderId,
-                    fromIndex: oldIndex,
-                    toIndex: newIndex,
-                })
-                    .unwrap()
-                    .catch((error) => {
-                        console.error("Failed to reorder scripts:", error);
-                    });
+        // When dragging a script, prioritize droppable zones (folders and root folder area)
+        if (isDraggingScript) {
+            const pointerCollisions = pointerWithin(args);
+
+            if (pointerCollisions.length > 0) {
+                // Check if we're over any subfolder droppables
+                const folderDroppableCollision = pointerCollisions.find(({ id }) =>
+                    String(id).startsWith("folder-droppable-")
+                );
+
+                // Prioritize folder droppables (subfolders) over sortables
+                if (folderDroppableCollision) {
+                    return [folderDroppableCollision];
+                }
+
+                // Check if we're over any script items (for reordering)
+                const scriptCollisions = pointerCollisions.filter(
+                    ({ id }) => typeof id === "number" || !String(id).includes("droppable")
+                );
+
+                // If we have script collisions, use them for sorting
+                if (scriptCollisions.length > 0) {
+                    return scriptCollisions;
+                }
+
+                // Finally, check for root-scripts-droppable (only when not over scripts)
+                const rootDroppableCollision = pointerCollisions.find(({ id }) =>
+                    String(id).startsWith("root-scripts-droppable-")
+                );
+
+                if (rootDroppableCollision) {
+                    return [rootDroppableCollision];
+                }
             }
+        }
+
+        // For folders or when no droppable collision, use rect intersection for sorting
+        return rectIntersection(args);
+    };
+
+    const handleDragStart = (event: DragStartEvent) => {
+        const { active } = event;
+        setActiveId(active.id as number);
+        setActiveType(active.data.current?.type || null);
+
+        // Only set reordering state when dragging a folder, not a script
+        if (active.data.current?.type === "folder") {
+            dispatch(folderSlice.actions.setIsReorderingFolder(true));
         }
     };
 
-    const handleDragFoldersEnd = (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
-        console.log("active", active);
-        console.log("over", over);
-        if (over && active.id !== over.id && folderResponse && selectedFolderId) {
-            const oldIndex = folderResponse.subfolders.findIndex((s) => s.id === active.id);
-            const newIndex = folderResponse.subfolders.findIndex((s) => s.id === over.id);
 
-            if (oldIndex !== -1 && newIndex !== -1) {
-                console.log("reordering scripts");
+        console.log("Drag end event:", {
+            activeId: active.id,
+            activeType: active.data.current?.type,
+            overId: over?.id,
+            overType: over?.data.current?.type,
+        });
+
+        if (!over || !folderResponse || !selectedFolderId) {
+            dispatch(folderSlice.actions.setIsReorderingFolder(false));
+            return;
+        }
+
+        const activeData = active.data.current;
+        const overData = over.data.current;
+
+        console.log("Drag end full data:", { active, over, activeData, overData });
+
+        // Case 1: Script dropped on folder - move script to folder
+        if (activeData?.type === "script" && overData?.type === "folder") {
+            const script = activeData.script;
+            const targetFolderId = overData.folderId;
+
+            console.log("Moving script to folder:", script.id, "->", targetFolderId);
+
+            moveScriptIntoFolder({
+                scriptId: script.id,
+                folderId: targetFolderId,
+            })
+                .unwrap()
+                .catch((error) => {
+                    console.error("Failed to move script:", error);
+                });
+        }
+        // Case 1b: Script dropped on root folder area - move script to root folder
+        else if (activeData?.type === "script" && overData?.type === "folder") {
+            const script = activeData.script;
+            const targetFolderId = overData.folderId;
+
+            console.log("Moving script to root folder:", script.id, "->", targetFolderId);
+
+            moveScriptIntoFolder({
+                scriptId: script.id,
+                folderId: targetFolderId,
+            })
+                .unwrap()
+                .catch((error) => {
+                    console.error("Failed to move script:", error);
+                });
+        }
+        // Case 2: Reordering scripts
+        else if (activeData?.type === "script" && overData?.type === "script") {
+            const activeScript = activeData.script as ShellScriptResponse;
+            const overScript = overData.script as ShellScriptResponse;
+
+            // Find which folders contain the scripts
+            const activeFolder = findFolderContainingScript(folderResponse, activeScript.id!);
+            const overFolder = findFolderContainingScript(folderResponse, overScript.id!);
+
+            if (!activeFolder || !overFolder) {
+                console.error("Could not find folders containing scripts");
+                return;
+            }
+
+            // Case 2a: Scripts in the same folder - just reorder
+            if (activeFolder.id === overFolder.id) {
+                const oldIndex = activeFolder.shellScripts.findIndex(
+                    (s) => s.id === activeScript.id
+                );
+                const newIndex = activeFolder.shellScripts.findIndex((s) => s.id === overScript.id);
+
+                if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                    console.log(
+                        `Reordering scripts in folder ${activeFolder.id}: ${oldIndex} -> ${newIndex}`
+                    );
+                    reorderScripts({
+                        folderId: activeFolder.id,
+                        fromIndex: oldIndex,
+                        toIndex: newIndex,
+                    })
+                        .unwrap()
+                        .catch((error) => {
+                            console.error("Failed to reorder scripts:", error);
+                        });
+                }
+            }
+            // Case 2b: Scripts in different folders - move and reorder
+            else {
+                const targetIndex = overFolder.shellScripts.findIndex(
+                    (s) => s.id === overScript.id
+                );
+
+                if (targetIndex !== -1) {
+                    console.log(
+                        `Moving script ${activeScript.id} from folder ${activeFolder.id} to folder ${overFolder.id} at index ${targetIndex}`
+                    );
+
+                    const currentScriptCount = overFolder.shellScripts.length;
+
+                    // Step 1: Move the script to the target folder
+                    moveScriptIntoFolder({
+                        scriptId: activeScript.id!,
+                        folderId: overFolder.id,
+                    })
+                        .unwrap()
+                        .then(() => {
+                            // Step 2: Reorder the script to the target index
+                            // After moving, the script is at the end (currentScriptCount position)
+                            const fromIndex = currentScriptCount;
+                            if (fromIndex !== targetIndex) {
+                                return reorderScripts({
+                                    folderId: overFolder.id,
+                                    fromIndex: fromIndex,
+                                    toIndex: targetIndex,
+                                }).unwrap();
+                            }
+                        })
+                        .catch((error) => {
+                            console.error("Failed to move and reorder script:", error);
+                        });
+                }
+            }
+        }
+        // Case 3: Reordering folders
+        else if (activeData?.type === "folder" && overData?.type === "folder") {
+            const oldIndex = folderResponse.subfolders.findIndex((f) => f.id === active.id);
+            const newIndex = folderResponse.subfolders.findIndex((f) => f.id === over.id);
+
+            if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                console.log("Reordering folders");
                 reorderSubfolders({
                     parentFolderId: selectedFolderId,
                     fromIndex: oldIndex,
@@ -111,11 +300,14 @@ export default function ScriptsColumn() {
                 })
                     .unwrap()
                     .catch((error) => {
-                        console.error("Failed to reorder scripts:", error);
+                        console.error("Failed to reorder folders:", error);
                     });
             }
         }
+
         dispatch(folderSlice.actions.setIsReorderingFolder(false));
+        setActiveId(null);
+        setActiveType(null);
     };
 
     const handleCreate = async () => {
@@ -212,30 +404,55 @@ export default function ScriptsColumn() {
             <div className="space-y-2 p-4 overflow-y-auto flex-1">
                 {isLoading && <div>Loading...</div>}
 
-                {folderResponse &&
-                    folderResponse.shellScripts &&
-                    folderResponse.shellScripts.length > 0 &&
-                    selectedFolderId && (
-                        <SortableSubfolders
-                            sensors={sensors}
-                            handleDragFoldersEnd={handleDragFoldersEnd}
-                            folderResponse={folderResponse}
-                        />
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={customCollisionDetection}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                >
+                    {folderResponse && folderResponse.subfolders.length > 0 && (
+                        <SortableSubfoldersContext folderResponse={folderResponse} />
                     )}
 
-                <div className="h-5"></div>
+                    <div className="h-5"></div>
 
-                {folderResponse &&
-                    folderResponse.shellScripts &&
-                    folderResponse.shellScripts.length > 0 &&
-                    selectedFolderId && (
-                        <SortableScripts
-                            sensors={sensors}
-                            handleDragScriptsEnd={handleDragScriptsEnd}
-                            folderResponse={folderResponse}
-                            selectedFolderId={selectedFolderId}
-                        />
-                    )}
+                    {folderResponse &&
+                        folderResponse.shellScripts.length > 0 &&
+                        selectedFolderId && (
+                            <SortableScriptsContext
+                                folderResponse={folderResponse}
+                                selectedFolderId={selectedFolderId}
+                            />
+                        )}
+                    <DragOverlay>
+                        {activeId &&
+                            activeType === "script" &&
+                            folderResponse &&
+                            (() => {
+                                const script = findScriptRecursive(folderResponse, activeId);
+                                return script ? (
+                                    <div className="opacity-80 cursor-grabbing">
+                                        <div className="bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700">
+                                            <ScriptItem script={script} folderId={script.id ?? 0} />
+                                        </div>
+                                    </div>
+                                ) : null;
+                            })()}
+                        {activeId &&
+                            activeType === "folder" &&
+                            folderResponse &&
+                            (() => {
+                                const folder = folderResponse.subfolders.find(
+                                    (f) => f.id === activeId
+                                );
+                                return folder ? (
+                                    <div className="opacity-80 cursor-grabbing">
+                                        <CollapsableFolder folder={folder} />
+                                    </div>
+                                ) : null;
+                            })()}
+                    </DragOverlay>
+                </DndContext>
             </div>
         </div>
     );

@@ -27,6 +27,8 @@ data class ScriptsFolder(
     @Column(name = "created_at_hk")
     val createdAtHk: String? = null
 ) {
+
+
     @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true)
     @Cascade(CascadeType.ALL)
     @JoinTable(
@@ -37,7 +39,7 @@ data class ScriptsFolder(
     var shellScripts: MutableSet<ShellScript> = mutableSetOf()
 
 
-    @OneToMany
+    @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true)
     @Cascade(CascadeType.ALL)
     @JoinTable(
         name = "rel_folder_folder",
@@ -49,10 +51,38 @@ data class ScriptsFolder(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_folder_folder",
-        joinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id")],
-        inverseJoinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id")]
+        joinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id", updatable = false, insertable = false)],
+        inverseJoinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id", updatable = false, insertable = false)]
     )
     var parentFolder: ScriptsFolder? = null
+
+    fun removeScript(script: ShellScript) {
+        shellScripts.remove(script)
+        shellScripts.forEachIndexed { idx, s ->
+            s.ordering = idx
+        }
+    }
+
+    fun addScript(script: ShellScript) {
+        shellScripts.add(script)
+        shellScripts.forEachIndexed { idx, s ->
+            s.ordering = idx
+        }
+    }
+
+    fun addFolder(newSubfolder: ScriptsFolder) {
+        subfolders.add(newSubfolder)
+        subfolders.forEachIndexed { idx, f ->
+            f.ordering = idx
+        }
+    }
+
+    fun removeFolder(folder: ScriptsFolder) {
+        subfolders.remove(folder)
+        subfolders.forEachIndexed { idx, f ->
+            f.ordering = idx
+        }
+    }
 }
 
 

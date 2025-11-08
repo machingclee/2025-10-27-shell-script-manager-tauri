@@ -14,6 +14,6 @@ interface ScriptsFolderRepository : JpaRepository<ScriptsFolder, Int> {
         order by sf.ordering asc
     """
     )
-    fun findAllByOrderByOrderingAsc(): List<ScriptsFolder>
+    fun findAllRootLevelFolder(): List<ScriptsFolder>
 }
 
