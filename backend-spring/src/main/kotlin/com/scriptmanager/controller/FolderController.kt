@@ -8,6 +8,7 @@ import com.scriptmanager.repository.ScriptsFolderRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.persistence.PostRemove
 import jakarta.transaction.Transactional
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.web.bind.annotation.*
@@ -94,9 +95,21 @@ class FolderController(
         return ApiResponse()
     }
 
+
+    @Operation(summary = "Get folder content", description = "Retrieves the content of a specific folder by its ID")
+    @GetMapping("/{id}/content")
+    fun getFodlerContent(
+        @Parameter(description = "Folder ID", required = true)
+        @PathVariable id: Int
+    ): ApiResponse<ScriptsFolderResponse> {
+        val folder = folderRepository.findByIdOrNull(id) ?: throw Exception("Folder not found")
+        return ApiResponse(folder.toResponse())
+    }
+
+
     @Operation(summary = "Reorder folders", description = "Reorders folders by moving a folder from one position to another")
     @Transactional
-    @PostMapping("/reorder")
+    @PatchMapping("/reorder")
     fun reorderFolders(
         @Parameter(description = "Reorder request with from and to indices", required = true)
         @RequestBody request: ReorderRequest
@@ -110,18 +123,51 @@ class FolderController(
             throw Exception("Invalid indices")
         }
 
-        // Reorder the folders
-        val movedFolder = folders[request.fromIndex]
-        val reordered = folders.toMutableList()
-        reordered.removeAt(request.fromIndex)
-        reordered.add(request.toIndex, movedFolder)
+        val parentFolderId = request.parentFolderId
 
-        // Update ordering values
-        reordered.forEachIndexed { index, folder ->
-            folder.ordering = index
+        if (parentFolderId == null) {
+            // we reorder the root folder
+            // Reorder the folders
+            val movedFolder = folders[request.fromIndex]
+            val reordered = folders.toMutableList()
+            reordered.removeAt(request.fromIndex)
+            reordered.add(request.toIndex, movedFolder)
+
+            // Update ordering values
+            reordered.forEachIndexed { index, folder ->
+                folder.ordering = index
+            }
+            folderRepository.saveAll(reordered)
+        } else {
+            // we reorder the subfolders
+            // Reorder subfolders within the specified parent folder
+            val parentFolder = folderRepository.findByIdOrNull(parentFolderId)
+                ?: throw Exception("Parent folder not found")
+            val subfolders = parentFolder.subfolders.sortedBy { it.ordering }.toMutableList()
+
+            // Validate indices for subfolders
+            if (request.fromIndex < 0 || request.fromIndex >= subfolders.size ||
+                request.toIndex < 0 || request.toIndex >= subfolders.size
+            ) {
+                throw Exception("Invalid indices for subfolders")
+            }
+
+            val movedSubfolder = subfolders[request.fromIndex]
+            subfolders.removeAt(request.fromIndex)
+            subfolders.add(request.toIndex, movedSubfolder)
+
+            // Update ordering values for subfolders
+            subfolders.forEachIndexed { index, subfolder ->
+                subfolder.ordering = index
+            }
+
+            // Save updated subfolders back to parent folder
+            parentFolder.subfolders.clear()
+            parentFolder.subfolders.addAll(subfolders)
+            folderRepository.save(parentFolder)
         }
 
-        folderRepository.saveAll(reordered)
+
         return ApiResponse()
     }
 

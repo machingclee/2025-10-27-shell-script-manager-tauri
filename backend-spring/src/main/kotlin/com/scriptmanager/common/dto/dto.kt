@@ -25,6 +25,7 @@ data class CreateScriptRequest(
 )
 
 data class ReorderRequest(
+    val parentFolderId: Int?,
     val fromIndex: Int,
     val toIndex: Int
 )
@@ -73,7 +74,7 @@ fun ScriptsFolder.toResponse(): ScriptsFolderResponse {
         createdAtHk = this.createdAtHk,
         shellScripts = this.shellScripts.map { it.toDTO() },
         parentFolder = this.parentFolder?.toDTO(),
-        subfolders = this.subfolders?.map { it.toResponse() }?.toList() ?: emptyList()
+        subfolders = this.subfolders?.map { it.toResponse() }?.toList()?.sortedBy { it.ordering } ?: emptyList()
     )
 }
 

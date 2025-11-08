@@ -28,12 +28,6 @@ class ScriptController(
         return ApiResponse(list)
     }
 
-    @GetMapping("/folder/{folderId}")
-    fun getScriptsByFolder(@PathVariable folderId: Int): ApiResponse<ScriptsFolderResponse> {
-        val folder = folderRepository.findByIdOrNull(folderId) ?: throw Exception("Folder not found")
-        return ApiResponse(folder.toResponse())
-    }
-
     @GetMapping("/{id}")
     fun getScriptById(@PathVariable id: Int): ApiResponse<ShellScript> {
         val script = scriptRepository.findByIdOrNull(id) ?: throw Exception("Script not found")

@@ -1,10 +1,9 @@
-
 import React from "react";
 import { FolderCode, Plus } from "lucide-react";
 import { folderApi } from "../../store/api/folderApi";
 import { appStateApi } from "../../store/api/appStateApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from "@tauri-apps/api/core";
 
 import {
     DndContext,
@@ -14,12 +13,12 @@ import {
     useSensor,
     useSensors,
     DragEndEvent,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import {
     SortableContext,
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+} from "@dnd-kit/sortable";
 import {
     Dialog,
     DialogContent,
@@ -36,13 +35,11 @@ import folderSlice from "../../store/slices/folderSlice";
 import SortableFolderItem from "./SortableFolderItem";
 import { ScriptsFolderDTO } from "@/types/dto";
 
-
-
 export default function FolderColumn() {
     const dispatch = useAppDispatch();
-    const selectedFolderId = useAppSelector(s => s.folder.selectedFolderId);
-    const isReordering = useAppSelector(s => s.folder.isReorderingFolder);
-    const backendPort = useAppSelector(s => s.config.backendPort);
+    const selectedFolderId = useAppSelector((s) => s.folder.selectedFolderId);
+    const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
+    const backendPort = useAppSelector((s) => s.config.backendPort);
 
     const { data: folders, isLoading } = folderApi.endpoints.getAllFolders.useQuery(undefined, {
         skip: !backendPort,
@@ -86,7 +83,7 @@ export default function FolderColumn() {
         dispatch(folderSlice.actions.setIsReorderingFolder(true));
     };
 
-    const handleDragEnd = (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
 
         if (over && active.id !== over.id && folders) {
@@ -135,8 +132,8 @@ export default function FolderColumn() {
         try {
             // Use shell command to open URL in default browser
             // macOS: open, Windows: start, Linux: xdg-open
-            const isMac = navigator.userAgent.includes('Mac');
-            const isWindows = navigator.userAgent.includes('Windows');
+            const isMac = navigator.userAgent.includes("Mac");
+            const isWindows = navigator.userAgent.includes("Windows");
 
             let command: string;
             if (isMac) {
@@ -147,13 +144,13 @@ export default function FolderColumn() {
                 command = `xdg-open "${url}"`;
             }
 
-            await invoke('run_script', { command });
+            await invoke("run_script", { command });
         } catch (error) {
-            console.error('Failed to open backend API:', error);
+            console.error("Failed to open backend API:", error);
         }
     };
 
-    const folderIds = React.useMemo(() => folders.map(f => f.id), [folders]);
+    const folderIds = React.useMemo(() => folders.map((f) => f.id), [folders]);
 
     return (
         <div className="flex flex-col h-full dark:text-white">
@@ -182,10 +179,7 @@ export default function FolderColumn() {
                         onDragStart={handleDragStart}
                         onDragEnd={handleDragEnd}
                     >
-                        <SortableContext
-                            items={folderIds}
-                            strategy={verticalListSortingStrategy}
-                        >
+                        <SortableContext items={folderIds} strategy={verticalListSortingStrategy}>
                             <div className="space-y-1">
                                 {folders.map((folder) => (
                                     <SortableFolderItem
@@ -193,7 +187,9 @@ export default function FolderColumn() {
                                         folder={folder}
                                         isSelected={!isReordering && selectedFolderId === folder.id}
                                         onClick={() => handleFolderClick(folder.id)}
-                                        onRename={(newName: string) => { handleRename(folder, newName) }}
+                                        onRename={(newName: string) => {
+                                            handleRename(folder, newName);
+                                        }}
                                         onDelete={handleDelete}
                                         onCreateSubfolder={handleCreateSubfolder}
                                     />
@@ -206,10 +202,11 @@ export default function FolderColumn() {
 
             {/* Backend Port Info */}
             <div
-                className={`border-t border-gray-400 dark:border-neutral-600 p-2 text-xs text-neutral-500 dark:text-neutral-400 text-center cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all duration-200 select-none ${isBackendClicked
-                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                    : ''
-                    }`}
+                className={`border-t border-gray-400 dark:border-neutral-600 p-2 text-xs text-neutral-500 dark:text-neutral-400 text-center cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all duration-200 select-none ${
+                    isBackendClicked
+                        ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                        : ""
+                }`}
                 onClick={handleOpenBackendApi}
                 title="Click to open backend API in browser"
             >
@@ -221,9 +218,7 @@ export default function FolderColumn() {
                 <DialogContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
                     <DialogHeader>
                         <DialogTitle>Create New Folder</DialogTitle>
-                        <DialogDescription>
-                            Enter a name for the new folder
-                        </DialogDescription>
+                        <DialogDescription>Enter a name for the new folder</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
@@ -234,7 +229,7 @@ export default function FolderColumn() {
                                 value={newFolderName}
                                 onChange={(e) => setNewFolderName(e.target.value)}
                                 onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && newFolderName.trim()) {
+                                    if (e.key === "Enter" && newFolderName.trim()) {
                                         handleCreateFolder();
                                     }
                                 }}
@@ -254,5 +249,5 @@ export default function FolderColumn() {
                 </DialogContent>
             </Dialog>
         </div>
-    )
+    );
 }

@@ -4,7 +4,7 @@ export type ScriptsFolderDTO = {
     ordering: number;
     createdAt: number;
     createdAtHk: string;
-}
+};
 
 export type ShellScriptDTO = {
     id?: number;
@@ -14,10 +14,10 @@ export type ShellScriptDTO = {
     showShell: boolean;
     createdAt?: number;
     createdAtHk?: string;
-}
+};
 
 export type ScriptsFolderResponse = {
-    id?: number;
+    id: number;
     name: string;
     ordering: number;
     createdAt?: number;
@@ -25,8 +25,7 @@ export type ScriptsFolderResponse = {
     shellScripts: ShellScriptDTO[];
     parentFolder?: ScriptsFolderDTO | null;
     subfolders: ScriptsFolderResponse[];
-}
-
+};
 
 export type AppStateDTO = {
     id: number;
@@ -35,8 +34,6 @@ export type AppStateDTO = {
     createdAt: number;
     createdAtHk: string;
 };
-
-
 
 export interface CreateScriptRequest {
     name: string;
@@ -49,4 +46,3 @@ export interface UpdateScriptRequest {
     name?: string;
     content?: string;
 }
-

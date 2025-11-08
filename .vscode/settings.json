@@ -1,3 +1,28 @@
 {
-    "java.compile.nullAnalysis.mode": "disabled"
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": true,
+    "[typescript]": {
+        "editor.tabSize": 4,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+        "editor.tabSize": 4,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+        "editor.tabSize": 4,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascriptreact]": {
+        "editor.tabSize": 4,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[css]": {
+        "editor.tabSize": 4,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "prettier.tabWidth": 4,
+    "prettier.useTabs": false,
+    "java.compile.nullAnalysis.mode": "automatic"
 }
