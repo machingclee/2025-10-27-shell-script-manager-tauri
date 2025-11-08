@@ -260,29 +260,11 @@ export default function ScriptsColumn() {
                         `Moving script ${activeScript.id} from folder ${activeFolder.id} to folder ${overFolder.id} at index ${targetIndex}`
                     );
 
-                    const currentScriptCount = overFolder.shellScripts.length;
-
                     // Step 1: Move the script to the target folder
                     moveScriptIntoFolder({
                         scriptId: activeScript.id!,
                         folderId: overFolder.id,
-                    })
-                        .unwrap()
-                        .then(() => {
-                            // Step 2: Reorder the script to the target index
-                            // After moving, the script is at the end (currentScriptCount position)
-                            const fromIndex = currentScriptCount;
-                            if (fromIndex !== targetIndex) {
-                                return reorderScripts({
-                                    folderId: overFolder.id,
-                                    fromIndex: fromIndex,
-                                    toIndex: targetIndex,
-                                }).unwrap();
-                            }
-                        })
-                        .catch((error) => {
-                            console.error("Failed to move and reorder script:", error);
-                        });
+                    });
                 }
             }
         }

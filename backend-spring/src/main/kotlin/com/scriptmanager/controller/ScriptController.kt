@@ -11,13 +11,14 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.web.bind.annotation.*
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import org.hibernate.Hibernate
 
 @RestController
 @RequestMapping("/scripts")
 class ScriptController(
     private val scriptRepository: ShellScriptRepository,
     private val folderRepository: ScriptsFolderRepository,
-    private val shellScriptRepository: ShellScriptRepository
+    private val shellScriptRepository: ShellScriptRepository,
 ) {
     private val hkZone = ZoneId.of("Asia/Hong_Kong")
     private val hkFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -51,9 +52,9 @@ class ScriptController(
             command = request.content,
             ordering = count,
         )
-        script.parentFolder = folder
-
-        val savedScript = scriptRepository.save(script)
+        val savedScript = shellScriptRepository.save(script)
+        folder.addScript(savedScript)
+        shellScriptRepository
         return ApiResponse(savedScript.toResponse())
     }
 
@@ -125,10 +126,8 @@ class ScriptController(
         @PathVariable folderId: Int
     ): ApiResponse<Unit> {
         val script = shellScriptRepository.findByIdOrNull(scriptId) ?: throw Exception("Script not found")
-        val newFolder = folderRepository.findByIdOrNull(folderId) ?: throw Exception("Folder not found")
-
-        script.parentFolder?.removeScript(script)
-        newFolder?.addScript(script)
+        val targetFolder = folderRepository.findByIdOrNull(folderId) ?: throw Exception("Folder not found")
+        script.parentFolder = targetFolder
         return ApiResponse()
     }
 

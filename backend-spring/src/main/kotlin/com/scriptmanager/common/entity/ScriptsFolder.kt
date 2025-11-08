@@ -51,13 +51,13 @@ data class ScriptsFolder(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_folder_folder",
-        joinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id", updatable = false, insertable = false)],
-        inverseJoinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id", updatable = false, insertable = false)]
+        joinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id", insertable = false)],
+        inverseJoinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id", insertable = false)]
     )
     var parentFolder: ScriptsFolder? = null
 
     fun removeScript(script: ShellScript) {
-        shellScripts.remove(script)
+        shellScripts.removeIf { it.id == script.id }
         shellScripts.forEachIndexed { idx, s ->
             s.ordering = idx
         }

@@ -3,6 +3,7 @@ package com.scriptmanager.common.entity
 import dev.james.processor.GenerateDTO
 import jakarta.persistence.*
 import org.hibernate.annotations.DynamicInsert
+import org.hibernate.annotations.Generated
 
 @Entity
 @GenerateDTO
@@ -26,16 +27,18 @@ data class ShellScript(
     var showShell: Boolean = false,
 
     @Column(name = "created_at")
+    @Generated
     val createdAt: Double? = null,
 
     @Column(name = "created_at_hk")
+    @Generated
     val createdAtHk: String? = null
 ) {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_scriptsfolder_shellscript",
-        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", updatable = false, insertable = false)],
-        inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id", updatable = false, insertable = false)]
+        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", insertable = false)],
+        inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id", insertable = false)]
     )
     var parentFolder: ScriptsFolder? = null
 }
