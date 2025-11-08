@@ -179,19 +179,19 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                                 )}
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <GripVertical className="w-5 h-5" />
+                                <GripVertical className="w-4 h-4" />
                             </div>
                             <div className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
                                 {folder.shellScripts.length > 0 ? (
                                     isExpanded ? (
-                                        <ChevronDown className="w-5 h-5 flex-shrink-0" />
+                                        <ChevronDown className="w-4 h-4 flex-shrink-0" />
                                     ) : (
-                                        <ChevronRight className="w-5 h-5 flex-shrink-0" />
+                                        <ChevronRight className="w-4 h-4 flex-shrink-0" />
                                     )
                                 ) : (
-                                    <div className="w-5 h-5 flex-shrink-0" />
+                                    <div className="w-4 h-4 flex-shrink-0" />
                                 )}
-                                <Folder className="w-5 h-5 flex-shrink-0" fill="currentColor" />
+                                <Folder className="w-4 h-4 flex-shrink-0" fill="currentColor" />
                                 {folder.name}
                                 {folder.shellScripts.length > 0 && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -202,17 +202,19 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:border-neutral-700">
-                        <ContextMenuItem
-                            className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
-                            onClick={() => {
-                                setSubfolderName("");
-                                setIsCreateSubfolderOpen(true);
-                                onClick();
-                            }}
-                        >
-                            <FolderPlus className="w-5 h-5 mr-2" />
-                            Create Subfolder
-                        </ContextMenuItem>
+                        {!folder.parentFolder && (
+                            <ContextMenuItem
+                                className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                                onClick={() => {
+                                    setSubfolderName("");
+                                    setIsCreateSubfolderOpen(true);
+                                    onClick();
+                                }}
+                            >
+                                <FolderPlus className="w-4 h-4 mr-2" />
+                                Create Subfolder
+                            </ContextMenuItem>
+                        )}
                         <ContextMenuItem
                             className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                             onClick={() => {
@@ -220,14 +222,14 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                                 setIsRenameOpen(true);
                             }}
                         >
-                            <Pencil className="w-5 h-5 mr-2" />
+                            <Pencil className="w-4 h-4 mr-2" />
                             Rename
                         </ContextMenuItem>
                         <ContextMenuItem
                             onClick={() => setIsDeleteOpen(true)}
                             className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                         >
-                            <Trash2 className="w-5 h-5 mr-2" />
+                            <Trash2 className="w-4 h-4 mr-2" />
                             Delete
                         </ContextMenuItem>
                     </ContextMenuContent>

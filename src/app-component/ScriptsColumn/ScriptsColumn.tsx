@@ -432,8 +432,6 @@ export default function ScriptsColumn() {
                         <SortableSubfoldersContext folderResponse={folderResponse} />
                     )}
 
-                    <div className="h-5"></div>
-
                     {folderResponse && selectedFolderId && (
                         <SortableScriptsContext
                             folderResponse={folderResponse}

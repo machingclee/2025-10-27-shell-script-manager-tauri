@@ -184,7 +184,7 @@ export default function FolderColumn() {
                                 {folders.map((folder) => (
                                     <SortableFolderItem
                                         key={folder.id}
-                                        folder={folder}
+                                        folder={{ ...folder, parenFolderId: null }}
                                         isSelected={!isReordering && selectedFolderId === folder.id}
                                         onClick={() => handleFolderClick(folder.id)}
                                         onRename={(newName: string) => {

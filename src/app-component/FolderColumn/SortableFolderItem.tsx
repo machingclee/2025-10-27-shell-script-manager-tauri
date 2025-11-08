@@ -46,7 +46,7 @@ export default React.memo(
         onDelete,
         onCreateSubfolder,
     }: {
-        folder: { id: number; name: string; ordering: number };
+        folder: { id: number; name: string; ordering: number; parenFolderId: number | null };
         isSelected: boolean;
         onClick: () => void;
         onRename: (newName: string) => void;

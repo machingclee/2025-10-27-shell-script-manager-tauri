@@ -53,7 +53,7 @@ export default function SortableScriptItem({
                 className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-neutral-700"
                 onClick={(e) => e.stopPropagation()}
             >
-                <GripVertical className="w-5 h-5" />
+                <GripVertical className="w-4 h-4" />
             </div>
             <div className="flex-1">
                 <ScriptItem script={script} folderId={folderId} />
