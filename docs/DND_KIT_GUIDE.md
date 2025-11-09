@@ -110,7 +110,7 @@ const {
 
 ### 5. **DragOverlay**
 
-Renders a clone that follows the cursor while dragging (creates smooth animations).
+Renders a **_clone_** that **_follows the cursor_** while dragging (creates smooth animations).
 
 ```typescript
 <DragOverlay>
