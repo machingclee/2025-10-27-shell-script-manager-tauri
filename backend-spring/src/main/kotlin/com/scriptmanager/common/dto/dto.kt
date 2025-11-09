@@ -69,7 +69,7 @@ fun ScriptsFolder.toResponse(): ScriptsFolderResponse {
         ordering = this.ordering,
         createdAt = this.createdAt,
         createdAtHk = this.createdAtHk,
-        shellScripts = this.shellScripts.map { it.toResponse() },
+        shellScripts = this.shellScripts.sortedBy { it.ordering }.map { it.toResponse() },
         parentFolder = this.parentFolder?.toDTO(),
         subfolders = this.subfolders?.map { it.toResponse() }?.toList()?.sortedBy { it.ordering } ?: emptyList()
     )

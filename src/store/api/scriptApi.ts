@@ -63,15 +63,62 @@ export const scriptApi = baseApi.injectEndpoints({
         }),
         moveScriptIntoFolder: builder.mutation<
             ShellScriptDTO,
-            { scriptId: number; folderId: number }
+            { scriptId: number; folderId: number; rootFolderId: number }
         >({
             query: ({ scriptId, folderId }) => ({
                 url: `/scripts/${scriptId}/folder/${folderId}/move`,
                 method: "PUT",
             }),
-            invalidatesTags: (_result, _error, { scriptId: _scriptId }) => [
-                { type: "FolderContent" },
-            ],
+            onQueryStarted: async (
+                { scriptId, folderId, rootFolderId },
+                { dispatch, queryFulfilled }
+            ) => {
+                const patchResult = dispatch(
+                    folderApi.util.updateQueryData("getFolderById", rootFolderId, (draft) => {
+                        // Helper to find script recursively
+                        const findAndRemoveScript = (
+                            folder: ScriptsFolderResponse
+                        ): ShellScriptResponse | null => {
+                            const scriptIndex = folder.shellScripts.findIndex(
+                                (s) => s.id === scriptId
+                            );
+                            if (scriptIndex !== -1) {
+                                const [removed] = folder.shellScripts.splice(scriptIndex, 1);
+                                return removed;
+                            }
+                            for (const subfolder of folder.subfolders) {
+                                const found = findAndRemoveScript(subfolder);
+                                if (found) return found;
+                            }
+                            return null;
+                        };
+
+                        // Find and remove script from its current location
+                        const script = findAndRemoveScript(draft);
+                        if (!script) {
+                            return;
+                        }
+
+                        // Find destination folder and add script to it
+                        const destinationFolder = getSubfolder(draft, folderId);
+                        if (!destinationFolder) {
+                            return;
+                        }
+
+                        // Update script properties and add to destination
+                        script.parentFolderId = folderId;
+                        script.ordering = 0;
+                        destinationFolder.shellScripts.unshift(script);
+                    })
+                );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    patchResult.undo();
+                }
+            },
+            invalidatesTags: [{ type: "FolderContent" }],
+            // Removed invalidatesTags - optimistic update handles the UI update
         }),
         updateScript: builder.mutation<ShellScriptDTO, ShellScriptDTO>({
             query: (request) => ({
@@ -124,9 +171,8 @@ export const scriptApi = baseApi.injectEndpoints({
                 { folderId, fromIndex, toIndex, rootFolderId: rootFolderId },
                 { dispatch, queryFulfilled }
             ) {
-                await queryFulfilled;
                 console.log("rootFolderId", rootFolderId);
-                dispatch(
+                const action = dispatch(
                     folderApi.util.updateQueryData("getFolderById", rootFolderId || 0, (draft) => {
                         const folder = getSubfolder(draft, folderId);
                         if (!folder) {
@@ -136,8 +182,13 @@ export const scriptApi = baseApi.injectEndpoints({
                         folder.shellScripts.splice(toIndex, 0, movedItem);
                     })
                 );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    action.undo();
+                }
             },
-            invalidatesTags: [{ type: "FolderContent" }],
+            // Removed invalidatesTags - optimistic update handles the UI update
         }),
     }),
 });

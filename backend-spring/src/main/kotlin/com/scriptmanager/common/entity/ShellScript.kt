@@ -9,7 +9,7 @@ import org.hibernate.annotations.Generated
 @GenerateDTO
 @DynamicInsert
 @Table(name = "shell_script", indexes = [Index(columnList = "id")])
-data class ShellScript(
+class ShellScript(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null,

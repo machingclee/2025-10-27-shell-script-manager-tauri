@@ -8,7 +8,7 @@ import org.hibernate.annotations.DynamicInsert
 @GenerateDTO
 @DynamicInsert
 @Table(name = "application_state")
-data class AppState(
+class AppState(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null,

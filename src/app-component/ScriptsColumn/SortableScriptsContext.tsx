@@ -49,7 +49,7 @@ export default function SortableScriptsContext({
                     <SortableScriptItem
                         key={script.id}
                         script={script}
-                        folderId={selectedFolderId}
+                        parentFolderId={script.parentFolderId}
                     />
                 ))}
                 {folderResponse.shellScripts.length === 0 && (

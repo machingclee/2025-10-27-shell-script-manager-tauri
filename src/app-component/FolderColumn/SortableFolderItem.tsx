@@ -64,9 +64,9 @@ export default React.memo(
         } = useSortable({
             id: folder.id,
             animateLayoutChanges: (args) => {
-                const { wasDragging } = args;
-                // Disable animation when dropping
-                if (wasDragging) return false;
+                const { isSorting, wasDragging } = args;
+                // Disable all animations when actively sorting or just finished dragging
+                if (isSorting || wasDragging) return false;
                 return defaultAnimateLayoutChanges(args);
             },
         });
@@ -79,7 +79,7 @@ export default React.memo(
 
         const style: React.CSSProperties = {
             transform: CSS.Transform.toString(transform),
-            transition: isDragging ? "none" : transition,
+            transition: transform ? "none" : transition, // Disable transition while transforming
             opacity: isDragging ? 0.5 : 1,
             width: "100%",
             height: "auto",

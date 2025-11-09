@@ -24,28 +24,116 @@ async fn run_script(command: String) -> Result<(), String> {
     Ok(())
 }
 
+// #[tauri::command]
+// async fn execute_command(command: String) -> Result<(), String> {
+//     // Execute command silently without opening a Terminal window
+//     let shell = if cfg!(target_os = "windows") {
+//         "cmd"
+//     } else {
+//         "/bin/sh"
+//     };
+
+//     let arg_flag = if cfg!(target_os = "windows") {
+//         "/C"
+//     } else {
+//         "-c"
+//     };
+
+//     Command::new(shell)
+//         .arg(arg_flag)
+//         .arg(&command)
+//         .spawn()
+//         .map_err(|e| format!("Failed to execute command '{}': {}", command, e))?;
+
+//     Ok(())
+// }
+
 #[tauri::command]
-async fn execute_command(command: String) -> Result<(), String> {
-    // Execute command silently without opening a Terminal window
-    let shell = if cfg!(target_os = "windows") {
-        "cmd"
+async fn execute_command(command: String) -> Result<String, String> {
+    println!("Executing command: {}", command);
+
+    // Get the user's home directory
+    let home = std::env::var("HOME").unwrap_or_else(|_| {
+        dirs::home_dir()
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "/Users".to_string())
+    });
+
+    // Detect the user's shell from /etc/passwd or use zsh as default
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| {
+        std::fs::read_to_string("/etc/passwd")
+            .ok()
+            .and_then(|content| {
+                content.lines().find_map(|line| {
+                    if line.contains(&home) {
+                        line.split(':').last().map(|s| s.to_string())
+                    } else {
+                        None
+                    }
+                })
+            })
+            .unwrap_or_else(|| "/bin/zsh".to_string())
+    });
+
+    #[cfg(debug_assertions)]
+    println!("Using shell: {} for command: {}", shell, command);
+
+    // Build the command that sources the shell config files before running
+    let wrapped_command = if shell.contains("zsh") {
+        format!(
+            "source ~/.zshrc 2>/dev/null; source ~/.zprofile 2>/dev/null; {}",
+            command
+        )
+    } else if shell.contains("bash") {
+        format!(
+            "source ~/.bash_profile 2>/dev/null; source ~/.bashrc 2>/dev/null; {}",
+            command
+        )
     } else {
-        "/bin/sh"
+        command.clone()
     };
 
-    let arg_flag = if cfg!(target_os = "windows") {
-        "/C"
-    } else {
-        "-c"
-    };
+    let output = tokio::process::Command::new(&shell)
+        .arg("-l") // Login shell
+        .arg("-c")
+        .arg(&wrapped_command)
+        .env("HOME", &home) // Ensure HOME is set
+        .env(
+            "USER",
+            std::env::var("USER").unwrap_or_else(|_| whoami::username()),
+        )
+        .output()
+        .await
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
 
-    Command::new(shell)
-        .arg(arg_flag)
-        .arg(&command)
-        .spawn()
-        .map_err(|e| format!("Failed to execute command '{}': {}", command, e))?;
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
-    Ok(())
+    #[cfg(debug_assertions)]
+    {
+        println!("Command executed: {}", command);
+        if !stdout.is_empty() {
+            println!("Output: {}", stdout);
+        }
+        if !stderr.is_empty() {
+            eprintln!("Error: {}", stderr);
+        }
+    }
+
+    // Return error if command failed
+    if !output.status.success() {
+        let error_msg = if !stderr.is_empty() {
+            stderr
+        } else if !stdout.is_empty() {
+            stdout
+        } else {
+            format!("Command failed with exit code: {:?}", output.status.code())
+        };
+        return Err(error_msg);
+    }
+
+    // Return stdout on success
+    Ok(stdout)
 }
 
 #[tauri::command]

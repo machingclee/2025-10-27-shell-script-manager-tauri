@@ -1,5 +1,5 @@
 import React from "react";
-import { FolderCode, Plus } from "lucide-react";
+import { FolderCode, Loader2, Plus } from "lucide-react";
 import { folderApi } from "../../store/api/folderApi";
 import { appStateApi } from "../../store/api/appStateApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
@@ -37,9 +37,10 @@ import { ScriptsFolderDTO } from "@/types/dto";
 
 export default function FolderColumn() {
     const dispatch = useAppDispatch();
-    const selectedFolderId = useAppSelector((s) => s.folder.selectedFolderId);
+    const selectedFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const backendPort = useAppSelector((s) => s.config.backendPort);
+    const [openingLocalhost, setOpeningLocalhost] = useState(false);
 
     const { data: folders, isLoading } = folderApi.endpoints.getAllFolders.useQuery(undefined, {
         skip: !backendPort,
@@ -143,10 +144,12 @@ export default function FolderColumn() {
             } else {
                 command = `xdg-open "${url}"`;
             }
-
-            await invoke("run_script", { command });
+            setOpeningLocalhost(true);
+            await invoke("execute_command", { command });
         } catch (error) {
             console.error("Failed to open backend API:", error);
+        } finally {
+            setOpeningLocalhost(false);
         }
     };
 
@@ -202,7 +205,7 @@ export default function FolderColumn() {
 
             {/* Backend Port Info */}
             <div
-                className={`border-t border-gray-400 dark:border-neutral-600 p-2 text-xs text-neutral-500 dark:text-neutral-400 text-center cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all duration-200 select-none ${
+                className={`relative border-t border-gray-400 dark:border-neutral-600 p-2 text-xs text-neutral-500 dark:text-neutral-400 text-center cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-all duration-200 select-none ${
                     isBackendClicked
                         ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
                         : ""
@@ -210,7 +213,12 @@ export default function FolderColumn() {
                 onClick={handleOpenBackendApi}
                 title="Click to open backend API in browser"
             >
-                Backend: localhost:{backendPort}/api
+                <span>Backend: localhost:{backendPort}/api</span>
+                {openingLocalhost && (
+                    <span className="absolute top-1/2 right-4 -translate-y-1/2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                    </span>
+                )}
             </div>
 
             {/* Create Folder Dialog */}

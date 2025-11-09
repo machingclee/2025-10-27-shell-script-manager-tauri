@@ -10,7 +10,7 @@ import org.hibernate.annotations.DynamicInsert
 @GenerateDTO
 @DynamicInsert
 @Table(name = "scripts_folder", indexes = [Index(columnList = "id")])
-data class ScriptsFolder(
+class ScriptsFolder(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null,

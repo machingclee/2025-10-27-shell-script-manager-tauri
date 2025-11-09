@@ -115,8 +115,6 @@ class ScriptController(
         scripts.forEachIndexed { index, script ->
             script.ordering = index
         }
-
-        scriptRepository.saveAll(scripts)
         return ApiResponse()
     }
 

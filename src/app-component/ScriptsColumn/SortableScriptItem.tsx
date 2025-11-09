@@ -7,10 +7,10 @@ import ScriptItem from "./ScriptItem";
 
 export default function SortableScriptItem({
     script,
-    folderId,
+    parentFolderId,
 }: {
     script: ShellScriptResponse;
-    folderId: number;
+    parentFolderId: number;
 }) {
     const {
         attributes,
@@ -27,14 +27,15 @@ export default function SortableScriptItem({
             script: script,
         },
         animateLayoutChanges: (args) => {
-            const { wasDragging } = args;
-            if (wasDragging) return false;
+            const { isSorting, wasDragging } = args;
+            // Disable all animations when actively sorting or just finished dragging
+            if (isSorting || wasDragging) return false;
             return defaultAnimateLayoutChanges(args);
         },
     });
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
-        transition: isDragging ? "none" : transition,
+        transition: transform ? "none" : transition, // Disable transition while transforming
         opacity: isDragging ? 0 : 1,
         width: "100%",
         touchAction: "none",
@@ -56,7 +57,7 @@ export default function SortableScriptItem({
                 <GripVertical className="w-4 h-4" />
             </div>
             <div className="flex-1">
-                <ScriptItem script={script} folderId={folderId} />
+                <ScriptItem script={script} parentFolderId={parentFolderId} />
             </div>
         </div>
     );

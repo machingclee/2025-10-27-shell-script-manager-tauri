@@ -40,10 +40,10 @@ import CollapsableFolder from "./SortatbleCollapsableFolder";
 const findScriptRecursive = (
     folderResponse: ScriptsFolderResponse,
     scriptId: number
-): ShellScriptDTO | null => {
+): { script: ShellScriptDTO; parentFolderId: number } | null => {
     // Search in current folder's scripts
     const script = folderResponse.shellScripts.find((s) => s.id === scriptId);
-    if (script) return script;
+    if (script) return { script, parentFolderId: folderResponse.id };
 
     // Search in subfolders
     for (const subfolder of folderResponse.subfolders) {
@@ -74,18 +74,18 @@ const findFolderContainingScript = (
 };
 
 export default function ScriptsColumn() {
-    const selectedFolderId = useAppSelector((s) => s.folder.selectedFolderId);
+    const selectedRootFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const { data: selectedFolder } = folderApi.endpoints.getAllFolders.useQueryState(undefined, {
         selectFromResult: (result) => ({
-            data: result.data?.find((f) => f.id === selectedFolderId),
+            data: result.data?.find((f) => f.id === selectedRootFolderId),
         }),
     });
     const { data: folderResponse, isLoading } = folderApi.endpoints.getFolderById.useQuery(
-        selectedFolderId ?? 0,
+        selectedRootFolderId ?? 0,
         {
-            skip: !backendPort || !selectedFolderId,
+            skip: !backendPort || !selectedRootFolderId,
         }
     );
     const [createScript] = scriptApi.endpoints.createScript.useMutation();
@@ -203,7 +203,7 @@ export default function ScriptsColumn() {
             overType: over?.data.current?.type,
         });
 
-        if (!over || !folderResponse || !selectedFolderId) {
+        if (!over || !folderResponse || !selectedRootFolderId) {
             dispatch(folderSlice.actions.setIsReorderingFolder(false));
             return;
         }
@@ -223,6 +223,7 @@ export default function ScriptsColumn() {
             moveScriptIntoFolder({
                 scriptId: script.id,
                 folderId: targetFolderId,
+                rootFolderId: selectedRootFolderId,
             })
                 .unwrap()
                 .catch((error) => {
@@ -258,7 +259,7 @@ export default function ScriptsColumn() {
                         folderId: activeFolder.id,
                         fromIndex: oldIndex,
                         toIndex: newIndex,
-                        rootFolderId: selectedFolderId,
+                        rootFolderId: selectedRootFolderId,
                     })
                         .unwrap()
                         .catch((error) => {
@@ -283,6 +284,7 @@ export default function ScriptsColumn() {
                     moveScriptIntoFolder({
                         scriptId: activeScript.id!,
                         folderId: overFolder.id,
+                        rootFolderId: selectedRootFolderId,
                     })
                         .unwrap()
                         .then(() => {
@@ -294,7 +296,7 @@ export default function ScriptsColumn() {
                                     folderId: overFolder.id,
                                     fromIndex: fromIndex,
                                     toIndex: targetIndex,
-                                    rootFolderId: selectedFolderId,
+                                    rootFolderId: selectedRootFolderId,
                                 }).unwrap();
                             }
                         })
@@ -312,9 +314,10 @@ export default function ScriptsColumn() {
             if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
                 console.log("Reordering folders");
                 reorderSubfolders({
-                    parentFolderId: selectedFolderId,
+                    parentFolderId: selectedRootFolderId,
                     fromIndex: oldIndex,
                     toIndex: newIndex,
+                    rootFolderId: selectedRootFolderId,
                 })
                     .unwrap()
                     .catch((error) => {
@@ -329,12 +332,12 @@ export default function ScriptsColumn() {
     };
 
     const handleCreate = async () => {
-        if (!selectedFolderId) return;
+        if (!selectedRootFolderId) return;
 
         await createScript({
             name: newName,
             content: newCommand,
-            folderId: selectedFolderId,
+            folderId: selectedRootFolderId,
         });
 
         setNewName("");
@@ -364,7 +367,7 @@ export default function ScriptsColumn() {
                     <Button
                         variant="ghost"
                         className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 mr-4 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
-                        disabled={!selectedFolderId}
+                        disabled={!selectedRootFolderId}
                         onClick={() => setIsCreateOpen(true)}
                     >
                         <Plus className="w-4 h-4" /> Add Script
@@ -432,10 +435,10 @@ export default function ScriptsColumn() {
                         <SortableSubfoldersContext folderResponse={folderResponse} />
                     )}
 
-                    {folderResponse && selectedFolderId && (
+                    {folderResponse && selectedRootFolderId && (
                         <SortableScriptsContext
                             folderResponse={folderResponse}
-                            selectedFolderId={selectedFolderId}
+                            selectedFolderId={selectedRootFolderId}
                         />
                     )}
                     <DragOverlay>
@@ -443,11 +446,14 @@ export default function ScriptsColumn() {
                             activeType === "script" &&
                             folderResponse &&
                             (() => {
-                                const script = findScriptRecursive(folderResponse, activeId);
-                                return script ? (
+                                const scriptInfo = findScriptRecursive(folderResponse, activeId);
+                                return scriptInfo ? (
                                     <div className="opacity-80 cursor-grabbing">
                                         <div className="bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700">
-                                            <ScriptItem script={script} folderId={script.id ?? 0} />
+                                            <ScriptItem
+                                                script={scriptInfo.script}
+                                                parentFolderId={scriptInfo.parentFolderId}
+                                            />
                                         </div>
                                     </div>
                                 ) : null;

@@ -82,9 +82,9 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
             folder: folder,
         },
         animateLayoutChanges: (args) => {
-            const { wasDragging } = args;
-            // Disable animation when dropping
-            if (wasDragging) return false;
+            const { isSorting, wasDragging } = args;
+            // Disable all animations when actively sorting or just finished dragging
+            if (isSorting || wasDragging) return false;
             return defaultAnimateLayoutChanges(args);
         },
     });
@@ -125,7 +125,7 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
 
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
-        transition: isDragging ? "none" : transition,
+        transition: transform ? "none" : transition, // Disable transition while transforming
         opacity: isDragging ? 0 : 1,
         width: "100%",
         height: "auto",
@@ -164,7 +164,7 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                         <div
                             onClick={onClick}
                             className={clsx({
-                                "flex items-center gap-3 pl-0.5 py-3 rounded-md transition-colors duration-200 w-full flex-shrink-0 cursor-pointer": true,
+                                "flex items-center gap-3 pl-5 py-3 rounded-md transition-colors duration-200 w-full flex-shrink-0 cursor-pointer": true,
                                 "hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-600":
                                     !showHighlight,
                                 "bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800 dark:bg-neutral-500 dark:hover:bg-neutral-600 dark:active:bg-neutral-700":
@@ -253,7 +253,7 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                                 <SortableScriptItem
                                     key={script.id}
                                     script={script}
-                                    folderId={folder.id}
+                                    parentFolderId={folder.id}
                                 />
                             ))}
                         </div>
