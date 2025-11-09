@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Edit, Play, Trash } from "lucide-react";
+import { Edit, Loader2, Play, Trash } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
     AlertDialog,
@@ -26,17 +26,28 @@ import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
 import { ScriptsFolderDTO, ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { folderSlice } from "@/store/slices/folderSlice";
 
-export default function ScriptItem({ script, folderId }: { script: ShellScriptDTO; folderId: number }) {
+export default function ScriptItem({
+    script,
+    parentFolderId,
+}: {
+    script: ShellScriptDTO;
+    parentFolderId: number;
+}) {
+    const dispatch = useAppDispatch();
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateScript] = scriptApi.endpoints.updateScript.useMutation();
-
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [editName, setEditName] = useState(script.name);
     const [editCommand, setEditCommand] = useState(script.command);
     const [isSelected, setIsSelected] = useState(false);
     const [showShell, setShowShell] = useState(false);
+    const executingScript = useAppSelector(
+        (state) => (state.folder.scripts.executing?.[script.id ?? 0] ?? { loading: false }).loading
+    );
 
     // Reset form when dialog opens
     useEffect(() => {
@@ -49,15 +60,25 @@ export default function ScriptItem({ script, folderId }: { script: ShellScriptDT
     const handleRun = async (e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
         try {
-            console.log('Running script:', script.command);
-            await invoke('run_script', { command: script.command });
+            console.log("Running script:", script.command);
+            dispatch(
+                folderSlice.actions.setExecutingScript({ script_id: script.id ?? 0, loading: true })
+            );
+            await invoke("execute_command", { command: script.command });
         } catch (error) {
-            console.error('Failed to run script:', error);
+            console.error("Failed to run script:", error);
+        } finally {
+            dispatch(
+                folderSlice.actions.setExecutingScript({
+                    script_id: script.id ?? 0,
+                    loading: false,
+                })
+            );
         }
     };
 
     const handleDelete = () => {
-        deleteScript({ id: script.id ?? 0, folderId });
+        deleteScript({ id: script.id ?? 0, folderId: parentFolderId });
     };
 
     const handleDeleteClick = (e: React.MouseEvent) => {
@@ -77,39 +98,43 @@ export default function ScriptItem({ script, folderId }: { script: ShellScriptDT
 
     const handleUpdate = async () => {
         const finalScriptDTO: ShellScriptDTO = {
-            ...script as unknown as ScriptsFolderDTO,
+            ...(script as unknown as ScriptsFolderDTO),
             id: script.id,
             name: editName,
             command: editCommand,
             showShell: showShell,
-        }
+        };
         await updateScript(finalScriptDTO);
         setIsEditOpen(false);
     };
 
     const onShowShellChange = (checked: boolean) => {
-
         setShowShell(checked);
     };
 
     return (
         <div
-            className={`px-3 py-2 rounded-md border transition-colors cursor-pointer ${isSelected
-                ? 'bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500'
-                : 'bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]'
-                }`}
+            className={`px-3 py-2 rounded-md border transition-colors cursor-pointer ${
+                isSelected
+                    ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
+                    : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
+            }`}
             onMouseDown={() => setIsSelected(true)}
             onMouseUp={() => setIsSelected(false)}
             onMouseLeave={() => setIsSelected(false)}
             onDoubleClick={(e) => handleRun(e)}
         >
             <div className="flex items-center gap-2 justify-between mb-4">
-                <div className="font-bold text-lg">{script.name}</div>
+                <div className="flex items-center gap-2">
+                    <div className="font-bold text-lg">{script.name}</div>
+                    {executingScript && <Loader2 className="w-5 h-5 animate-spin" />}
+                </div>
                 <div
                     className="flex items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
                     onMouseUp={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex items-center gap-2 mr-2">
                         <span className="text-xs font-medium">Show Shell</span>
@@ -131,7 +156,8 @@ export default function ScriptItem({ script, folderId }: { script: ShellScriptDT
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Script?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    Are you sure you want to delete "{script.name}"? This action cannot be undone.
+                                    Are you sure you want to delete "{script.name}"? This action
+                                    cannot be undone.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -147,7 +173,7 @@ export default function ScriptItem({ script, folderId }: { script: ShellScriptDT
                     >
                         <Edit className="w-4 h-4" /> Edit
                     </Button>
-                    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen} >
+                    <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                         <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
                             <DialogHeader>
                                 <DialogTitle>Edit Script</DialogTitle>
@@ -182,9 +208,7 @@ export default function ScriptItem({ script, folderId }: { script: ShellScriptDT
                                 <Button variant="outline" onClick={() => setIsEditOpen(false)}>
                                     Cancel
                                 </Button>
-                                <Button onClick={handleUpdate}>
-                                    Save Changes
-                                </Button>
+                                <Button onClick={handleUpdate}>Save Changes</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
@@ -197,7 +221,9 @@ export default function ScriptItem({ script, folderId }: { script: ShellScriptDT
                     </Button>
                 </div>
             </div>
-            <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)]">{script.command}</div>
+            <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)]">
+                {script.command}
+            </div>
         </div>
     );
 }

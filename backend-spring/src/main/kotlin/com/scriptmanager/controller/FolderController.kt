@@ -8,7 +8,6 @@ import com.scriptmanager.repository.ScriptsFolderRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
-import jakarta.persistence.PostRemove
 import jakarta.transaction.Transactional
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.web.bind.annotation.*
@@ -23,7 +22,7 @@ class FolderController(
     @Operation(summary = "Get all folders", description = "Retrieves all script folders ordered by their ordering value")
     @GetMapping
     fun getAllFolders(): ApiResponse<List<ScriptsFolderDTO>> {
-        val folders = folderRepository.findAllByOrderByOrderingAsc().map { it.toDTO() }
+        val folders = folderRepository.findAllRootLevelFolder().map { it.toDTO() }
         return ApiResponse(folders)
     }
 
@@ -81,16 +80,19 @@ class FolderController(
         @PathVariable id: Int
     ): ApiResponse<Unit> {
         val folder = folderRepository.findByIdOrNull(id) ?: throw Exception("Folder not found")
+        val parentFolder = folder.parentFolder
+        if (parentFolder == null) {
+            folderRepository.deleteById(folder.id!!)
 
-        // Delete the folder (cascade will handle related scripts if configured)
-        folderRepository.deleteById(folder.id!!)
-
-        // Reorder remaining folders
-        val remainingFolders = folderRepository.findAllByOrderByOrderingAsc()
-        remainingFolders.forEachIndexed { index, f ->
-            f.ordering = index
+            // Reorder remaining folders
+            val remainingFolders = folderRepository.findAllRootLevelFolder()
+            remainingFolders.forEachIndexed { index, f ->
+                f.ordering = index
+            }
+            folderRepository.saveAll(remainingFolders)
+        } else {
+            parentFolder.removeFolder(folder)
         }
-        folderRepository.saveAll(remainingFolders)
 
         return ApiResponse()
     }
@@ -114,7 +116,7 @@ class FolderController(
         @Parameter(description = "Reorder request with from and to indices", required = true)
         @RequestBody request: ReorderRequest
     ): ApiResponse<Unit> {
-        val folders = folderRepository.findAllByOrderByOrderingAsc()
+        val folders = folderRepository.findAllRootLevelFolder()
 
         // Validate indices
         if (request.fromIndex < 0 || request.fromIndex >= folders.size ||
@@ -155,18 +157,11 @@ class FolderController(
             val movedSubfolder = subfolders[request.fromIndex]
             subfolders.removeAt(request.fromIndex)
             subfolders.add(request.toIndex, movedSubfolder)
-
-            // Update ordering values for subfolders
-            subfolders.forEachIndexed { index, subfolder ->
-                subfolder.ordering = index
+            subfolders.forEachIndexed { idx, folder ->
+                folder.ordering = idx
             }
-
-            // Save updated subfolders back to parent folder
-            parentFolder.subfolders.clear()
-            parentFolder.subfolders.addAll(subfolders)
-            folderRepository.save(parentFolder)
+            folderRepository.saveAll(subfolders)
         }
-
 
         return ApiResponse()
     }
@@ -183,8 +178,7 @@ class FolderController(
             name = request.name,
             ordering = 0
         )
-        parentFolder.subfolders.add(newSubfolder)
-        folderRepository.save(parentFolder)
+        parentFolder.addFolder(newSubfolder)
         return ApiResponse()
     }
 }

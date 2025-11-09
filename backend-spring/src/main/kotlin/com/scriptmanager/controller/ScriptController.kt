@@ -6,6 +6,7 @@ import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository
+import jakarta.persistence.EntityManager
 import jakarta.transaction.Transactional
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.web.bind.annotation.*
@@ -17,7 +18,8 @@ import java.time.format.DateTimeFormatter
 class ScriptController(
     private val scriptRepository: ShellScriptRepository,
     private val folderRepository: ScriptsFolderRepository,
-    private val shellScriptRepository: ShellScriptRepository
+    private val shellScriptRepository: ShellScriptRepository,
+    private val entityManager: EntityManager
 ) {
     private val hkZone = ZoneId.of("Asia/Hong_Kong")
     private val hkFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -36,7 +38,7 @@ class ScriptController(
 
     @PostMapping
     @Transactional
-    fun createScript(@RequestBody request: CreateScriptRequest): ApiResponse<ShellScriptDTO> {
+    fun createScript(@RequestBody request: CreateScriptRequest): ApiResponse<ShellScriptResponse> {
         // Verify folder exists
         val folder = folderRepository.findByIdOrNull(request.folderId)
             ?: throw Exception("Folder not found")
@@ -51,10 +53,10 @@ class ScriptController(
             command = request.content,
             ordering = count,
         )
-        script.scriptsFolder = folder
-
-        val savedScript = scriptRepository.save(script)
-        return ApiResponse(savedScript.toDTO())
+        val savedScript = shellScriptRepository.save(script)
+        folder.addScript(savedScript)
+        shellScriptRepository
+        return ApiResponse(savedScript.toResponse())
     }
 
     @Transactional
@@ -113,8 +115,24 @@ class ScriptController(
         scripts.forEachIndexed { index, script ->
             script.ordering = index
         }
-
-        scriptRepository.saveAll(scripts)
         return ApiResponse()
     }
+
+    @PutMapping("/{scriptId}/folder/{folderId}/move")
+    @Transactional
+    fun moveScriptToFolder(
+        @PathVariable scriptId: Int,
+        @PathVariable folderId: Int
+    ): ApiResponse<Unit> {
+        val script = shellScriptRepository.findByIdOrNull(scriptId) ?: throw Exception("Script not found")
+        val targetFolder = folderRepository.findByIdOrNull(folderId) ?: throw Exception("Folder not found")
+        script.parentFolder = targetFolder
+        script.ordering = -1
+        entityManager.flush()
+        entityManager.refresh(targetFolder)
+        targetFolder.resetScriptOrders()
+        folderRepository.save(targetFolder)
+        return ApiResponse()
+    }
+
 }

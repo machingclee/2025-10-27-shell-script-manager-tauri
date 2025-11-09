@@ -1,8 +1,9 @@
 import React from "react";
-import { useSortable } from "@dnd-kit/sortable";
+import { useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CSS } from "@dnd-kit/utilities";
+import { useDroppable, useDndContext } from "@dnd-kit/core";
 import {
     ContextMenu,
     ContextMenuTrigger,
@@ -32,22 +33,31 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, FolderPlus, Folder } from "lucide-react";
+import { Pencil, Trash2, FolderPlus, Folder, ChevronRight, ChevronDown } from "lucide-react";
 import { ScriptsFolderResponse } from "@/types/dto";
 import { folderApi } from "@/store/api/folderApi";
 import { useAppSelector } from "@/store/hooks";
 import clsx from "clsx";
+import SortableScriptItem from "./SortableScriptItem";
 
 export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) {
     const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
+    const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const onClick = () => {
-        console.log("onClick");
+        setIsExpanded(!isExpanded);
     };
     const isSelected = false;
     const onRename = (newName: string) => {
-        console.log("onRename", newName);
+        updateFolder({
+            id: folder.id,
+            ordering: folder.ordering,
+            createdAt: folder.createdAt!,
+            createdAtHk: folder.createdAtHk!,
+            name: newName,
+        });
     };
     const onDelete = (id: number) => {
         deleteFolder(id);
@@ -59,20 +69,53 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
     const {
         attributes,
         listeners,
-        setNodeRef,
+        setNodeRef: setSortableNodeRef,
         transform,
         transition,
         isDragging,
         setActivatorNodeRef,
     } = useSortable({
         id: folder.id!!,
+        data: {
+            type: "folder",
+            folderId: folder.id,
+            folder: folder,
+        },
         animateLayoutChanges: (args) => {
-            const { wasDragging } = args;
-            // Disable animation when dropping
-            if (wasDragging) return false;
+            const { isSorting, wasDragging } = args;
+            // Disable all animations when actively sorting or just finished dragging
+            if (isSorting || wasDragging) return false;
             return defaultAnimateLayoutChanges(args);
         },
     });
+
+    // Make folder also a droppable target for scripts
+    const { setNodeRef: setDroppableNodeRef } = useDroppable({
+        id: `folder-droppable-${folder.id}`,
+        data: {
+            type: "folder",
+            folderId: folder.id,
+            folder: folder,
+        },
+    });
+
+    // Get the active dragging item to check if it's a script
+    const { active, over } = useDndContext();
+    const isDraggingScript = active?.data.current?.type === "script";
+
+    // Check if this folder's droppable OR sortable is the "over" target
+    // The folder has both IDs: the sortable ID (folder.id) and droppable ID (folder-droppable-${folder.id})
+    const isFolderOver = over?.id === `folder-droppable-${folder.id}` || over?.id === folder.id;
+
+    // Only show highlight when dragging a script over this folder
+    const showHighlight = isFolderOver && isDraggingScript;
+
+    // Close folder when dragging starts
+    useEffect(() => {
+        if (isDragging && isExpanded) {
+            setIsExpanded(false);
+        }
+    }, [isDragging]);
 
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -82,8 +125,8 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
 
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
-        transition: isDragging ? "none" : transition,
-        opacity: isDragging ? 0.5 : 1,
+        transition: transform ? "none" : transition, // Disable transition while transforming
+        opacity: isDragging ? 0 : 1,
         width: "100%",
         height: "auto",
         minHeight: "fit-content",
@@ -108,28 +151,30 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
         }
     };
 
+    const combinedRef = (node: HTMLElement | null) => {
+        setSortableNodeRef(node);
+        setDroppableNodeRef(node);
+    };
+
     return (
         <>
-            <div
-                ref={setNodeRef}
-                style={style}
-                {...attributes}
-                className="w-full flex-shrink-0"
-                onClick={onClick}
-            >
+            <div style={style} {...attributes} className="w-full flex-shrink-0" ref={combinedRef}>
                 <ContextMenu>
                     <ContextMenuTrigger asChild>
                         <div
+                            onClick={onClick}
                             className={clsx({
-                                "flex items-center gap-3 pl-0.5 py-2 rounded-md transition-colors w-full flex-shrink-0": true,
-                                "hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-600": true,
+                                "flex items-center gap-3 pl-5 py-3 rounded-md transition-colors duration-200 w-full flex-shrink-0 cursor-pointer": true,
+                                "hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-600":
+                                    !showHighlight,
                                 "bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800 dark:bg-neutral-500 dark:hover:bg-neutral-600 dark:active:bg-neutral-700":
-                                    isSelected,
-                                "bg-transparent": isReordering,
-                                "hover:bg-transparent": isReordering,
-                                "active:bg-transparent": isReordering,
-                                "dark:hover:bg-transparent": isReordering,
-                                "dark:active:bg-transparent": isReordering,
+                                    isSelected && !showHighlight,
+                                "bg-transparent": isReordering && !showHighlight,
+                                "hover:bg-transparent": isReordering && !showHighlight,
+                                "active:bg-transparent": isReordering && !showHighlight,
+                                "dark:hover:bg-transparent": isReordering && !showHighlight,
+                                "dark:active:bg-transparent": isReordering && !showHighlight,
+                                "bg-gray-400 dark:bg-neutral-600": showHighlight,
                             })}
                         >
                             <div
@@ -144,23 +189,39 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                                 <GripVertical className="w-4 h-4" />
                             </div>
                             <div className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
-                                <Folder className="w-6 h-46flex-shrink-0" fill="currentColor" />
+                                {folder.shellScripts.length > 0 ? (
+                                    isExpanded ? (
+                                        <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                                    ) : (
+                                        <ChevronRight className="w-4 h-4 flex-shrink-0" />
+                                    )
+                                ) : (
+                                    <div className="w-4 h-4 flex-shrink-0" />
+                                )}
+                                <Folder className="w-4 h-4 flex-shrink-0" fill="currentColor" />
                                 {folder.name}
+                                {folder.shellScripts.length > 0 && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        ({folder.shellScripts.length})
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:border-neutral-700">
-                        <ContextMenuItem
-                            className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
-                            onClick={() => {
-                                setSubfolderName("");
-                                setIsCreateSubfolderOpen(true);
-                                onClick();
-                            }}
-                        >
-                            <FolderPlus className="w-4 h-4 mr-2" />
-                            Create Subfolder
-                        </ContextMenuItem>
+                        {!folder.parentFolder && (
+                            <ContextMenuItem
+                                className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                                onClick={() => {
+                                    setSubfolderName("");
+                                    setIsCreateSubfolderOpen(true);
+                                    onClick();
+                                }}
+                            >
+                                <FolderPlus className="w-4 h-4 mr-2" />
+                                Create Subfolder
+                            </ContextMenuItem>
+                        )}
                         <ContextMenuItem
                             className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                             onClick={() => {
@@ -180,6 +241,24 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                         </ContextMenuItem>
                     </ContextMenuContent>
                 </ContextMenu>
+
+                {/* Scripts list - shown when expanded */}
+                {isExpanded && folder.shellScripts.length > 0 && (
+                    <SortableContext
+                        items={folder.shellScripts.map((s) => s.id || 0)}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <div className="ml-8 mt-2 space-y-2">
+                            {folder.shellScripts.map((script) => (
+                                <SortableScriptItem
+                                    key={script.id}
+                                    script={script}
+                                    parentFolderId={folder.id}
+                                />
+                            ))}
+                        </div>
+                    </SortableContext>
+                )}
             </div>
 
             {/* Rename Dialog */}

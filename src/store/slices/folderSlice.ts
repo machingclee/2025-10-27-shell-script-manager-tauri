@@ -1,31 +1,44 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface FolderState {
-  selectedFolderId: number | null;
-  isReorderingFolder: boolean;
+    selectedRootFolderId: number | null;
+    isReorderingFolder: boolean;
+    scripts: {
+        executing: { [scriptId: number]: { loading: boolean } };
+    };
 }
 
 const initialState: FolderState = {
-  selectedFolderId: null,
-  isReorderingFolder: false,
+    selectedRootFolderId: null,
+    isReorderingFolder: false,
+    scripts: {
+        executing: {},
+    },
 };
 
 export const folderSlice = createSlice({
-  name: 'folder',
-  initialState,
-  reducers: {
-    setSelectedFolderId: (state, action: PayloadAction<number>) => {
-      state.selectedFolderId = action.payload;
+    name: "folder",
+    initialState,
+    reducers: {
+        setExecutingScript: (
+            state,
+            action: PayloadAction<{ script_id: number; loading: boolean }>
+        ) => {
+            state.scripts.executing[action.payload.script_id] = { loading: action.payload.loading };
+        },
+        setSelectedFolderId: (state, action: PayloadAction<number>) => {
+            state.selectedRootFolderId = action.payload;
+        },
+        clearSelectedFolderId: (state) => {
+            state.selectedRootFolderId = null;
+        },
+        setIsReorderingFolder: (state, action: PayloadAction<boolean>) => {
+            state.isReorderingFolder = action.payload;
+        },
     },
-    clearSelectedFolderId: (state) => {
-      state.selectedFolderId = null;
-    },
-    setIsReorderingFolder: (state, action: PayloadAction<boolean>) => {
-      state.isReorderingFolder = action.payload;
-    },
-  },
 });
 
-export const { setSelectedFolderId, clearSelectedFolderId, setIsReorderingFolder } = folderSlice.actions;
+export const { setSelectedFolderId, clearSelectedFolderId, setIsReorderingFolder } =
+    folderSlice.actions;
 
 export default folderSlice;

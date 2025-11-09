@@ -22,9 +22,20 @@ export type ScriptsFolderResponse = {
     ordering: number;
     createdAt?: number;
     createdAtHk?: string;
-    shellScripts: ShellScriptDTO[];
+    shellScripts: ShellScriptResponse[];
     parentFolder?: ScriptsFolderDTO | null;
     subfolders: ScriptsFolderResponse[];
+};
+
+export type ShellScriptResponse = {
+    id: number;
+    name: string;
+    command: string;
+    ordering: number;
+    showShell: boolean;
+    createdAt: number;
+    createdAtHk: string;
+    parentFolderId: number;
 };
 
 export type AppStateDTO = {
