@@ -1,6 +1,7 @@
 import { AppStateDTO } from "@/types/dto";
 import { setSelectedFolderId } from "../slices/folderSlice";
 import { baseApi } from "./baseApi";
+import { invoke } from "@tauri-apps/api/core";
 
 export const appStateApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
@@ -14,8 +15,26 @@ export const appStateApi = baseApi.injectEndpoints({
             onQueryStarted: async (_, { queryFulfilled, dispatch }) => {
                 const { data } = await queryFulfilled;
                 console.log("[appStateApi] getAppState data:", data);
+
+                // Apply last opened folder
                 if (data?.lastOpenedFolderId) {
                     dispatch(setSelectedFolderId(data.lastOpenedFolderId));
+                }
+
+                // Apply dark mode on app startup
+                if (data?.darkMode !== undefined) {
+                    try {
+                        if (data.darkMode) {
+                            document.documentElement.classList.add("dark");
+                            await invoke("set_title_bar_color", { isDark: true });
+                        } else {
+                            document.documentElement.classList.remove("dark");
+                            await invoke("set_title_bar_color", { isDark: false });
+                        }
+                        console.log("[appStateApi] Applied dark mode:", data.darkMode);
+                    } catch (error) {
+                        console.error("[appStateApi] Failed to apply dark mode:", error);
+                    }
                 }
             },
         }),
@@ -36,6 +55,23 @@ export const appStateApi = baseApi.injectEndpoints({
                         }
                     })
                 );
+
+                // Apply dark mode change immediately if it's being updated
+                if (updates.darkMode !== undefined) {
+                    try {
+                        if (updates.darkMode) {
+                            document.documentElement.classList.add("dark");
+                            await invoke("set_title_bar_color", { isDark: true });
+                        } else {
+                            document.documentElement.classList.remove("dark");
+                            await invoke("set_title_bar_color", { isDark: false });
+                        }
+                        console.log("[appStateApi] Applied dark mode update:", updates.darkMode);
+                    } catch (error) {
+                        console.error("[appStateApi] Failed to apply dark mode update:", error);
+                    }
+                }
+
                 try {
                     await queryFulfilled;
                 } catch {
