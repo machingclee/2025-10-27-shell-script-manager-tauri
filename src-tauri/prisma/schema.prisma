@@ -28,6 +28,7 @@ model scripts_folder {
     rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
     rel_parent_folder_folder      rel_folder_folder[]             @relation("ParentFolder")
     rel_child_folder_folder       rel_folder_folder[]             @relation("ChildFolder")
+    rel_workspace_folder          rel_workspace_folder[]
 
     @@index([id])
 }
@@ -71,4 +72,29 @@ model rel_folder_folder {
     @@unique([parent_folder_id, child_folder_id])
     @@index([parent_folder_id])
     @@index([child_folder_id])
+}
+
+model workspace {
+    id                   Int                    @id @default(autoincrement())
+    name                 String
+    ordering             Int
+    created_at           Float                  @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk        String                 @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    rel_workspace_folder rel_workspace_folder[]
+
+    @@index([id])
+}
+
+model rel_workspace_folder {
+    id            Int            @id @default(autoincrement())
+    workspace_id  Int
+    folder_id     Int
+    created_at    Float          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk String         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    workspace     workspace      @relation(fields: [workspace_id], references: [id])
+    folder        scripts_folder @relation(fields: [folder_id], references: [id])
+
+    @@unique([workspace_id, folder_id])
+    @@index([workspace_id])
+    @@index([folder_id])
 }

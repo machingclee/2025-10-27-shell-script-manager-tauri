@@ -56,6 +56,16 @@ class ScriptsFolder(
     )
     var parentFolder: ScriptsFolder? = null
 
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "rel_workspace_folder",
+        joinColumns = [JoinColumn(name = "folder_id", referencedColumnName = "id", insertable = false)],
+        inverseJoinColumns = [JoinColumn(name = "workspace_id", referencedColumnName = "id", insertable = false)]
+    )
+    var parentWorkspace: Workspace? = null
+
+
     fun removeScript(script: ShellScript) {
         shellScripts.removeIf { it.id == script.id }
         shellScripts.forEachIndexed { idx, s ->

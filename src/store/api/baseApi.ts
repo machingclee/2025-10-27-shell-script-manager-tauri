@@ -4,6 +4,15 @@ import { httpBaseQuery } from "./baseQuery/httpBaseQuery";
 export const baseApi = createApi({
     reducerPath: "api",
     baseQuery: httpBaseQuery(),
-    tagTypes: ["Folder", "Script", "User", "AppState", "DarkMode", "FolderContent"],
+    tagTypes: [
+        "Folder",
+        "Script",
+        "User",
+        "AppState",
+        "DarkMode",
+        "FolderContent",
+        "Workspace",
+        "WorkspaceDetail",
+    ],
     endpoints: (_builder) => ({}),
 });

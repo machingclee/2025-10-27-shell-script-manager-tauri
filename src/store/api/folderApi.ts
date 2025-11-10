@@ -1,5 +1,6 @@
 import { ScriptsFolderDTO, ScriptsFolderResponse } from "@/types/dto";
 import { baseApi } from "./baseApi";
+import { workspaceApi } from "./workspaceApi";
 
 export interface Folder {
     id: number;
@@ -34,7 +35,7 @@ const getFolderRecursive = (
 
 export const folderApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        getAllFolders: builder.query<ScriptsFolderDTO[], void>({
+        getAllFolders: builder.query<ScriptsFolderResponse[], void>({
             query: () => ({
                 url: "/folders",
                 method: "GET",
@@ -76,19 +77,52 @@ export const folderApi = baseApi.injectEndpoints({
 
         reorderFolders: builder.mutation<
             void,
-            { parentFolderId?: number; fromIndex: number; toIndex: number; rootFolderId?: number }
+            {
+                parentWorkspaceId?: number;
+                parentFolderId?: number;
+                fromIndex: number;
+                toIndex: number;
+                rootFolderId?: number;
+            }
         >({
-            query: ({ parentFolderId, fromIndex, toIndex }) => ({
+            query: ({ parentWorkspaceId, parentFolderId, fromIndex, toIndex }) => ({
                 url: "/folders/reorder",
                 method: "PATCH",
-                body: { parentFolderId, fromIndex, toIndex },
+                body: { parentWorkspaceId, parentFolderId, fromIndex, toIndex },
             }),
             onQueryStarted: async (
-                { parentFolderId, fromIndex, toIndex, rootFolderId },
+                {
+                    parentWorkspaceId: parentWorkspaceId,
+                    parentFolderId,
+                    fromIndex,
+                    toIndex,
+                    rootFolderId,
+                },
                 { dispatch, queryFulfilled }
             ) => {
                 let action: { undo: () => void } | undefined = undefined;
-                if (!parentFolderId) {
+                if (parentWorkspaceId != null) {
+                    // Reordering subfolders within a workspace
+                    action = dispatch(
+                        workspaceApi.util.updateQueryData(
+                            "getAllWorkspaces",
+                            undefined,
+                            (draft) => {
+                                const workspace = draft.find((w) => w.id === parentWorkspaceId);
+                                if (!workspace) {
+                                    return;
+                                }
+                                const [movedItem] = workspace.folders.splice(fromIndex, 1);
+                                workspace.folders.splice(toIndex, 0, movedItem);
+                                // Update ordering
+                                workspace.folders.forEach((folder, index) => {
+                                    folder.ordering = index;
+                                });
+                                return draft;
+                            }
+                        )
+                    );
+                } else if (!parentFolderId) {
                     // Reordering root-level folders
                     action = dispatch(
                         folderApi.util.updateQueryData("getAllFolders", undefined, (draft) => {
@@ -96,7 +130,7 @@ export const folderApi = baseApi.injectEndpoints({
                             draft.splice(toIndex, 0, movedItem);
                         })
                     );
-                } else if (rootFolderId) {
+                } else if (rootFolderId && parentFolderId != null) {
                     // Reordering subfolders within a parent folder
                     action = dispatch(
                         folderApi.util.updateQueryData("getFolderById", rootFolderId, (draft) => {
@@ -108,8 +142,6 @@ export const folderApi = baseApi.injectEndpoints({
                             parentFolder.subfolders.splice(toIndex, 0, movedItem);
                         })
                     );
-                } else {
-                    // No rootFolderId provided, just wait for backend and invalidate
                 }
                 try {
                     await queryFulfilled;
@@ -119,6 +151,8 @@ export const folderApi = baseApi.injectEndpoints({
                     }
                 }
             },
+
+            invalidatesTags: ["Folder", "Workspace"],
             // Removed invalidatesTags - optimistic update handles the UI update
         }),
 

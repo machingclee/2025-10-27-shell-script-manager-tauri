@@ -5,6 +5,7 @@ import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.common.entity.ScriptsFolderDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.repository.ScriptsFolderRepository
+import com.scriptmanager.repository.WorkspaceRepository
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -16,13 +17,14 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/folders")
 @Tag(name = "Folder Management", description = "APIs for managing script folders")
 class FolderController(
-    private val folderRepository: ScriptsFolderRepository
+    private val folderRepository: ScriptsFolderRepository,
+    private val workspaceRepository: WorkspaceRepository
 ) {
 
     @Operation(summary = "Get all folders", description = "Retrieves all script folders ordered by their ordering value")
     @GetMapping
-    fun getAllFolders(): ApiResponse<List<ScriptsFolderDTO>> {
-        val folders = folderRepository.findAllRootLevelFolder().map { it.toDTO() }
+    fun getAllFolders(): ApiResponse<List<ScriptsFolderResponse>> {
+        val folders = folderRepository.findAllRootLevelFolder().map { it.toResponse() }
         return ApiResponse(folders)
     }
 
@@ -100,7 +102,7 @@ class FolderController(
 
     @Operation(summary = "Get folder content", description = "Retrieves the content of a specific folder by its ID")
     @GetMapping("/{id}/content")
-    fun getFodlerContent(
+    fun getFolderContent(
         @Parameter(description = "Folder ID", required = true)
         @PathVariable id: Int
     ): ApiResponse<ScriptsFolderResponse> {
@@ -116,20 +118,20 @@ class FolderController(
         @Parameter(description = "Reorder request with from and to indices", required = true)
         @RequestBody request: ReorderRequest
     ): ApiResponse<Unit> {
-        val folders = folderRepository.findAllRootLevelFolder()
-
-        // Validate indices
-        if (request.fromIndex < 0 || request.fromIndex >= folders.size ||
-            request.toIndex < 0 || request.toIndex >= folders.size
-        ) {
-            throw Exception("Invalid indices")
-        }
-
         val parentFolderId = request.parentFolderId
+        val parentWorkspaceId = request.parentWorkspaceId
 
-        if (parentFolderId == null) {
-            // we reorder the root folder
-            // Reorder the folders
+        if (parentFolderId == null && (parentWorkspaceId == null || parentWorkspaceId == 0)) {
+            // Reorder root-level folders
+            val folders = folderRepository.findAllRootLevelFolder()
+
+            // Validate indices
+            if (request.fromIndex < 0 || request.fromIndex >= folders.size ||
+                request.toIndex < 0 || request.toIndex >= folders.size
+            ) {
+                throw Exception("Invalid indices")
+            }
+
             val movedFolder = folders[request.fromIndex]
             val reordered = folders.toMutableList()
             reordered.removeAt(request.fromIndex)
@@ -140,6 +142,20 @@ class FolderController(
                 folder.ordering = index
             }
             folderRepository.saveAll(reordered)
+        } else if (parentWorkspaceId != null && parentWorkspaceId != 0) {
+            val workspace = workspaceRepository.findByIdOrNull(parentWorkspaceId)
+                ?: throw Exception("Workspace not found")
+            val folders = workspace.folders.sortedBy { it.ordering }.toMutableList()
+
+            // Validate indices for subfolders
+            if (request.fromIndex < 0 || request.fromIndex >= folders.size ||
+                request.toIndex < 0 || request.toIndex >= folders.size
+            ) {
+                throw Exception("Invalid indices for subfolders")
+            }
+
+            reorderFolders(request, folders)
+            folderRepository.saveAll(folders)
         } else {
             // we reorder the subfolders
             // Reorder subfolders within the specified parent folder
@@ -148,23 +164,13 @@ class FolderController(
             val subfolders = parentFolder.subfolders.sortedBy { it.ordering }.toMutableList()
 
             // Validate indices for subfolders
-            if (request.fromIndex < 0 || request.fromIndex >= subfolders.size ||
-                request.toIndex < 0 || request.toIndex >= subfolders.size
-            ) {
-                throw Exception("Invalid indices for subfolders")
-            }
-
-            val movedSubfolder = subfolders[request.fromIndex]
-            subfolders.removeAt(request.fromIndex)
-            subfolders.add(request.toIndex, movedSubfolder)
-            subfolders.forEachIndexed { idx, folder ->
-                folder.ordering = idx
-            }
+            reorderFolders(request, subfolders)
             folderRepository.saveAll(subfolders)
         }
 
         return ApiResponse()
     }
+
 
     @PostMapping("/{folder_id}/subfolders")
     @Transactional
@@ -180,5 +186,20 @@ class FolderController(
         )
         parentFolder.addFolder(newSubfolder)
         return ApiResponse()
+    }
+
+    private fun reorderFolders(request: ReorderRequest, subfolders: MutableList<ScriptsFolder>) {
+        if (request.fromIndex < 0 || request.fromIndex >= subfolders.size ||
+            request.toIndex < 0 || request.toIndex >= subfolders.size
+        ) {
+            throw Exception("Invalid indices for subfolders")
+        }
+
+        val movedSubfolder = subfolders[request.fromIndex]
+        subfolders.removeAt(request.fromIndex)
+        subfolders.add(request.toIndex, movedSubfolder)
+        subfolders.forEachIndexed { idx, folder ->
+            folder.ordering = idx
+        }
     }
 }
