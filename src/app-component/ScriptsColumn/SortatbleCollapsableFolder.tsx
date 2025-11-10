@@ -40,11 +40,24 @@ import { useAppSelector } from "@/store/hooks";
 import clsx from "clsx";
 import SortableScriptItem from "./SortableScriptItem";
 
-export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) {
+export default function ({
+    folder: folder,
+    closeAllFoldersTrigger,
+}: {
+    folder: ScriptsFolderResponse;
+    closeAllFoldersTrigger: number;
+}) {
     const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
     const [isExpanded, setIsExpanded] = useState(false);
+
+    // Close folder when closeAllFoldersTrigger changes
+    useEffect(() => {
+        if (closeAllFoldersTrigger > 0) {
+            setIsExpanded(false);
+        }
+    }, [closeAllFoldersTrigger]);
 
     const onClick = () => {
         setIsExpanded(!isExpanded);
