@@ -42,6 +42,8 @@ class UpdateAppStateHandler(
             createdAtHk = saved.createdAtHk ?: ""
         )
 
+        //throw Exception("Let me show some exception")
+
         eventQueue.add(
             AppStateUpdatedEvent(
                 appState = dto

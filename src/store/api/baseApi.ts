@@ -13,6 +13,7 @@ export const baseApi = createApi({
         "FolderContent",
         "Workspace",
         "WorkspaceDetail",
+        "ScriptHistory",
     ],
     endpoints: (_builder) => ({}),
 });

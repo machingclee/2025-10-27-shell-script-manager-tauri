@@ -222,6 +222,7 @@ class OneTransactionCommandInvoker(
     private val transactionManager: PlatformTransactionManager,
     private val domainEventDispatcher: DomainEventDispatcher,
     private val commandAuditor: CommandAuditor,
+    private val eventRepository: EventRepository,
 ) : CommandInvoker {
     private val transactionTemplate: TransactionTemplate = TransactionTemplate(transactionManager)
 
@@ -241,32 +242,24 @@ class OneTransactionCommandInvoker(
         println("Command: ${command.javaClass.simpleName}, isNested: $isNestedCommand, requestId: $requestId")
 
         try {
-            // Immediate command audit with precise timing
-            val commandEvent = try {
-                println("Logging command with precise timing: ${command.javaClass.simpleName}")
-                val result = commandAuditor.logCommandWithPreciseTiming(command, requestId)
-                println("Successfully logged command with precise timing")
-                result
-            } catch (auditException: Exception) {
-                // Log audit failure but don't break the main flow
-                println("ERROR: Failed to log command audit: ${auditException.message}")
-                auditException.printStackTrace()
-                null
-            }
-            commandEventId = commandEvent?.id
-
-            if (commandEventId == null) {
-                println("WARNING: Command was not logged! This might cause issues with failure tracking.")
-            }
-
-            // Execute all commands the same way - use existing transaction if available, otherwise create new one            
+            // Execute all commands the same way - use existing transaction if available, otherwise create new one
             val result = if (isNestedCommand && TransactionSynchronizationManager.isSynchronizationActive()) {
                 // Execute directly in existing transaction for nested commands
                 println("Executing nested command in existing transaction")
                 val eventQueue = SmartEventQueue()
+
+                // Log command audit INSIDE the transaction
+                val commandEvent = commandAuditor.logCommandInTransaction(command, requestId)
+                commandEventId = commandEvent.id
+
                 val result = handler.handle(eventQueue, command)
                 dispatchedEvents = eventQueue.allEvents
                 domainEventDispatcher.dispatch(eventQueue, requestId)
+
+                // Mark as success immediately (same transaction)
+                commandEvent.success = true
+                eventRepository.save(commandEvent)
+
                 result
             } else {
                 // Create new transaction for top-level commands
@@ -274,56 +267,34 @@ class OneTransactionCommandInvoker(
                 var tempDispatchedEvents: List<EventWrapper<Any>> = emptyList()
                 val result = transactionTemplate.execute { _ ->
                     val eventQueue = SmartEventQueue()
+
+                    // Log command audit INSIDE the transaction
+                    val commandEvent = commandAuditor.logCommandInTransaction(command, requestId)
+                    commandEventId = commandEvent.id
+
                     val result = handler.handle(eventQueue, command)
                     tempDispatchedEvents = eventQueue.allEvents
                     domainEventDispatcher.dispatch(eventQueue, requestId)
+
+                    // Mark as success immediately (same transaction)
+                    commandEvent.success = true
+                    eventRepository.save(commandEvent)
+
                     result
                 } ?: throw IllegalStateException()
                 dispatchedEvents = tempDispatchedEvents
                 result
             }
 
-            // Mark command as successful (for failure tracking)
-            commandEventId?.let {
-                try {
-                    commandAuditor.logSuccess(it)
-                    println("Marked command as successful")
-                } catch (auditException: Exception) {
-                    println("Warning: Failed to mark command as successful: ${auditException.message}")
-                    auditException.printStackTrace()
-                }
-            }
-
+            println("Command completed successfully: ${command.javaClass.simpleName}")
             return result
         } catch (e: Exception) {
             println("Command failed: ${command.javaClass.simpleName}, error: ${e.message}")
             e.printStackTrace()
 
-            // Mark the command as failed and capture the failure reason
-            val failureMessage = "[message]" + "\n" + (e.message ?: "") + "\n" + "---" + "\n" + "[stacktrace]" + "\n" + e.stackTraceToString()
-            commandEventId?.let {
-                try {
-                    commandAuditor.logFailure(it, failureMessage)
-                    println("Marked command as failed with failure reason")
-                } catch (auditException: Exception) {
-                    println("Warning: Failed to mark command as failed: ${auditException.message}")
-                    auditException.printStackTrace()
-                }
-            }
-
-            // Update the dispatched events with failure reason (if any events were dispatched)
-            if (dispatchedEvents.isNotEmpty()) {
-                try {
-                    println("Updating ${dispatchedEvents.size} dispatched events with failure reason")
-                    commandAuditor.logEventFailures(dispatchedEvents, requestId, failureMessage)
-                    println("Successfully updated events with failure reason")
-                } catch (auditException: Exception) {
-                    println("Warning: Failed to log event failures: ${auditException.message}")
-                    auditException.printStackTrace()
-                }
-            } else {
-                println("No events were dispatched by this command - only command failure logged")
-            }
+            // Note: Command audit was rolled back with the transaction
+            // We cannot log the failure because the command event was not persisted
+            println("Warning: Command audit was rolled back due to transaction failure")
 
             throw e
         } finally {
@@ -346,6 +317,39 @@ class CommandAuditor(
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    fun <T : Any> logCommandInTransaction(command: T, requestId: String): Event {
+        try {
+            val eventJsonNode = JsonNodeUtil.toJsonNode(command).toString()
+            val userEmail = "me"
+
+            // Detect if this command is being called from a policy
+            val commandEventType = detectPolicyOrigin(command.javaClass.simpleName)
+
+            // Get unique timestamp in milliseconds (no decimals)
+            val baseTimestamp = System.currentTimeMillis()
+            val nanoOffset = (System.nanoTime()%1000).toInt()  // Use last 3 digits of nanos for uniqueness
+            val uniqueTimestamp = baseTimestamp + nanoOffset
+
+            val eventToSave = Event(
+                createdAt = uniqueTimestamp.toDouble(),  // Convert to Double for database
+                requestId = requestId,
+                eventType = commandEventType,
+                event = eventJsonNode,
+                requestUserEmail = userEmail,
+                success = false  // Will be updated to true if command succeeds
+            )
+
+            val savedEvent = eventRepository.save(eventToSave)
+            println("AUDIT: Command logged in transaction with createdAt = $uniqueTimestamp")
+            return savedEvent
+        } catch (e: Exception) {
+            println("AUDIT ERROR: Failed to save command: ${e.message}")
+            e.printStackTrace()
+            throw e
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun <T : Any> logCommandWithPreciseTiming(command: T, requestId: String): Event {
         try {
             val eventJsonNode = JsonNodeUtil.toJsonNode(command).toString()
@@ -412,7 +416,7 @@ class CommandAuditor(
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.MANDATORY)
     fun logSuccess(eventId: Int) {
         val command = eventRepository.findByIdOrNull(eventId) ?: return
         command.success = true

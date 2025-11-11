@@ -182,3 +182,8 @@ data class WorkspaceResponse(
     val createdAtHk: String?
 )
 
+data class HistoricalShellScriptResponse(
+    val history: HistoricalShellScriptDTO,
+    val shellScript: ShellScriptDTO
+)
+

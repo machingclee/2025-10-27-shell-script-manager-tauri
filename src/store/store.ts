@@ -1,12 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import folderSlice from './slices/folderSlice';
 import configSlice from './slices/configSlice';
+import historySlice from './slices/historySlice';
 import { baseApi } from './api/baseApi';
 
 export const store = configureStore({
   reducer: {
     folder: folderSlice.reducer,
     config: configSlice.reducer,
+    history: historySlice.reducer,
     [baseApi.reducerPath]: baseApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
