@@ -79,8 +79,12 @@ graalvmNative {
             
             buildArgs.add("--verbose")
             buildArgs.add("-H:+ReportExceptionStackTraces")
-            buildArgs.add("--initialize-at-build-time=org.slf4j")
+            
+            // Initialize Logback at runtime to avoid native image issues
+            buildArgs.add("--initialize-at-run-time=ch.qos.logback")
+            buildArgs.add("--initialize-at-run-time=org.slf4j.LoggerFactory")
             buildArgs.add("--initialize-at-run-time=io.netty.handler.ssl")
+            
             buildArgs.add("-H:+AddAllCharsets")
             buildArgs.add("-H:EnableURLProtocols=http,https")
         }

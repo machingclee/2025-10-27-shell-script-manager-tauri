@@ -1,5 +1,6 @@
 package com.scriptmanager.domain.scriptmanager.command
 
+
 data class UpdateAppStateCommand(
     val id: Int?,
     val lastOpenedFolderId: Int?,

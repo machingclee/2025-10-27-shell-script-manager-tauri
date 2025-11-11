@@ -58,10 +58,37 @@ yarn build
 echo "✓ Frontend built successfully"
 echo ""
 
-# Step 4: Build Tauri app
+# Step 4: Build Tauri app (without DMG to avoid bundling error)
 echo "Step 4: Building Tauri application..."
 cd "$PROJECT_ROOT"
-yarn tauri build
+yarn tauri build --bundles app
+echo "✓ .app bundle created successfully"
+echo ""
+
+# Step 5: Manually create DMG using create-dmg
+echo "Step 5: Creating DMG installer..."
+APP_PATH="$TAURI_DIR/target/release/bundle/macos/shell-script-manager.app"
+DMG_DIR="$TAURI_DIR/target/release/bundle/dmg"
+mkdir -p "$DMG_DIR"
+
+if [ -d "$APP_PATH" ]; then
+    create-dmg \
+        --volname "Shell Script Manager" \
+        --window-pos 200 120 \
+        --window-size 800 400 \
+        --icon-size 100 \
+        --icon "shell-script-manager.app" 200 190 \
+        --hide-extension "shell-script-manager.app" \
+        --app-drop-link 600 185 \
+        "$DMG_DIR/shell-script-manager_0.1.0_aarch64.dmg" \
+        "$APP_PATH" || echo "⚠️  DMG creation failed, but .app is ready"
+    
+    if [ -f "$DMG_DIR/shell-script-manager_0.1.0_aarch64.dmg" ]; then
+        echo "✓ DMG created successfully"
+    fi
+else
+    echo "⚠️  .app not found at $APP_PATH"
+fi
 echo ""
 
 echo "========================================="
@@ -69,6 +96,7 @@ echo "✓ Production build completed!"
 echo "========================================="
 echo ""
 echo "Your application bundle can be found in:"
-echo "  $TAURI_DIR/target/release/bundle/"
+echo "  .app: $TAURI_DIR/target/release/bundle/macos/shell-script-manager.app"
+echo "  .dmg: $TAURI_DIR/target/release/bundle/dmg/shell-script-manager_0.1.0_aarch64.dmg"
 echo ""
 

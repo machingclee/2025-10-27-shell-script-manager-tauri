@@ -11,12 +11,13 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { closeHistory, openHistory } from "@/store/slices/historySlice";
 import { scriptApi } from "@/store/api/scriptApi";
 import ScriptItem from "../ScriptsColumn/ScriptItem";
-import dayjs from "dayjs";
 
 export default function HistoryButton() {
     const dispatch = useAppDispatch();
     const isOpen = useAppSelector((state) => state.history.isOpen);
-    const { data: history } = scriptApi.endpoints.getScriptHistory.useQuery();
+    const { data: history } = scriptApi.endpoints.getScriptHistory.useQuery(undefined, {
+        skip: !isOpen,
+    });
     // Placeholder history data
 
     return (

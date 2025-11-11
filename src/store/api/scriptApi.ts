@@ -1,6 +1,5 @@
 import {
     CreateScriptRequest,
-    HistoricalShellScriptDTO,
     HistoricalShellScriptResponse,
     ScriptsFolderResponse,
     ShellScriptDTO,
