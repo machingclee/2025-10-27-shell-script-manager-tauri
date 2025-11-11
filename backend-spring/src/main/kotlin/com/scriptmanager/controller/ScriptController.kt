@@ -134,5 +134,4 @@ class ScriptController(
         folderRepository.save(targetFolder)
         return ApiResponse()
     }
-
 }

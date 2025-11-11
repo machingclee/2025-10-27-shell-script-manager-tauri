@@ -149,11 +149,12 @@ class WorkspaceController(
             ?: throw Exception("Workspace not found")
 
         folder.parentWorkspace = null
-        orphanedRootLevelFolders.addFirst(folder)
-        orphanedRootLevelFolders.forEachIndexed { index, f ->
+        val reorderedFolders = orphanedRootLevelFolders.toMutableList()
+        reorderedFolders.add(0, folder)
+        reorderedFolders.forEachIndexed { index, f ->
             f.ordering = index
         }
-        folderRepository.saveAll(orphanedRootLevelFolders)
+        folderRepository.saveAll(reorderedFolders)
         entityManager.refresh(workspace)
         return ApiResponse(workspace.toWorkspaceWithFoldersDTO())
     }

@@ -24,6 +24,13 @@ async fn run_script(command: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn execute_command_in_shell(command: String) -> Result<(), String> {
+    println!("Executing command in new shell: {}", command);
+    open_terminal_and_keep_open(command);
+    Ok(())
+}
+
 // #[tauri::command]
 // async fn execute_command(command: String) -> Result<(), String> {
 //     // Execute command silently without opening a Terminal window
@@ -185,6 +192,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_script,
             execute_command,
+            execute_command_in_shell,
             get_backend_port,
             check_backend_health,
             set_title_bar_color,
@@ -266,6 +274,111 @@ fn get_database_path(app_handle: &tauri::AppHandle) -> Result<String, String> {
 
         let db_path = app_support_dir.join("database.db");
         Ok(db_path.to_string_lossy().to_string())
+    }
+}
+
+// Open Terminal.app with a command and keep it open (shows Terminal window)
+pub fn open_terminal_and_keep_open(command: String) {
+    println!("open_terminal_and_keep_open called with: {}", command);
+
+    #[cfg(target_os = "macos")]
+    {
+        let home_dir = dirs::home_dir().unwrap_or_default();
+        
+        // Create a temporary script file to avoid complex quoting issues
+        let temp_dir = std::env::temp_dir();
+        let script_path = temp_dir.join(format!("tauri_script_{}.sh", std::process::id()));
+
+        let script_content = format!("#!/bin/bash\ncd '{}'\n{}\nrm '{}'\n", home_dir.display(), command, script_path.display());
+
+        // Write the script file
+        if let Err(e) = std::fs::write(&script_path, script_content) {
+            eprintln!("Failed to write script file: {:?}", e);
+            return;
+        }
+
+        // Make it executable
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Err(e) =
+                std::fs::set_permissions(&script_path, std::fs::Permissions::from_mode(0o755))
+            {
+                eprintln!("Failed to set script permissions: {:?}", e);
+                return;
+            }
+        }
+
+        let script_path_str = script_path.to_string_lossy().to_string();
+
+        // AppleScript that runs the script and KEEPS the terminal window open
+        let applescript = format!(
+            r#"tell application "Terminal"
+    do script "{}"
+    activate
+end tell"#,
+            script_path_str
+        );
+
+        println!("Running script via temporary file: {}", script_path_str);
+
+        std::thread::spawn(move || {
+            match Command::new("osascript")
+                .arg("-e")
+                .arg(&applescript)
+                .output()
+            {
+                Ok(output) => {
+                    println!("Terminal opened successfully");
+                    if !output.stdout.is_empty() {
+                        println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+                    }
+                    if !output.stderr.is_empty() {
+                        eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+                    }
+                }
+                Err(e) => eprintln!("Failed to open Terminal: {:?}", e),
+            }
+        });
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // For Windows, open cmd with the command and keep it open
+        std::thread::spawn(
+            move || match Command::new("cmd").args(&["/K", &command]).spawn() {
+                Ok(_) => println!("CMD opened successfully"),
+                Err(e) => eprintln!("Failed to open CMD: {:?}", e),
+            },
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // For Linux, try to use gnome-terminal or xterm and keep it open
+        std::thread::spawn(move || {
+            let terminal_result = Command::new("gnome-terminal")
+                .arg("--")
+                .arg("bash")
+                .arg("-c")
+                .arg(&format!("{}; exec bash", command))
+                .spawn();
+
+            match terminal_result {
+                Ok(_) => println!("Terminal opened successfully"),
+                Err(_) => {
+                    // Fallback to xterm
+                    match Command::new("xterm")
+                        .arg("-e")
+                        .arg(&format!("bash -c '{}; exec bash'", command))
+                        .spawn()
+                    {
+                        Ok(_) => println!("xterm opened successfully"),
+                        Err(e) => eprintln!("Failed to open terminal: {:?}", e),
+                    }
+                }
+            }
+        });
     }
 }
 

@@ -64,7 +64,11 @@ export default function ScriptItem({
             dispatch(
                 folderSlice.actions.setExecutingScript({ script_id: script.id ?? 0, loading: true })
             );
-            await invoke("execute_command", { command: script.command });
+            if (script.showShell) {
+                await invoke("execute_command_in_shell", { command: script.command });
+            } else {
+                await invoke("execute_command", { command: script.command });
+            }
         } catch (error) {
             console.error("Failed to run script:", error);
         } finally {
@@ -108,9 +112,17 @@ export default function ScriptItem({
         setIsEditOpen(false);
     };
 
-    const onShowShellChange = (checked: boolean) => {
+    const onShowShellChange = async (checked: boolean) => {
+        await updateScript({
+            ...script,
+            showShell: checked,
+        });
         setShowShell(checked);
     };
+
+    useEffect(() => {
+        setShowShell(script.showShell);
+    }, [script.showShell]);
 
     return (
         <div

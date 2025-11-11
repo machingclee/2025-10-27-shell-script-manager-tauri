@@ -126,7 +126,11 @@ export const scriptApi = baseApi.injectEndpoints({
                 method: "PUT",
                 body: request,
             }),
-            invalidatesTags: (_result, _error, { id }) => [{ type: "Script", id }, "Script"],
+            invalidatesTags: (_result, _error, { id }) => [
+                { type: "Script", id },
+                "Script",
+                { type: "FolderContent" },
+            ],
         }),
 
         deleteScript: builder.mutation<void, { id: number; folderId: number }>({
@@ -134,6 +138,7 @@ export const scriptApi = baseApi.injectEndpoints({
                 url: `/scripts/${id}?folderId=${folderId}`,
                 method: "DELETE",
             }),
+            invalidatesTags: ["Script", { type: "FolderContent" }],
             async onQueryStarted({ id, folderId }, { dispatch, queryFulfilled }) {
                 // Optimistically update the cache
                 const patchResult = dispatch(
