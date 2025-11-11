@@ -1,5 +1,5 @@
 import "./App.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -11,6 +11,7 @@ import { useAppDispatch, useAppSelector } from "./store/hooks";
 import folderSlice from "./store/slices/folderSlice";
 import configSlice from "./store/slices/configSlice";
 import { folderApi } from "./store/api/folderApi";
+import HistoryButton from "./app-component/History/HistoryButton";
 
 function App() {
     const dispatch = useAppDispatch();
@@ -58,19 +59,44 @@ function App() {
     });
 
     // Listen for toggle dark mode event from menu
+    // Use refs to avoid re-registering the listener on every state change
+    const darkModeRef = useRef(darkMode);
+    const appStateDataRef = useRef(appStateData);
+    const updateAppStateRef = useRef(updateAppState);
+    const listenerRegisteredRef = useRef(false);
+
+    // Keep refs up to date
     useEffect(() => {
+        darkModeRef.current = darkMode;
+        appStateDataRef.current = appStateData;
+        updateAppStateRef.current = updateAppState;
+    }, [darkMode, appStateData, updateAppState]);
+
+    // Register listener only ONCE on mount (with ref guard against StrictMode double-mount)
+    useEffect(() => {
+        // Guard against double registration in React StrictMode
+        if (listenerRegisteredRef.current) {
+            return;
+        }
+
+        listenerRegisteredRef.current = true;
+        console.log("[App] Registering toggle-dark-mode listener");
+
         const unlisten = listen("toggle-dark-mode", () => {
-            const newDarkMode = !darkMode;
-            if (appStateData) {
+            console.log("[App] toggle-dark-mode event received");
+            const newDarkMode = !darkModeRef.current;
+            if (appStateDataRef.current) {
                 // Dark mode is applied automatically by the mutation's onQueryStarted
-                updateAppState({ ...appStateData, darkMode: newDarkMode });
+                updateAppStateRef.current({ ...appStateDataRef.current, darkMode: newDarkMode });
             }
         });
 
         return () => {
+            console.log("[App] Unregistering toggle-dark-mode listener");
             unlisten.then((fn) => fn());
+            listenerRegisteredRef.current = false;
         };
-    }, [darkMode, appStateData, updateAppState]);
+    }, []); // Empty deps - only register once!
 
     const [isMaximized, setIsMaximized] = useState(false);
 
@@ -118,7 +144,7 @@ function App() {
                 onDoubleClick={handleDoubleClick}
             >
                 {/* Window control buttons (macOS style) */}
-                <div className="absolute left-4 flex gap-2 z-10">
+                <div className="absolute left-4 flex gap-2 z-10 items-center">
                     <button
                         onClick={handleClose}
                         className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group"
@@ -146,6 +172,8 @@ function App() {
                             {isMaximized ? "−" : "+"}
                         </span>
                     </button>
+
+                    <HistoryButton />
                 </div>
 
                 {/* Window title (centered) */}

@@ -22,6 +22,19 @@ spring:
         format_sql: true
         jdbc:
           use_get_generated_keys: false
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        connection:
+          provider_disables_autocommit: true
+
+  # Task executor for async operations (if needed)
+  task:
+    execution:
+      pool:
+        core-size: 5
+        max-size: 10
+        queue-capacity: 100
 
 server:
   port: 7070

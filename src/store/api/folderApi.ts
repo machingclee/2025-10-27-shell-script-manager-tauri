@@ -1,6 +1,8 @@
 import { ScriptsFolderDTO, ScriptsFolderResponse } from "@/types/dto";
 import { baseApi } from "./baseApi";
 import { workspaceApi } from "./workspaceApi";
+import folderSlice from "../slices/folderSlice";
+import type { RootState } from "../store";
 
 export interface Folder {
     id: number;
@@ -63,7 +65,49 @@ export const folderApi = baseApi.injectEndpoints({
                 url: `/folders/${id}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["FolderContent", "Folder"],
+            invalidatesTags: ["FolderContent", "Folder", "Workspace", "WorkspaceDetail"],
+            onQueryStarted: async (id, { dispatch, queryFulfilled, getState }) => {
+                try {
+                    await queryFulfilled;
+                    const state = getState() as RootState;
+                    const allFolders = folderApi.endpoints.getAllFolders.select()(state);
+                    const allWorkspaces = workspaceApi.endpoints.getAllWorkspaces.select()(state);
+                    // get the workspace of selected folder
+
+                    let remainingFolderIdToSelect: number | undefined = undefined;
+
+                    const workspace = allWorkspaces.data?.find((w) =>
+                        w.folders.some((f) => f.id === id)
+                    );
+                    const remainingFolderIdsInWorkspace = workspace?.folders.filter(
+                        (f) => f.id !== id
+                    );
+                    const firstIdInThisWorkspace = remainingFolderIdsInWorkspace?.[0]?.id;
+
+                    if (firstIdInThisWorkspace != null) {
+                        remainingFolderIdToSelect = firstIdInThisWorkspace;
+                    } else {
+                        const folder = allWorkspaces.data
+                            ?.flatMap((w) => w.folders)
+                            .sort((a, b) => a.ordering - b.ordering)
+                            .find((f) => f.id !== id);
+                        if (folder?.id != null) {
+                            remainingFolderIdToSelect = folder?.id;
+                        } else {
+                            const remainingRootFolderId = allFolders.data?.[0]?.id;
+                            if (remainingRootFolderId != null) {
+                                remainingFolderIdToSelect = remainingRootFolderId;
+                            }
+                        }
+                    }
+
+                    if (remainingFolderIdToSelect != null) {
+                        dispatch(
+                            folderSlice.actions.setSelectedFolderId(remainingFolderIdToSelect)
+                        );
+                    }
+                } catch {}
+            },
         }),
 
         updateFolder: builder.mutation<void, ScriptsFolderDTO>({
@@ -72,7 +116,7 @@ export const folderApi = baseApi.injectEndpoints({
                 method: "PUT",
                 body: args,
             }),
-            invalidatesTags: ["Folder", "FolderContent"],
+            invalidatesTags: ["Folder", "FolderContent", "Workspace"],
         }),
 
         reorderFolders: builder.mutation<

@@ -89,6 +89,8 @@ export default function SortableWorkspace({
     const [newFolderName, setNewFolderName] = useState("");
     const [createWorkspaceFolder] = workspaceApi.endpoints.createWorkspaceFolder.useMutation();
     const [createSubfolder] = folderApi.endpoints.createSubfolder.useMutation();
+    const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
+    const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
 
     // Track if we were dragging to prevent click after drag
     const wasDraggingRef = React.useRef(false);
@@ -135,6 +137,23 @@ export default function SortableWorkspace({
 
     const handleCreateSubfolder = async (parentId: number, subfolderName: string) => {
         await createSubfolder({ parentFolderId: parentId, name: subfolderName });
+    };
+
+    const handleRenameFolder = async (folderId: number, newName: string) => {
+        const folder = folders.find((f) => f.id === folderId);
+        if (folder) {
+            await updateFolder({
+                id: folderId,
+                name: newName,
+                ordering: folder.ordering,
+                createdAt: folder.createdAt || 0,
+                createdAtHk: folder.createdAtHk || "",
+            });
+        }
+    };
+
+    const handleDeleteFolder = async (folderId: number) => {
+        await deleteFolder(folderId);
     };
 
     // Update ref when dragging state changes and add delay when stopping
@@ -223,8 +242,12 @@ export default function SortableWorkspace({
                                                 folder={folder}
                                                 isSelected={selectedFolderId === folder.id}
                                                 onClick={() => onFolderClick(folder.id)}
-                                                onRename={() => {}}
-                                                onDelete={() => {}}
+                                                onRename={(newName) =>
+                                                    handleRenameFolder(folder.id, newName)
+                                                }
+                                                onDelete={(folderId) =>
+                                                    handleDeleteFolder(folderId)
+                                                }
                                                 onCreateSubfolder={handleCreateSubfolder}
                                                 type={CollisionType.WORKSPACE_NESTED_FOLDER}
                                                 sortableId={getWorkspaceFolderSortableId(folder)}

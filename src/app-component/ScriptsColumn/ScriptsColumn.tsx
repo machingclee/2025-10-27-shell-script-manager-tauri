@@ -389,7 +389,7 @@ export default function ScriptsColumn() {
                         </Button>
                     </div>
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                        <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                        <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
                             <DialogHeader>
                                 <DialogTitle>Create New Script</DialogTitle>
                                 <DialogDescription>
@@ -414,7 +414,7 @@ export default function ScriptsColumn() {
                                         value={newCommand}
                                         onChange={(e) => setNewCommand(e.target.value)}
                                         placeholder="Command to execute"
-                                        rows={4}
+                                        rows={18}
                                         className="font-mono text-sm  bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
                                     />
                                 </div>

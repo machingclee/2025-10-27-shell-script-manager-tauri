@@ -98,3 +98,25 @@ model rel_workspace_folder {
     @@index([workspace_id])
     @@index([folder_id])
 }
+
+model historical_shell_script {
+    id              Int    @id @default(autoincrement())
+    shell_script_id Int
+    executed_at     Float  @map("execution_time")
+    created_at      Float  @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk   String @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+
+    @@index([shell_script_id])
+}
+
+model event {
+    id                 Int     @id @unique @default(autoincrement())
+    request_id         String
+    created_at         Float   @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk      String  @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    event_type         String
+    event              String
+    request_user_email String
+    success            Boolean @default(true)
+    failure_reason     String  @default("")
+}

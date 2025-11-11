@@ -117,3 +117,16 @@ export interface ReorderWorkspaceFoldersRequest {
     fromIndex: number;
     toIndex: number;
 }
+
+export type HistoricalShellScriptDTO = {
+    id?: number;
+    shellScriptId: number;
+    executionTime: number;
+    createdAt?: number;
+    createdAtHk?: string;
+};
+
+export type HistoricalShellScriptResponse = {
+    history: HistoricalShellScriptDTO;
+    shellScript: ShellScriptDTO;
+};
