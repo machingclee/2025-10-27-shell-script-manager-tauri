@@ -345,7 +345,7 @@ class CommandAuditor(
         configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.MANDATORY)
     fun <T : Any> logCommandWithPreciseTiming(command: T, requestId: String): Event {
         try {
             val eventJsonNode = JsonNodeUtil.toJsonNode(command).toString()

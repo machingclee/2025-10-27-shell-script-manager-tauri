@@ -43,6 +43,7 @@ class AppStateController(
             createdAtHk = state.createdAtHk ?: ""
         )
 
+
         return ApiResponse(result = dto)
     }
 

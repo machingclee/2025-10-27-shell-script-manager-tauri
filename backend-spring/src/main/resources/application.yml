@@ -9,8 +9,16 @@ spring:
     name: script-manager-backend
 
   datasource:
-    url: jdbc:sqlite:${DB_PATH:/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/database.db}
+    url: jdbc:sqlite:${DB_PATH:/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/database.db}?busy_timeout=30000&journal_mode=WAL
     driver-class-name: org.sqlite.JDBC
+    # HikariCP connection pool settings (reduced for SQLite)
+    hikari:
+      maximum-pool-size: 5 # SQLite works better with fewer connections
+      minimum-idle: 1
+      connection-timeout: 30000 # 30 seconds
+      idle-timeout: 600000 # 10 minutes
+      max-lifetime: 1800000 # 30 minutes
+      pool-name: ScriptManagerPool
 
   jpa:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
@@ -22,6 +30,14 @@ spring:
         format_sql: true
         jdbc:
           use_get_generated_keys: false
+
+  # Task executor for async operations (if needed)
+  task:
+    execution:
+      pool:
+        core-size: 5
+        max-size: 10
+        queue-capacity: 100
 
 server:
   port: 7070

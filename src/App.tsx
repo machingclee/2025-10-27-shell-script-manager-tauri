@@ -1,5 +1,5 @@
 import "./App.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -58,19 +58,44 @@ function App() {
     });
 
     // Listen for toggle dark mode event from menu
+    // Use refs to avoid re-registering the listener on every state change
+    const darkModeRef = useRef(darkMode);
+    const appStateDataRef = useRef(appStateData);
+    const updateAppStateRef = useRef(updateAppState);
+    const listenerRegisteredRef = useRef(false);
+
+    // Keep refs up to date
     useEffect(() => {
+        darkModeRef.current = darkMode;
+        appStateDataRef.current = appStateData;
+        updateAppStateRef.current = updateAppState;
+    }, [darkMode, appStateData, updateAppState]);
+
+    // Register listener only ONCE on mount (with ref guard against StrictMode double-mount)
+    useEffect(() => {
+        // Guard against double registration in React StrictMode
+        if (listenerRegisteredRef.current) {
+            return;
+        }
+
+        listenerRegisteredRef.current = true;
+        console.log("[App] Registering toggle-dark-mode listener");
+
         const unlisten = listen("toggle-dark-mode", () => {
-            const newDarkMode = !darkMode;
-            if (appStateData) {
+            console.log("[App] toggle-dark-mode event received");
+            const newDarkMode = !darkModeRef.current;
+            if (appStateDataRef.current) {
                 // Dark mode is applied automatically by the mutation's onQueryStarted
-                updateAppState({ ...appStateData, darkMode: newDarkMode });
+                updateAppStateRef.current({ ...appStateDataRef.current, darkMode: newDarkMode });
             }
         });
 
         return () => {
+            console.log("[App] Unregistering toggle-dark-mode listener");
             unlisten.then((fn) => fn());
+            listenerRegisteredRef.current = false;
         };
-    }, [darkMode, appStateData, updateAppState]);
+    }, []); // Empty deps - only register once!
 
     const [isMaximized, setIsMaximized] = useState(false);
 
