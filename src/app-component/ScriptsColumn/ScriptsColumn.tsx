@@ -1,5 +1,5 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { Plus, ScrollText } from "lucide-react";
+import { Plus, ScrollText, FoldVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     DndContext,
@@ -97,6 +97,7 @@ export default function ScriptsColumn() {
     const [newCommand, setNewCommand] = useState("");
     const [activeId, setActiveId] = useState<number | null>(null);
     const [activeType, setActiveType] = useState<"script" | "folder" | null>(null);
+    const [closeAllFoldersTrigger, setCloseAllFoldersTrigger] = useState(0);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -356,6 +357,10 @@ export default function ScriptsColumn() {
         return <Label>Scripts</Label>;
     };
 
+    const handleCloseAllFolders = () => {
+        setCloseAllFoldersTrigger((prev) => prev + 1);
+    };
+
     const header = () => {
         return (
             <>
@@ -364,14 +369,25 @@ export default function ScriptsColumn() {
                         <ScrollText />
                         <div className="font-medium">{displayName()}</div>
                     </div>
-                    <Button
-                        variant="ghost"
-                        className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 mr-4 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
-                        disabled={!selectedRootFolderId}
-                        onClick={() => setIsCreateOpen(true)}
-                    >
-                        <Plus className="w-4 h-4" /> Add Script
-                    </Button>
+                    <div className="flex items-center gap-2 mr-4">
+                        <Button
+                            variant="ghost"
+                            className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
+                            disabled={!selectedRootFolderId}
+                            onClick={handleCloseAllFolders}
+                            title="Close all folders"
+                        >
+                            <FoldVertical className="w-4 h-4" /> Close All
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
+                            disabled={!selectedRootFolderId}
+                            onClick={() => setIsCreateOpen(true)}
+                        >
+                            <Plus className="w-4 h-4" /> Add Script
+                        </Button>
+                    </div>
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
                             <DialogHeader>
@@ -432,7 +448,10 @@ export default function ScriptsColumn() {
                     onDragEnd={handleDragEnd}
                 >
                     {folderResponse && folderResponse.subfolders.length > 0 && (
-                        <SortableSubfoldersContext folderResponse={folderResponse} />
+                        <SortableSubfoldersContext
+                            folderResponse={folderResponse}
+                            closeAllFoldersTrigger={closeAllFoldersTrigger}
+                        />
                     )}
 
                     {folderResponse && selectedRootFolderId && (
@@ -467,7 +486,10 @@ export default function ScriptsColumn() {
                                 );
                                 return folder ? (
                                     <div className="opacity-80 cursor-grabbing">
-                                        <CollapsableFolder folder={folder} />
+                                        <CollapsableFolder
+                                            folder={folder}
+                                            closeAllFoldersTrigger={closeAllFoldersTrigger}
+                                        />
                                     </div>
                                 ) : null;
                             })()}

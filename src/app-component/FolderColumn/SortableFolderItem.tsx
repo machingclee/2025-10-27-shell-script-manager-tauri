@@ -1,6 +1,5 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
-import { defaultAnimateLayoutChanges } from "@dnd-kit/sortable";
 import { useState } from "react";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -32,8 +31,9 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, FolderPlus } from "lucide-react";
+import { Pencil, Trash2, FolderPlus, Folder } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
+import { CollisionType, ScriptsFolderResponse } from "@/types/dto";
 
 import clsx from "clsx";
 
@@ -45,13 +45,17 @@ export default React.memo(
         onRename,
         onDelete,
         onCreateSubfolder,
+        type = CollisionType.ROOT_FOLDER,
+        sortableId,
     }: {
-        folder: { id: number; name: string; ordering: number; parenFolderId: number | null };
+        folder: ScriptsFolderResponse;
         isSelected: boolean;
         onClick: () => void;
         onRename: (newName: string) => void;
         onDelete: (id: number) => void;
-        onCreateSubfolder: (parentId: number, subfolderName: string) => void;
+        onCreateSubfolder: (parentId: number, subfolderName: string) => Promise<void>;
+        type?: CollisionType;
+        sortableId: string;
     }) {
         const {
             attributes,
@@ -62,12 +66,10 @@ export default React.memo(
             isDragging,
             setActivatorNodeRef,
         } = useSortable({
-            id: folder.id,
-            animateLayoutChanges: (args) => {
-                const { isSorting, wasDragging } = args;
-                // Disable all animations when actively sorting or just finished dragging
-                if (isSorting || wasDragging) return false;
-                return defaultAnimateLayoutChanges(args);
+            id: sortableId,
+            data: {
+                type: type,
+                object: folder,
             },
         });
         const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
@@ -79,8 +81,8 @@ export default React.memo(
 
         const style: React.CSSProperties = {
             transform: CSS.Transform.toString(transform),
-            transition: transform ? "none" : transition, // Disable transition while transforming
-            opacity: isDragging ? 0.5 : 1,
+            transition: transition,
+            opacity: isDragging ? 0 : 1,
             width: "100%",
             height: "auto",
             minHeight: "fit-content",
@@ -140,6 +142,7 @@ export default React.memo(
                                 >
                                     <GripVertical className="w-4 h-4" />
                                 </div>
+                                <Folder className="w-5 h-5 flex-shrink-0" fill="currentColor" />
                                 <div className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis">
                                     {folder.name}
                                 </div>
@@ -243,6 +246,7 @@ export default React.memo(
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="subfolder-name">Subfolder Name</Label>
+                                <div>test: {subfolderName}</div>
                                 <Input
                                     id="subfolder-name"
                                     value={subfolderName}

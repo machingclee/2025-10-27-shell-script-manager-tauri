@@ -40,11 +40,25 @@ import { useAppSelector } from "@/store/hooks";
 import clsx from "clsx";
 import SortableScriptItem from "./SortableScriptItem";
 
-export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) {
+export default function ({
+    folder: folder,
+    closeAllFoldersTrigger,
+}: {
+    folder: ScriptsFolderResponse;
+    closeAllFoldersTrigger: number;
+}) {
     const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
+    const [createSubfolder] = folderApi.endpoints.createSubfolder.useMutation();
     const [isExpanded, setIsExpanded] = useState(false);
+
+    // Close folder when closeAllFoldersTrigger changes
+    useEffect(() => {
+        if (closeAllFoldersTrigger > 0) {
+            setIsExpanded(false);
+        }
+    }, [closeAllFoldersTrigger]);
 
     const onClick = () => {
         setIsExpanded(!isExpanded);
@@ -62,8 +76,9 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
     const onDelete = (id: number) => {
         deleteFolder(id);
     };
-    const onCreateSubfolder = (parentId: number, subfolderName: string) => {
+    const onCreateSubfolder = async (parentId: number, subfolderName: string) => {
         console.log("onCreateSubfolder", parentId, subfolderName);
+        await createSubfolder({ parentFolderId: parentId, name: subfolderName });
     };
 
     const {
@@ -143,9 +158,10 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
         setIsDeleteOpen(false);
     };
 
-    const handleCreateSubfolder = () => {
+    const handleCreateSubfolder = async () => {
+        console.log("handleCreateSubfolder", subfolderName);
         if (subfolderName.trim()) {
-            onCreateSubfolder(folder.id, subfolderName);
+            await onCreateSubfolder(folder.id, subfolderName);
             setSubfolderName("");
             setIsCreateSubfolderOpen(false);
         }
@@ -212,10 +228,10 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                         {!folder.parentFolder && (
                             <ContextMenuItem
                                 className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
-                                onClick={() => {
+                                onClick={(e) => {
+                                    e.stopPropagation();
                                     setSubfolderName("");
                                     setIsCreateSubfolderOpen(true);
-                                    onClick();
                                 }}
                             >
                                 <FolderPlus className="w-4 h-4 mr-2" />
@@ -329,9 +345,15 @@ export default function ({ folder: folder }: { folder: ScriptsFolderResponse }) 
                                 value={subfolderName}
                                 onChange={(e) => setSubfolderName(e.target.value)}
                                 placeholder="Subfolder name"
+                                autoFocus
                                 onKeyDown={(e) => {
-                                    if (e.key === "Enter" && subfolderName.trim()) {
-                                        handleCreateSubfolder();
+                                    console.log("Key pressed:", e.key);
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        if (subfolderName.trim()) {
+                                            console.log("handleCreateSubfolder", subfolderName);
+                                            handleCreateSubfolder();
+                                        }
                                     }
                                 }}
                             />

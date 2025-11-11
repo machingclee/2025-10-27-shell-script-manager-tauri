@@ -49,21 +49,6 @@ function App() {
         }
     }, [appState, dispatch]);
 
-    // Apply dark mode class to document and update database
-    useEffect(() => {
-        const applyDarkMode = async () => {
-            if (darkMode) {
-                document.documentElement.classList.add("dark");
-                await invoke("set_title_bar_color", { isDark: true });
-            } else {
-                document.documentElement.classList.remove("dark");
-                await invoke("set_title_bar_color", { isDark: false });
-            }
-        };
-
-        applyDarkMode();
-    }, [darkMode]);
-
     const selectedFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
     const { data: selectedFolder } = folderApi.endpoints.getAllFolders.useQueryState(undefined, {
         selectFromResult: (result) => ({
@@ -74,26 +59,18 @@ function App() {
 
     // Listen for toggle dark mode event from menu
     useEffect(() => {
-        const unlisten = listen("toggle-dark-mode", async () => {
+        const unlisten = listen("toggle-dark-mode", () => {
             const newDarkMode = !darkMode;
             if (appStateData) {
+                // Dark mode is applied automatically by the mutation's onQueryStarted
                 updateAppState({ ...appStateData, darkMode: newDarkMode });
-            }
-
-            // Apply immediately for better UX
-            if (newDarkMode) {
-                document.documentElement.classList.add("dark");
-                await invoke("set_title_bar_color", { isDark: true });
-            } else {
-                document.documentElement.classList.remove("dark");
-                await invoke("set_title_bar_color", { isDark: false });
             }
         });
 
         return () => {
             unlisten.then((fn) => fn());
         };
-    }, [darkMode, updateAppState]);
+    }, [darkMode, appStateData, updateAppState]);
 
     const [isMaximized, setIsMaximized] = useState(false);
 

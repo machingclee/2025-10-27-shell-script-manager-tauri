@@ -10,10 +10,11 @@ interface ScriptsFolderRepository : JpaRepository<ScriptsFolder, Int> {
     @Query(
         """
         select sf from ScriptsFolder sf
-        where sf.parentFolder is null
+        left join fetch sf.parentWorkspace
+        where sf.parentFolder is null and sf.parentWorkspace is null
         order by sf.ordering asc
     """
     )
-    fun findAllRootLevelFolder(): List<ScriptsFolder>
+    fun findAllRootLevelFolder(): MutableList<ScriptsFolder>
 }
 

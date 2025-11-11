@@ -23,6 +23,7 @@ data class CreateScriptRequest(
 
 data class ReorderRequest(
     val parentFolderId: Int?,
+    val parentWorkspaceId: Int?,
     val fromIndex: Int,
     val toIndex: Int
 )
@@ -45,6 +46,7 @@ data class ScriptsFolderResponse(
     val createdAtHk: String?,
     val shellScripts: List<ShellScriptResponse>,
     val parentFolder: ScriptsFolderDTO? = null,
+    val parentWorkspace: WorkspaceDTO? = null,
     val subfolders: List<ScriptsFolderResponse>
 )
 
@@ -59,6 +61,7 @@ fun ScriptsFolder.toResponse(): ScriptsFolderResponse {
             createdAtHk = this.createdAtHk,
             shellScripts = this.shellScripts.sortedBy { it.ordering }.map { it.toResponse() },
             parentFolder = this.parentFolder?.toDTO(),
+            parentWorkspace = this.parentWorkspace?.toDTO(),
             subfolders = emptyList()
         )
     }
@@ -71,6 +74,7 @@ fun ScriptsFolder.toResponse(): ScriptsFolderResponse {
         createdAtHk = this.createdAtHk,
         shellScripts = this.shellScripts.sortedBy { it.ordering }.map { it.toResponse() },
         parentFolder = this.parentFolder?.toDTO(),
+        parentWorkspace = this.parentWorkspace?.toDTO(),
         subfolders = this.subfolders?.map { it.toResponse() }?.toList()?.sortedBy { it.ordering } ?: emptyList()
     )
 }
@@ -102,5 +106,79 @@ data class ShellScriptResponse(
 
 data class CreateSubfolderRequest(
     val name: String
+)
+
+data class WorkspaceFolderResponse(
+    public val id: Int?,
+    public val name: String,
+    public val ordering: Int,
+    public val createdAt: Double?,
+    public val createdAtHk: String?,
+    public val parentWorkspaceId: Int?,
+)
+
+data class WorkspaceWithFoldersDTO(
+    val id: Int?,
+    val name: String,
+    val ordering: Int,
+    val createdAt: Double?,
+    val createdAtHk: String?,
+    val folders: List<WorkspaceFolderResponse>
+)
+
+fun Workspace.toWorkspaceWithFoldersDTO(): WorkspaceWithFoldersDTO {
+    return WorkspaceWithFoldersDTO(
+        id = this.id,
+        name = this.name,
+        ordering = this.ordering,
+        createdAt = this.createdAt,
+        createdAtHk = this.createdAtHk,
+        folders = this.folders.sortedBy { it.ordering }.map {
+            WorkspaceFolderResponse(
+                id = it.id,
+                name = it.name,
+                ordering = it.ordering,
+                createdAt = it.createdAt,
+                createdAtHk = it.createdAtHk,
+                parentWorkspaceId = this.id
+            )
+        }
+    )
+}
+
+data class CreateWorkspaceRequest(
+    val name: String
+)
+
+
+data class ReorderWorkspacesRequest(
+    val fromIndex: Int,
+    val toIndex: Int
+)
+
+data class ReorderWorkspaceFoldersRequest(
+    val fromIndex: Int,
+    val toIndex: Int
+)
+
+
+fun Workspace.toResponse(): WorkspaceResponse {
+    return WorkspaceResponse(
+        id = this.id,
+        name = this.name,
+        ordering = this.ordering,
+        folders = this.folders.sortedBy { it.ordering }.map { it.toResponse() },
+        createdAt = this.createdAt,
+        createdAtHk = this.createdAtHk
+    )
+}
+
+data class WorkspaceResponse(
+    val id: Int?,
+    val name: String,
+    val ordering: Int,
+    val folders: List<ScriptsFolderResponse>,
+    val createdAt: Double?,
+    val createdAtHk: String?
 )
 

@@ -5,6 +5,7 @@ import jakarta.persistence.*
 import org.hibernate.annotations.Cascade
 import org.hibernate.annotations.CascadeType
 import org.hibernate.annotations.DynamicInsert
+import org.hibernate.annotations.Generated
 
 @Entity
 @GenerateDTO
@@ -22,9 +23,11 @@ class ScriptsFolder(
     var ordering: Int = 0,
 
     @Column(name = "created_at")
+    @Generated
     val createdAt: Double? = null,
 
     @Column(name = "created_at_hk")
+    @Generated
     val createdAtHk: String? = null
 ) {
 
@@ -55,6 +58,16 @@ class ScriptsFolder(
         inverseJoinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id", insertable = false)]
     )
     var parentFolder: ScriptsFolder? = null
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "rel_workspace_folder",
+        joinColumns = [JoinColumn(name = "folder_id", referencedColumnName = "id", insertable = false)],
+        inverseJoinColumns = [JoinColumn(name = "workspace_id", referencedColumnName = "id", insertable = false)]
+    )
+    var parentWorkspace: Workspace? = null
+
 
     fun removeScript(script: ShellScript) {
         shellScripts.removeIf { it.id == script.id }
