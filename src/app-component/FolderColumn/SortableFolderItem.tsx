@@ -53,7 +53,7 @@ export default React.memo(
         onClick: () => void;
         onRename: (newName: string) => void;
         onDelete: (id: number) => void;
-        onCreateSubfolder: (parentId: number, subfolderName: string) => void;
+        onCreateSubfolder: (parentId: number, subfolderName: string) => Promise<void>;
         type?: CollisionType;
         sortableId: string;
     }) {
@@ -245,6 +245,7 @@ export default React.memo(
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="subfolder-name">Subfolder Name</Label>
+                                <div>test: {subfolderName}</div>
                                 <Input
                                     id="subfolder-name"
                                     value={subfolderName}

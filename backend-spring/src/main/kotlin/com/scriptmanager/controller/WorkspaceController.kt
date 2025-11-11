@@ -1,6 +1,7 @@
 package com.scriptmanager.controller
 
 import com.scriptmanager.common.dto.*
+import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.common.entity.Workspace
 import com.scriptmanager.common.entity.WorkspaceDTO
 import com.scriptmanager.common.entity.toDTO
@@ -221,5 +222,32 @@ class WorkspaceController(
         folderRepository.saveAll(folders)
 
         return ApiResponse()
+    }
+
+    // create workspace folder
+    @Operation(summary = "Create a new folder in workspace", description = "Creates a new folder within a specified workspace")
+    @PostMapping("/{workspaceId}/folders")
+    @Transactional
+    fun createFolderInWorkspace(
+        @Parameter(description = "Workspace ID", required = true)
+        @PathVariable workspaceId: Int,
+        @Parameter(description = "Folder details", required = true)
+        @RequestBody request: CreateSubfolderRequest
+    ): ApiResponse<ScriptsFolderResponse> {
+        val workspace = workspaceRepository.findByIdOrNull(workspaceId)
+            ?: throw Exception("Workspace not found")
+
+        val newFolder = folderRepository.save(
+            ScriptsFolder(
+                name = request.name,
+                ordering = -1
+            )
+        )
+        workspace.folders.add(newFolder)
+        workspace.resetFolderOrders()
+        workspaceRepository.save(workspace)
+        entityManager.flush()
+        entityManager.refresh(newFolder)
+        return ApiResponse(newFolder.toResponse())
     }
 }

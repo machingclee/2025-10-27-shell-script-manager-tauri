@@ -1,14 +1,14 @@
 import {
     WorkspaceWithFoldersDTO,
     CreateWorkspaceRequest,
-    AddFolderToWorkspaceRequest,
     ReorderWorkspacesRequest,
     ReorderWorkspaceFoldersRequest,
     WorkspaceResponse,
     WorkspaceDTO,
+    ScriptsFolderResponse,
 } from "@/types/dto";
 import { baseApi } from "./baseApi";
-import { folderApi } from "./folderApi";
+import folderSlice from "../slices/folderSlice";
 
 export const workspaceApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
@@ -77,6 +77,26 @@ export const workspaceApi = baseApi.injectEndpoints({
                 invalidatesTags: ["Workspace", "Folder"],
             }
         ),
+
+        createWorkspaceFolder: builder.mutation<
+            ScriptsFolderResponse,
+            { workspaceId: number; name: string }
+        >({
+            query: ({ workspaceId, name }) => ({
+                url: `/workspace/${workspaceId}/folders`,
+                method: "POST",
+                body: { name },
+            }),
+            invalidatesTags: ["Workspace", "Folder"],
+            onQueryStarted: async (_, { dispatch, queryFulfilled }) => {
+                try {
+                    const res = await queryFulfilled;
+                    if (res.data?.id) {
+                        dispatch(folderSlice.actions.setSelectedFolderId(res.data.id));
+                    }
+                } catch {}
+            },
+        }),
 
         reorderWorkspaces: builder.mutation<void, ReorderWorkspacesRequest>({
             query: (request) => ({

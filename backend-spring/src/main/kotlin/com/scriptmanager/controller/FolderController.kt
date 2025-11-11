@@ -187,6 +187,7 @@ class FolderController(
         parentFolder.addFolder(newSubfolder)
         return ApiResponse()
     }
+    
 
     private fun reorderFolders(request: ReorderRequest, subfolders: MutableList<ScriptsFolder>) {
         if (request.fromIndex < 0 || request.fromIndex >= subfolders.size ||

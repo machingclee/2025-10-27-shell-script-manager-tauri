@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
@@ -8,8 +8,7 @@ import {
     ContextMenuContent,
     ContextMenuItem,
 } from "@/components/ui/context-menu";
-import { cn } from "@/lib/utils";
-import { GripVertical, Folders, ChevronRight, ChevronDown, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, ChevronDown, Pencil, Trash2, FolderPlus } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -36,6 +35,8 @@ import { useAppSelector } from "@/store/hooks";
 import clsx from "clsx";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import SortableFolderItem from "./SortableFolderItem";
+import { workspaceApi } from "@/store/api/workspaceApi";
+import { folderApi } from "@/store/api/folderApi";
 
 export default function SortableWorkspace({
     workspace,
@@ -83,7 +84,14 @@ export default function SortableWorkspace({
     const [isExpanded, setIsExpanded] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
     const [newName, setNewName] = useState(workspace.name);
+    const [newFolderName, setNewFolderName] = useState("");
+    const [createWorkspaceFolder] = workspaceApi.endpoints.createWorkspaceFolder.useMutation();
+    const [createSubfolder] = folderApi.endpoints.createSubfolder.useMutation();
+
+    // Track if we were dragging to prevent click after drag
+    const wasDraggingRef = React.useRef(false);
 
     const getWorkspaceFolderSortableId = (folder: ScriptsFolderResponse) => {
         return `workspace-folder-${workspace.id}-${folder.id}`;
@@ -117,6 +125,40 @@ export default function SortableWorkspace({
         setIsDeleteOpen(false);
     };
 
+    const handleCreateFolder = async () => {
+        if (newFolderName.trim()) {
+            await createWorkspaceFolder({ workspaceId: workspace.id, name: newFolderName.trim() });
+            setNewFolderName("");
+            setIsCreateFolderOpen(false);
+        }
+    };
+
+    const handleCreateSubfolder = async (parentId: number, subfolderName: string) => {
+        await createSubfolder({ parentFolderId: parentId, name: subfolderName });
+    };
+
+    // Update ref when dragging state changes and add delay when stopping
+    useEffect(() => {
+        if (isDragging) {
+            wasDraggingRef.current = true;
+        } else if (wasDraggingRef.current) {
+            // Keep the flag true for a short time after drag ends to prevent click
+            const timeout = setTimeout(() => {
+                wasDraggingRef.current = false;
+            }, 150);
+            return () => clearTimeout(timeout);
+        }
+    }, [isDragging]);
+
+    useEffect(() => {
+        if (selectedFolderId) {
+            const existingFolder = workspace.folders.some((f) => f.id === selectedFolderId);
+            if (existingFolder) {
+                setIsExpanded(true);
+            }
+        }
+    }, [selectedFolderId, workspace.folders]);
+
     return (
         <>
             <div ref={setNodeRef} style={style} {...attributes} className="w-full flex-shrink-0">
@@ -131,26 +173,23 @@ export default function SortableWorkspace({
                         >
                             {/* Workspace Header */}
                             <div
+                                ref={setActivatorNodeRef}
+                                {...listeners}
                                 className={clsx({
                                     "flex items-center gap-2 px-3 py-2 rounded-md transition-colors w-full flex-shrink-0": true,
                                     "hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-600": true,
                                     "bg-transparent": isReordering,
                                     "hover:bg-transparent": isReordering,
                                     "active:bg-transparent": isReordering,
+                                    "cursor-pointer": true,
                                 })}
-                                onClick={() => setIsExpanded(!isExpanded)}
+                                onClick={() => {
+                                    // Don't toggle if currently dragging or just finished dragging
+                                    if (!wasDraggingRef.current && !isDragging) {
+                                        setIsExpanded(!isExpanded);
+                                    }
+                                }}
                             >
-                                <div
-                                    ref={setActivatorNodeRef}
-                                    {...listeners}
-                                    className={cn(
-                                        "cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-neutral-600"
-                                    )}
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <GripVertical className="w-4 h-4" />
-                                </div>
-
                                 {/* Chevron for expand/collapse */}
                                 <div className="flex-shrink-0">
                                     {isExpanded ? (
@@ -186,7 +225,7 @@ export default function SortableWorkspace({
                                                 onClick={() => onFolderClick(folder.id)}
                                                 onRename={() => {}}
                                                 onDelete={() => {}}
-                                                onCreateSubfolder={() => {}}
+                                                onCreateSubfolder={handleCreateSubfolder}
                                                 type={CollisionType.WORKSPACE_NESTED_FOLDER}
                                                 sortableId={getWorkspaceFolderSortableId(folder)}
                                             />
@@ -197,6 +236,16 @@ export default function SortableWorkspace({
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:border-neutral-700">
+                        <ContextMenuItem
+                            className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                            onClick={() => {
+                                setNewFolderName("");
+                                setIsCreateFolderOpen(true);
+                            }}
+                        >
+                            <FolderPlus className="w-4 h-4 mr-2" />
+                            Create Folder
+                        </ContextMenuItem>
                         <ContextMenuItem
                             className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                             onClick={() => {
@@ -275,6 +324,40 @@ export default function SortableWorkspace({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Create Folder Dialog */}
+            <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
+                <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                    <DialogHeader>
+                        <DialogTitle>Create Folder in {workspace.name}</DialogTitle>
+                        <DialogDescription>Enter a name for the new folder.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="folder-name">Folder Name</Label>
+                            <Input
+                                id="folder-name"
+                                value={newFolderName}
+                                onChange={(e) => setNewFolderName(e.target.value)}
+                                placeholder="Folder name"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && newFolderName.trim()) {
+                                        handleCreateFolder();
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCreateFolderOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
+                            Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

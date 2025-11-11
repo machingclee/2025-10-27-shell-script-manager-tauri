@@ -1,4 +1,4 @@
-import { FolderCode, Folders, Loader2, Plus } from "lucide-react";
+import { FolderCode, Loader2, Plus } from "lucide-react";
 import { folderApi } from "../../store/api/folderApi";
 import { workspaceApi } from "../../store/api/workspaceApi";
 import { appStateApi } from "../../store/api/appStateApi";
@@ -8,7 +8,6 @@ import { invoke } from "@tauri-apps/api/core";
 import {
     DndContext,
     rectIntersection,
-    closestCenter,
     KeyboardSensor,
     PointerSensor,
     useSensor,
@@ -120,7 +119,11 @@ export default function FolderColumn() {
     });
 
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 10,
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
@@ -411,10 +414,10 @@ export default function FolderColumn() {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 p-4">
                     <FolderCode />
-                    <div className="font-medium">Script Folders</div>
+                    <div className="font-medium">Workspaces</div>
                 </div>
                 <div className="flex items-center gap-2 mr-4">
-                    <Button
+                    {/* <Button
                         variant="ghost"
                         size="sm"
                         className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
@@ -423,7 +426,7 @@ export default function FolderColumn() {
                     >
                         <Plus className="w-4 h-4" />
                         <FolderCode className="w-4 h-4" />
-                    </Button>
+                    </Button> */}
                     <Button
                         variant="ghost"
                         size="sm"
@@ -432,7 +435,7 @@ export default function FolderColumn() {
                         title="Create new workspace"
                     >
                         <Plus className="w-4 h-4" />
-                        <Folders className="w-4 h-4" />
+                        Workspace
                     </Button>
                 </div>
             </div>
@@ -624,9 +627,8 @@ const customFolderWorkspaceDetection: CollisionDetection = (args) => {
     const { active } = args;
     const activeId = String(active.id);
 
-    // Use both rect intersection and closest center for more sensitivity
+    // Use rect intersection for collision detection
     const rectCollisions = rectIntersection(args);
-    const centerCollisions = closestCenter(args);
 
     // Separate sortables from droppables based on ID patterns
     const sortableCollisions = rectCollisions.filter((collision) => {
@@ -643,8 +645,8 @@ const customFolderWorkspaceDetection: CollisionDetection = (args) => {
         return id === "root-folders-area" || id.startsWith("workspace-");
     });
 
-    // Get workspace droppables using closestCenter for more sensitivity
-    const workspaceDroppablesByCenter = rectCollisions.filter((collision) => {
+    // Get workspace droppables from rect collisions
+    const workspaceDroppables = rectCollisions.filter((collision) => {
         const id = String(collision.id);
         return id.startsWith("workspace-");
     });
@@ -656,7 +658,7 @@ const customFolderWorkspaceDetection: CollisionDetection = (args) => {
         const sourceWorkspaceId = parts[0];
 
         // Check if we're hovering over a different workspace (prioritize moving to another workspace)
-        const differentWorkspaceCollisions = workspaceDroppablesByCenter.filter((c) => {
+        const differentWorkspaceCollisions = workspaceDroppables.filter((c) => {
             const targetWorkspaceId = String(c.id).replace("workspace-", "");
             return targetWorkspaceId !== sourceWorkspaceId;
         });
@@ -699,9 +701,9 @@ const customFolderWorkspaceDetection: CollisionDetection = (args) => {
             return rootFolderSortables;
         }
 
-        // Then workspace droppables using closestCenter (more sensitive)
-        if (workspaceDroppablesByCenter.length > 0) {
-            return workspaceDroppablesByCenter;
+        // Then workspace droppables
+        if (workspaceDroppables.length > 0) {
+            return workspaceDroppables;
         }
     }
 

@@ -5,6 +5,7 @@ import jakarta.persistence.*
 import org.hibernate.annotations.Cascade
 import org.hibernate.annotations.CascadeType
 import org.hibernate.annotations.DynamicInsert
+import org.hibernate.annotations.Generated
 
 @Entity
 @GenerateDTO
@@ -22,9 +23,11 @@ class ScriptsFolder(
     var ordering: Int = 0,
 
     @Column(name = "created_at")
+    @Generated
     val createdAt: Double? = null,
 
     @Column(name = "created_at_hk")
+    @Generated
     val createdAtHk: String? = null
 ) {
 
