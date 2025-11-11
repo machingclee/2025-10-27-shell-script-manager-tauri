@@ -31,7 +31,7 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, FolderPlus } from "lucide-react";
+import { Pencil, Trash2, FolderPlus, Folder } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { CollisionType, ScriptsFolderResponse } from "@/types/dto";
 
@@ -142,6 +142,7 @@ export default React.memo(
                                 >
                                     <GripVertical className="w-4 h-4" />
                                 </div>
+                                <Folder className="w-5 h-5 flex-shrink-0" fill="currentColor" />
                                 <div className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis">
                                     {folder.name}
                                 </div>

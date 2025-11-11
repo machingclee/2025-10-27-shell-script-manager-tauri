@@ -167,7 +167,7 @@ export default function SortableWorkspace({
                         <div
                             ref={setContainerRef}
                             className={clsx({
-                                "w-full rounded-md transition-colors p-1": true,
+                                "w-full rounded-md transition-colors p-0": true,
                                 "bg-neutral-200 dark:bg-neutral-700": isOver,
                             })}
                         >

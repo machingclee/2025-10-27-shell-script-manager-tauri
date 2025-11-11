@@ -515,7 +515,7 @@ export default function FolderColumn() {
                                             onClick={() => {}}
                                             onRename={() => {}}
                                             onDelete={() => {}}
-                                            onCreateSubfolder={() => {}}
+                                            onCreateSubfolder={async () => {}}
                                         />
                                     </div>
                                 )}

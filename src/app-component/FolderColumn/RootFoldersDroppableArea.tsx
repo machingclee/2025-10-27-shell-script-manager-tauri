@@ -36,7 +36,7 @@ export default function RootFoldersDroppableArea({
         <div
             ref={setNodeRef}
             className={clsx(
-                "min-h-[100px] rounded-md transition-colors",
+                "min-h-[100px] rounded-md transition-colors mt-4 py-4",
                 isOver && "bg-neutral-300 dark:bg-neutral-600"
             )}
         >
