@@ -2,6 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Edit, Loader2, Play, Trash } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -33,10 +39,12 @@ export default function ScriptItem({
     script,
     parentFolderId,
     liteVersionDisplay,
+    historyVersion = false,
 }: {
     script: ShellScriptDTO;
     parentFolderId: number;
     liteVersionDisplay?: React.ReactNode;
+    historyVersion?: boolean;
 }) {
     const dispatch = useAppDispatch();
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
@@ -129,7 +137,7 @@ export default function ScriptItem({
         setShowShell(script.showShell);
     }, [script.showShell]);
 
-    return (
+    const scriptCard = (
         <div
             className={`px-3 py-2 rounded-md border transition-colors cursor-pointer ${
                 isSelected
@@ -155,102 +163,110 @@ export default function ScriptItem({
                 >
                     {liteVersionDisplay && liteVersionDisplay}
                     {!liteVersionDisplay && (
-                        <>
-                            <div className="flex items-center gap-2 mr-2">
-                                <span className="text-xs font-medium">Show Shell</span>
-                                <Switch
-                                    checked={showShell}
-                                    onCheckedChange={onShowShellChange}
-                                    className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-neutral-600"
-                                />
-                            </div>
-                            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                                <Button
-                                    variant="destructive"
-                                    className="!shadow-none transition-transform duration-150 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
-                                    onClick={handleDeleteClick}
-                                >
-                                    <Trash className="w-4 h-4" /> Delete
-                                </Button>
-                                <AlertDialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete Script?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            Are you sure you want to delete "{script.name}"? This
-                                            action cannot be undone.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDelete}>
-                                            Delete
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                            <Button
-                                variant="ghost"
-                                className="bg-gray-100 p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
-                                onClick={handleEditClick}
-                            >
-                                <Edit className="w-4 h-4" /> Edit
-                            </Button>
-                            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                                <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
-                                    <DialogHeader>
-                                        <DialogTitle>Edit Script</DialogTitle>
-                                        <DialogDescription>
-                                            Update the name and command for your script.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="edit-name">Name</Label>
-                                            <Input
-                                                className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
-                                                id="edit-name"
-                                                value={editName}
-                                                onChange={(e) => setEditName(e.target.value)}
-                                                placeholder="Script name"
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="edit-command">Command</Label>
-                                            <Textarea
-                                                id="edit-command"
-                                                value={editCommand}
-                                                onChange={(e) => setEditCommand(e.target.value)}
-                                                placeholder="Command to execute"
-                                                rows={18}
-                                                className="font-mono text-sm  bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
-                                            />
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => setIsEditOpen(false)}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button onClick={handleUpdate}>Save Changes</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </>
+                        <div className="flex items-center gap-2 mr-2">
+                            <span className="text-xs font-medium">Show Shell</span>
+                            <Switch
+                                checked={showShell}
+                                onCheckedChange={onShowShellChange}
+                                className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-neutral-600"
+                            />
+                        </div>
                     )}
-                    <Button
-                        variant="ghost"
-                        className="bg-gray-100 p-0 border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
-                        onClick={handleExecuteClick}
-                    >
-                        <Play className="w-4 h-4" /> Execute
-                    </Button>
                 </div>
             </div>
             <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)]">
                 {script.command}
             </div>
+
+            {/* Dialogs outside the main div */}
+            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                <AlertDialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Script?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete "{script.name}"? This action cannot be
+                            undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
+                    <DialogHeader>
+                        <DialogTitle>Edit Script</DialogTitle>
+                        <DialogDescription>
+                            Update the name and command for your script.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-name">Name</Label>
+                            <Input
+                                className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                                id="edit-name"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                placeholder="Script name"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-command">Command</Label>
+                            <Textarea
+                                id="edit-command"
+                                value={editCommand}
+                                onChange={(e) => setEditCommand(e.target.value)}
+                                placeholder="Command to execute"
+                                rows={18}
+                                className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleUpdate}>Save Changes</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
+    );
+
+    return (
+        <ContextMenu>
+            <ContextMenuTrigger asChild>{scriptCard}</ContextMenuTrigger>
+            <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                <ContextMenuItem
+                    onClick={handleExecuteClick}
+                    className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                >
+                    <Play className="w-4 h-4 mr-2" />
+                    Execute
+                </ContextMenuItem>
+                {!historyVersion && (
+                    <>
+                        <ContextMenuItem
+                            onClick={handleEditClick}
+                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                        >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            onClick={handleDeleteClick}
+                            className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                        >
+                            <Trash className="w-4 h-4 mr-2" />
+                            Delete
+                        </ContextMenuItem>
+                    </>
+                )}
+            </ContextMenuContent>
+        </ContextMenu>
     );
 }

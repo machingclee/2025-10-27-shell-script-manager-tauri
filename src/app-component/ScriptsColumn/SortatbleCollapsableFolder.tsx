@@ -33,12 +33,14 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, FolderPlus, Folder, ChevronRight, ChevronDown } from "lucide-react";
+import { Pencil, Trash2, FolderPlus, Folder, ChevronRight, ChevronDown, Plus } from "lucide-react";
 import { ScriptsFolderResponse } from "@/types/dto";
 import { folderApi } from "@/store/api/folderApi";
+import { scriptApi } from "@/store/api/scriptApi";
 import { useAppSelector } from "@/store/hooks";
 import clsx from "clsx";
 import SortableScriptItem from "./SortableScriptItem";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function ({
     folder: folder,
@@ -51,6 +53,7 @@ export default function ({
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
     const [createSubfolder] = folderApi.endpoints.createSubfolder.useMutation();
+    const [createScript] = scriptApi.endpoints.createScript.useMutation();
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Close folder when closeAllFoldersTrigger changes
@@ -135,8 +138,11 @@ export default function ({
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isCreateSubfolderOpen, setIsCreateSubfolderOpen] = useState(false);
+    const [isAddScriptOpen, setIsAddScriptOpen] = useState(false);
     const [newName, setNewName] = useState(folder.name);
     const [subfolderName, setSubfolderName] = useState("");
+    const [scriptName, setScriptName] = useState("");
+    const [scriptCommand, setScriptCommand] = useState("");
 
     const style: React.CSSProperties = {
         transform: CSS.Transform.toString(transform),
@@ -164,6 +170,19 @@ export default function ({
             await onCreateSubfolder(folder.id, subfolderName);
             setSubfolderName("");
             setIsCreateSubfolderOpen(false);
+        }
+    };
+
+    const handleAddScript = async () => {
+        if (scriptName.trim() && scriptCommand.trim()) {
+            await createScript({
+                name: scriptName,
+                content: scriptCommand,
+                folderId: folder.id,
+            });
+            setScriptName("");
+            setScriptCommand("");
+            setIsAddScriptOpen(false);
         }
     };
 
@@ -225,6 +244,17 @@ export default function ({
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:border-neutral-700">
+                        <ContextMenuItem
+                            className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                            onClick={() => {
+                                setScriptName("");
+                                setScriptCommand("");
+                                setIsAddScriptOpen(true);
+                            }}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Script
+                        </ContextMenuItem>
                         {!folder.parentFolder && (
                             <ContextMenuItem
                                 className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
@@ -365,6 +395,52 @@ export default function ({
                         </Button>
                         <Button onClick={handleCreateSubfolder} disabled={!subfolderName.trim()}>
                             Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Script Dialog */}
+            <Dialog open={isAddScriptOpen} onOpenChange={setIsAddScriptOpen}>
+                <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
+                    <DialogHeader>
+                        <DialogTitle>Add Script to "{folder.name}"</DialogTitle>
+                        <DialogDescription>
+                            Create a new script inside this folder.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="script-name">Name</Label>
+                            <Input
+                                className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                                id="script-name"
+                                value={scriptName}
+                                onChange={(e) => setScriptName(e.target.value)}
+                                placeholder="Script name"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="script-command">Command</Label>
+                            <Textarea
+                                id="script-command"
+                                value={scriptCommand}
+                                onChange={(e) => setScriptCommand(e.target.value)}
+                                placeholder="Command to execute"
+                                rows={18}
+                                className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsAddScriptOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleAddScript}
+                            disabled={!scriptName.trim() || !scriptCommand.trim()}
+                        >
+                            Create Script
                         </Button>
                     </DialogFooter>
                 </DialogContent>

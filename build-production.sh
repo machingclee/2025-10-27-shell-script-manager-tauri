@@ -15,6 +15,18 @@ echo "Building Shell Script Manager Production"
 echo "========================================="
 echo ""
 
+# Step 0: Clean up old build artifacts
+echo "Step 0: Cleaning up old build artifacts..."
+if [ -f "$TAURI_DIR/target/release/bundle/dmg/shell-script-manager_0.1.0_aarch64.dmg" ]; then
+    rm -f "$TAURI_DIR/target/release/bundle/dmg/shell-script-manager_0.1.0_aarch64.dmg"
+    echo "✓ Removed old DMG"
+fi
+if [ -d "$TAURI_DIR/target/release/bundle/macos/shell-script-manager.app" ]; then
+    rm -rf "$TAURI_DIR/target/release/bundle/macos/shell-script-manager.app"
+    echo "✓ Removed old .app bundle"
+fi
+echo ""
+
 # Step 1: Build GraalVM Native Image
 echo "Step 1: Building GraalVM Native Image (this may take 5-10 minutes)..."
 cd "$BACKEND_DIR"
@@ -85,6 +97,9 @@ if [ -d "$APP_PATH" ]; then
     
     if [ -f "$DMG_DIR/shell-script-manager_0.1.0_aarch64.dmg" ]; then
         echo "✓ DMG created successfully"
+        # Remove quarantine attributes for local testing
+        xattr -cr "$DMG_DIR/shell-script-manager_0.1.0_aarch64.dmg"
+        echo "✓ Quarantine attributes removed"
     fi
 else
     echo "⚠️  .app not found at $APP_PATH"

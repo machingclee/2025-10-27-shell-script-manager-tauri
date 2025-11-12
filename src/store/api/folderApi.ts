@@ -52,7 +52,7 @@ export const folderApi = baseApi.injectEndpoints({
             }),
             providesTags: (_, __, id) => [{ type: "FolderContent", id: id }],
         }),
-        createFolder: builder.mutation<Folder, CreateFolderRequest>({
+        createRootFolder: builder.mutation<Folder, CreateFolderRequest>({
             query: (request) => ({
                 url: "/folders",
                 method: "POST",

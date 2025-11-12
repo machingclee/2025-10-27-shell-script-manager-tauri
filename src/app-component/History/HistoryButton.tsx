@@ -11,6 +11,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { closeHistory, openHistory } from "@/store/slices/historySlice";
 import { scriptApi } from "@/store/api/scriptApi";
 import ScriptItem from "../ScriptsColumn/ScriptItem";
+import dayjs from "dayjs";
 
 export default function HistoryButton() {
     const dispatch = useAppDispatch();
@@ -47,11 +48,17 @@ export default function HistoryButton() {
                 open={isOpen}
                 onOpenChange={(open) => dispatch(open ? openHistory() : closeHistory())}
             >
-                <DialogContent className="max-w-4xl min-h-[70vh] max-h-[80vh] bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                <DialogContent
+                    className="max-w-4xl min-h-[70vh] max-h-[80vh] bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                >
                     <DialogHeader>
-                        <DialogTitle>Command & Event History</DialogTitle>
-                        <DialogDescription>
-                            View latest commands and events that have been executed
+                        <DialogTitle className="flex items-center gap-2">
+                            Script Execution History
+                        </DialogTitle>
+                        <DialogDescription className="italic">
+                            Latest shell scripts that have been executed in descending order
                         </DialogDescription>
                     </DialogHeader>
                     <div className="overflow-y-auto min-h-[55vh] max-h-[60vh]">
@@ -61,7 +68,17 @@ export default function HistoryButton() {
                                     <ScriptItem
                                         script={item.shellScript}
                                         parentFolderId={0}
-                                        liteVersionDisplay={<></>}
+                                        liteVersionDisplay={
+                                            <div className="flex text-xs text-neutral-500 dark:text-neutral-400 italic items-center gap-2">
+                                                <div>Executed at</div>
+                                                <div className="font-medium bg-gray-100 dark:bg-[rgba(255,255,255,0.1)] p-1 rounded-md text-black dark:text-neutral-200">
+                                                    {dayjs(item.history.executionTime).format(
+                                                        "YYYY-MM-DD HH:mm:ss"
+                                                    )}
+                                                </div>
+                                            </div>
+                                        }
+                                        historyVersion={true}
                                     />
                                 </div>
                             ))}

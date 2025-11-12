@@ -98,7 +98,7 @@ export default function FolderColumn() {
     const [reorderFolders] = folderApi.endpoints.reorderFolders.useMutation();
     const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
     const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
-    const [createFolder] = folderApi.endpoints.createFolder.useMutation();
+    const [createFolder] = folderApi.endpoints.createRootFolder.useMutation();
     const [createSubfolder] = folderApi.endpoints.createSubfolder.useMutation();
     const [createWorkspace] = workspaceApi.endpoints.createWorkspace.useMutation();
     const [updateWorkspace] = workspaceApi.endpoints.updateWorkspace.useMutation();

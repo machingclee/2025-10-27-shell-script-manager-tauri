@@ -1,6 +1,7 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { Plus, ScrollText, FoldVertical } from "lucide-react";
+import { ScrollText, FoldVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
     DndContext,
     KeyboardSensor,
@@ -15,17 +16,6 @@ import {
 } from "@dnd-kit/core";
 import type { CollisionDetection } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { scriptApi } from "@/store/api/scriptApi";
 import { folderApi } from "@/store/api/folderApi";
@@ -88,13 +78,9 @@ export default function ScriptsColumn() {
             skip: !backendPort || !selectedRootFolderId,
         }
     );
-    const [createScript] = scriptApi.endpoints.createScript.useMutation();
     const [reorderScripts] = scriptApi.endpoints.reorderScripts.useMutation();
     const [reorderSubfolders] = folderApi.endpoints.reorderFolders.useMutation();
     const [moveScriptIntoFolder] = scriptApi.endpoints.moveScriptIntoFolder.useMutation();
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [newName, setNewName] = useState("");
-    const [newCommand, setNewCommand] = useState("");
     const [activeId, setActiveId] = useState<number | null>(null);
     const [activeType, setActiveType] = useState<"script" | "folder" | null>(null);
     const [closeAllFoldersTrigger, setCloseAllFoldersTrigger] = useState(0);
@@ -332,20 +318,6 @@ export default function ScriptsColumn() {
         setActiveType(null);
     };
 
-    const handleCreate = async () => {
-        if (!selectedRootFolderId) return;
-
-        await createScript({
-            name: newName,
-            content: newCommand,
-            folderId: selectedRootFolderId,
-        });
-
-        setNewName("");
-        setNewCommand("");
-        setIsCreateOpen(false);
-    };
-
     const displayName = () => {
         if (selectedFolder) {
             return (
@@ -379,56 +351,7 @@ export default function ScriptsColumn() {
                         >
                             <FoldVertical className="w-4 h-4" /> Close All
                         </Button>
-                        <Button
-                            variant="ghost"
-                            className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
-                            disabled={!selectedRootFolderId}
-                            onClick={() => setIsCreateOpen(true)}
-                        >
-                            <Plus className="w-4 h-4" /> Add Script
-                        </Button>
                     </div>
-                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                        <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
-                            <DialogHeader>
-                                <DialogTitle>Create New Script</DialogTitle>
-                                <DialogDescription>
-                                    Add a new script with a name and command.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="new-name">Name</Label>
-                                    <Input
-                                        className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
-                                        id="new-name"
-                                        value={newName}
-                                        onChange={(e) => setNewName(e.target.value)}
-                                        placeholder="Script name"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="new-command">Command</Label>
-                                    <Textarea
-                                        id="new-command"
-                                        value={newCommand}
-                                        onChange={(e) => setNewCommand(e.target.value)}
-                                        placeholder="Command to execute"
-                                        rows={18}
-                                        className="font-mono text-sm  bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button onClick={handleCreate} disabled={!newName || !newCommand}>
-                                    Create Script
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
                 </div>
             </>
         );

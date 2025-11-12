@@ -41,26 +41,8 @@ export const scriptApi = baseApi.injectEndpoints({
                 method: "POST",
                 body: request,
             }),
-            async onQueryStarted(request, { dispatch, queryFulfilled }) {
-                try {
-                    const { data: newScript } = await queryFulfilled;
-                    // Optimistically add the new script to the cache
-                    dispatch(
-                        folderApi.util.updateQueryData(
-                            "getFolderById",
-                            request.folderId,
-                            (draft) => {
-                                const subfolder = getSubfolder(draft, request.folderId);
-                                if (subfolder) {
-                                    subfolder.shellScripts.push(newScript);
-                                }
-                            }
-                        )
-                    );
-                } catch {
-                    // Error handling - the mutation will fail and show an error
-                }
-            },
+
+            invalidatesTags: ["FolderContent", "Folder"],
         }),
         moveScriptIntoFolder: builder.mutation<
             ShellScriptDTO,

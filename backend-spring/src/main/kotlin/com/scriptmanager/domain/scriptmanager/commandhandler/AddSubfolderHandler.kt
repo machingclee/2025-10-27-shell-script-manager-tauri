@@ -21,10 +21,11 @@ class AddSubfolderHandler(
 
         val newSubfolder = ScriptsFolder(
             name = command.name,
-            ordering = 0
+            ordering = -1
         )
 
         parentFolder.addFolder(newSubfolder)
+        parentFolder.resetFolderOrders()
 
         eventQueue.add(
             SubfolderAddedEvent(
