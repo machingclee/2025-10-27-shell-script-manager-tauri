@@ -70,6 +70,7 @@ export const folderApi = baseApi.injectEndpoints({
                 try {
                     await queryFulfilled;
                     const state = getState() as RootState;
+                    const selectedRootFolderId = state.folder.selectedRootFolderId || 0;
                     const allFolders = folderApi.endpoints.getAllFolders.select()(state);
                     const allWorkspaces = workspaceApi.endpoints.getAllWorkspaces.select()(state);
                     // get the workspace of selected folder
@@ -83,6 +84,11 @@ export const folderApi = baseApi.injectEndpoints({
                         (f) => f.id !== id
                     );
                     const firstIdInThisWorkspace = remainingFolderIdsInWorkspace?.[0]?.id;
+
+                    if (id !== selectedRootFolderId) {
+                        // keep being selected
+                        return;
+                    }
 
                     if (firstIdInThisWorkspace != null) {
                         remainingFolderIdToSelect = firstIdInThisWorkspace;
