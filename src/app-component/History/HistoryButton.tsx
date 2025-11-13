@@ -16,7 +16,7 @@ import dayjs from "dayjs";
 export default function HistoryButton() {
     const dispatch = useAppDispatch();
     const isOpen = useAppSelector((state) => state.history.isOpen);
-    const { data: history } = scriptApi.endpoints.getScriptHistory.useQuery(undefined, {
+    const { data: histories } = scriptApi.endpoints.getScriptHistories.useQuery(undefined, {
         skip: !isOpen,
     });
     // Placeholder history data
@@ -63,9 +63,10 @@ export default function HistoryButton() {
                     </DialogHeader>
                     <div className="overflow-y-auto min-h-[55vh] max-h-[60vh]">
                         <div className="space-y-2">
-                            {history?.map((item) => (
+                            {histories?.map((item) => (
                                 <div key={item.history.id}>
                                     <ScriptItem
+                                        parentFolderPath={item.parentFolderPath}
                                         script={item.shellScript}
                                         parentFolderId={0}
                                         liteVersionDisplay={

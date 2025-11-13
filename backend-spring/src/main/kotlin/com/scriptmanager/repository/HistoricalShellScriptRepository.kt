@@ -15,7 +15,9 @@ interface HistoricalShellScriptRepository : JpaRepository<HistoricalShellScript,
     @Query(
         """
         select history from HistoricalShellScript history
-        left join fetch history.shellScript
+        left join fetch history.shellScript script
+        left join fetch script.parentFolder folder1
+        left join fetch folder1.parentFolder folder2
         order by history.executedAt desc
         limit 10
     """

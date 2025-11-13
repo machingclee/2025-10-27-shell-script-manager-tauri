@@ -40,11 +40,13 @@ export default function ScriptItem({
     parentFolderId,
     liteVersionDisplay,
     historyVersion = false,
+    parentFolderPath = "",
 }: {
     script: ShellScriptDTO;
     parentFolderId: number;
     liteVersionDisplay?: React.ReactNode;
     historyVersion?: boolean;
+    parentFolderPath?: string;
 }) {
     const dispatch = useAppDispatch();
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
@@ -149,6 +151,11 @@ export default function ScriptItem({
             onMouseLeave={() => setIsSelected(false)}
             onDoubleClick={(e) => handleRun(e)}
         >
+            {parentFolderPath && (
+                <div className="text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)] flex flex-row justify-start">
+                    {parentFolderPath}
+                </div>
+            )}
             <div className="flex items-center gap-2 justify-between mb-4">
                 <div className="flex items-center gap-2">
                     <div className="font-bold text-lg">{script.name}</div>

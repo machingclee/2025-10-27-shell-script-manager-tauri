@@ -1,18 +1,12 @@
 package com.scriptmanager.controller
 
 import com.scriptmanager.common.dto.*
-import com.scriptmanager.common.entity.HistoricalShellScriptDTO
-import com.scriptmanager.common.entity.ShellScript
-import com.scriptmanager.common.entity.ShellScriptDTO
-import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.entity.*
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.scriptmanager.command.*
 import com.scriptmanager.domain.scriptmanager.commandhandler.*
 import com.scriptmanager.repository.HistoricalShellScriptRepository
 import com.scriptmanager.repository.ShellScriptRepository
-import jakarta.transaction.Transactional
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.web.bind.annotation.*
 
@@ -119,7 +113,30 @@ class ScriptController(
     @GetMapping("/history")
     fun getScriptHistories(): ApiResponse<List<HistoricalShellScriptResponse>> {
         val histories = historicalShellScriptRepository.findTenWithShellScript().map {
+            val folderPath = mutableListOf<String>()
+
+            var currentFolder: ScriptsFolder? = it.shellScript?.parentFolder
+            var currentWorkspace: String? = null
+            while (currentFolder != null) {
+                folderPath.add(0, currentFolder?.name ?: "")
+                if (currentFolder.parentFolder != null) {
+                    currentFolder = currentFolder.parentFolder
+                } else {
+                    // root level folder now, it has workspace
+                    currentWorkspace = currentFolder.parentWorkspace?.name
+                    break
+                }
+            }
+
+            var parentFolderPath = folderPath.joinToString(" > ") + " /"
+
+
+            if (currentWorkspace != null) {
+                parentFolderPath = currentWorkspace + " > " + parentFolderPath
+            }
+
             HistoricalShellScriptResponse(
+                parentFolderPath = parentFolderPath,
                 history = it.toDTO(),
                 shellScript = it.shellScript?.toDTO()!!
             )

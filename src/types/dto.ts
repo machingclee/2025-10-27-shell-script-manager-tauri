@@ -127,6 +127,7 @@ export type HistoricalShellScriptDTO = {
 };
 
 export type HistoricalShellScriptResponse = {
+    parentFolderPath: string;
     history: HistoricalShellScriptDTO;
     shellScript: ShellScriptDTO;
 };

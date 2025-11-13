@@ -178,7 +178,7 @@ export const scriptApi = baseApi.injectEndpoints({
             },
             // Removed invalidatesTags - optimistic update handles the UI update
         }),
-        getScriptHistory: builder.query<HistoricalShellScriptResponse[], void>({
+        getScriptHistories: builder.query<HistoricalShellScriptResponse[], void>({
             query: () => ({
                 url: `/scripts/history`,
                 method: "GET",

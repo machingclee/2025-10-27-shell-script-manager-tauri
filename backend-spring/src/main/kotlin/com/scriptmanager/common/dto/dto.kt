@@ -183,6 +183,7 @@ data class WorkspaceResponse(
 )
 
 data class HistoricalShellScriptResponse(
+    val parentFolderPath: String,
     val history: HistoricalShellScriptDTO,
     val shellScript: ShellScriptDTO
 )
