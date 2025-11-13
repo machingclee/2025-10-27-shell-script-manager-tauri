@@ -23,6 +23,9 @@ class ShellScript(
     @Column(name = "ordering", nullable = false)
     var ordering: Int = 0,
 
+    @Column(name = "locked")
+    var locked: Boolean? = false,
+
     @Column(name = "show_shell")
     var showShell: Boolean = false,
 

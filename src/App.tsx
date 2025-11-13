@@ -1,5 +1,5 @@
 import "./App.css";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -12,10 +12,12 @@ import folderSlice from "./store/slices/folderSlice";
 import configSlice from "./store/slices/configSlice";
 import { folderApi } from "./store/api/folderApi";
 import HistoryButton from "./app-component/History/HistoryButton";
+import HistoryPanel from "./app-component/History/HistoryPanel";
 
 function App() {
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
+    const isHistoryOpen = useAppSelector((s) => s.history.isOpen);
 
     // Only fetch when backend port is available
     const { data: appState } = appStateApi.endpoints.getAppState.useQuery(undefined, {
@@ -172,7 +174,10 @@ function App() {
                             {isMaximized ? "−" : "+"}
                         </span>
                     </button>
+                </div>
 
+                {/* History button (right side) */}
+                <div className="absolute right-4 z-10">
                     <HistoryButton />
                 </div>
 
@@ -189,9 +194,17 @@ function App() {
                         <FolderColumn />
                     </ResizablePanel>
                     <ResizableHandle withHandle />
-                    <ResizablePanel defaultSize={70}>
+                    <ResizablePanel defaultSize={isHistoryOpen ? 50 : 70}>
                         <ScriptsColumn />
                     </ResizablePanel>
+                    {isHistoryOpen && (
+                        <>
+                            <ResizableHandle withHandle />
+                            <ResizablePanel defaultSize={20} minSize={10} maxSize={40}>
+                                <HistoryPanel />
+                            </ResizablePanel>
+                        </>
+                    )}
                 </ResizablePanelGroup>
             </div>
         </div>

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Edit, Loader2, Play, Trash } from "lucide-react";
+import { Edit, Loader2, Play, Trash, Lock, LockOpen } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
     ContextMenu,
@@ -58,6 +58,8 @@ export default function ScriptItem({
     const [editCommand, setEditCommand] = useState(script.command);
     const [isSelected, setIsSelected] = useState(false);
     const [showShell, setShowShell] = useState(false);
+    const [locked, setLocked] = useState(false);
+    const [isFlipping, setIsFlipping] = useState(false);
     const executingScript = useAppSelector(
         (state) => (state.folder.scripts.executing?.[script.id ?? 0] ?? { loading: false }).loading
     );
@@ -122,6 +124,7 @@ export default function ScriptItem({
             name: editName,
             command: editCommand,
             showShell: showShell,
+            locked: locked,
         };
         await updateScript(finalScriptDTO);
         setIsEditOpen(false);
@@ -135,9 +138,26 @@ export default function ScriptItem({
         setShowShell(checked);
     };
 
+    const onLockedToggle = async () => {
+        const newLockedState = !locked;
+        setIsFlipping(true);
+        await updateScript({
+            ...script,
+            locked: newLockedState,
+        });
+        setLocked(newLockedState);
+
+        // Reset flip animation after it completes
+        setTimeout(() => setIsFlipping(false), 600);
+    };
+
     useEffect(() => {
         setShowShell(script.showShell);
     }, [script.showShell]);
+
+    useEffect(() => {
+        setLocked(script.locked);
+    }, [script.locked]);
 
     const scriptCard = (
         <div
@@ -170,18 +190,44 @@ export default function ScriptItem({
                 >
                     {liteVersionDisplay && liteVersionDisplay}
                     {!liteVersionDisplay && (
-                        <div className="flex items-center gap-2 mr-2">
-                            <span className="text-xs font-medium">Show Shell</span>
-                            <Switch
-                                checked={showShell}
-                                onCheckedChange={onShowShellChange}
-                                className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-neutral-600"
-                            />
-                        </div>
+                        <>
+                            <div className="flex items-center gap-2 mr-2">
+                                <button
+                                    onClick={onLockedToggle}
+                                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-neutral-700 transition-all duration-200 active:scale-95 border-0 outline-none shadow-none focus:outline-none focus:ring-0"
+                                    style={{ boxShadow: "none" }}
+                                    title={
+                                        locked
+                                            ? "Locked - Click to unlock"
+                                            : "Unlocked - Click to lock"
+                                    }
+                                >
+                                    <div
+                                        className={`transition-transform duration-500 ${
+                                            isFlipping ? "animate-[spin_0.6s_ease-in-out]" : ""
+                                        }`}
+                                    >
+                                        {locked ? (
+                                            <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+                                        ) : (
+                                            <LockOpen className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                        )}
+                                    </div>
+                                </button>
+                            </div>
+                            <div className="flex items-center gap-2 mr-2">
+                                <span className="text-xs font-medium">Show Shell</span>
+                                <Switch
+                                    checked={showShell}
+                                    onCheckedChange={onShowShellChange}
+                                    className="data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-gray-300 dark:data-[state=unchecked]:bg-neutral-600"
+                                />
+                            </div>
+                        </>
                     )}
                 </div>
             </div>
-            <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)]">
+            <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)] max-h-16 overflow-y-auto line-clamp-4">
                 {script.command}
             </div>
 
@@ -229,7 +275,7 @@ export default function ScriptItem({
                                 onChange={(e) => setEditCommand(e.target.value)}
                                 placeholder="Command to execute"
                                 rows={18}
-                                className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                                className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
                             />
                         </div>
                     </div>
@@ -255,7 +301,7 @@ export default function ScriptItem({
                     <Play className="w-4 h-4 mr-2" />
                     Execute
                 </ContextMenuItem>
-                {!historyVersion && (
+                {!historyVersion && !locked && (
                     <>
                         <ContextMenuItem
                             onClick={handleEditClick}

@@ -1,4 +1,4 @@
-Script started on Thu Nov 13 09:43:01 2025
+Script started on Thu Nov 13 18:25:30 2025
 ^D
 EnvironmentNameNotFound: Could not find conda environment: basex
 You can list all discoverable environments with `conda info --envs`.
@@ -6,6 +6,6 @@ You can list all discoverable environments with `conda info --envs`.
 
 Identity added: /Users/chingcheonglee/.ssh/machingclee_github (machingclee@gmail.com)
 Identity added: /Users/chingcheonglee/.ssh/id_rsa (chingcheonglee@Chings-Air)
-[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[Jchingcheonglee@MacBook-Air src-tauri % [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[Jchingcheonglee@Mac src-tauri % [K[?2004h[?2004l
 
-Script done on Thu Nov 13 09:43:02 2025
+Script done on Thu Nov 13 18:25:31 2025

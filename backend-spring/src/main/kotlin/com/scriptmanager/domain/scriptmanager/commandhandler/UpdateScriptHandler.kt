@@ -23,6 +23,7 @@ class UpdateScriptHandler(
             name = command.name
             this.command = command.command
             showShell = command.showShell
+            locked = command.locked
         }
 
         val dto = script.toDTO()

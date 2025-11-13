@@ -5,6 +5,7 @@ data class UpdateScriptCommand(
     val id: Int,
     val name: String,
     val command: String,
-    val showShell: Boolean
+    val showShell: Boolean,
+    val locked: Boolean
 )
 

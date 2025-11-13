@@ -17,6 +17,7 @@ export type ShellScriptDTO = {
     id?: number;
     name: string;
     command: string;
+    locked: boolean;
     ordering: number;
     showShell: boolean;
     createdAt?: number;
@@ -41,6 +42,7 @@ export type ShellScriptResponse = {
     command: string;
     ordering: number;
     showShell: boolean;
+    locked: boolean;
     createdAt: number;
     createdAtHk: string;
     parentFolderId: number;

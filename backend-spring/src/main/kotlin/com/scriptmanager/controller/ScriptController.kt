@@ -56,7 +56,8 @@ class ScriptController(
             id = id,
             name = scriptDetails.name,
             command = scriptDetails.command,
-            showShell = scriptDetails.showShell
+            showShell = scriptDetails.showShell,
+            locked = scriptDetails.locked!!
         )
         return commandInvoker.invoke(updateScriptHandler, command)
     }
@@ -112,35 +113,37 @@ class ScriptController(
 
     @GetMapping("/history")
     fun getScriptHistories(): ApiResponse<List<HistoricalShellScriptResponse>> {
-        val histories = historicalShellScriptRepository.findTenWithShellScript().map {
-            val folderPath = mutableListOf<String>()
+        val histories = historicalShellScriptRepository.findTenWithShellScript()
+            .filter { it.shellScript != null }
+            .map {
+                val folderPath = mutableListOf<String>()
 
-            var currentFolder: ScriptsFolder? = it.shellScript?.parentFolder
-            var currentWorkspace: String? = null
-            while (currentFolder != null) {
-                folderPath.add(0, currentFolder?.name ?: "")
-                if (currentFolder.parentFolder != null) {
-                    currentFolder = currentFolder.parentFolder
-                } else {
-                    // root level folder now, it has workspace
-                    currentWorkspace = currentFolder.parentWorkspace?.name
-                    break
+                var currentFolder: ScriptsFolder? = it.shellScript?.parentFolder
+                var currentWorkspace: String? = null
+                while (currentFolder != null) {
+                    folderPath.add(0, currentFolder?.name ?: "")
+                    if (currentFolder.parentFolder != null) {
+                        currentFolder = currentFolder.parentFolder
+                    } else {
+                        // root level folder now, it has workspace
+                        currentWorkspace = currentFolder.parentWorkspace?.name
+                        break
+                    }
                 }
+
+                var parentFolderPath = folderPath.joinToString(" > ") + " /"
+
+
+                if (currentWorkspace != null) {
+                    parentFolderPath = currentWorkspace + " > " + parentFolderPath
+                }
+
+                HistoricalShellScriptResponse(
+                    parentFolderPath = parentFolderPath,
+                    history = it.toDTO(),
+                    shellScript = it.shellScript!!.toDTO()
+                )
             }
-
-            var parentFolderPath = folderPath.joinToString(" > ") + " /"
-
-
-            if (currentWorkspace != null) {
-                parentFolderPath = currentWorkspace + " > " + parentFolderPath
-            }
-
-            HistoricalShellScriptResponse(
-                parentFolderPath = parentFolderPath,
-                history = it.toDTO(),
-                shellScript = it.shellScript?.toDTO()!!
-            )
-        }
         return ApiResponse(histories)
     }
 }

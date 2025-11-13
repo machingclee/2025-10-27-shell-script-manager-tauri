@@ -334,7 +334,7 @@ export default React.memo(
                                     onChange={(e) => setScriptCommand(e.target.value)}
                                     placeholder="Command to execute"
                                     rows={18}
-                                    className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                                    className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
                                 />
                             </div>
                         </div>

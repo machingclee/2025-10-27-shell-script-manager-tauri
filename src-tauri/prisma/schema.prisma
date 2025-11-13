@@ -52,6 +52,7 @@ model shell_script {
     name                          String
     command                       String
     ordering                      Int
+    locked                        Boolean                         @default(true)
     created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
     created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
     show_shell                    Boolean                         @default(false)

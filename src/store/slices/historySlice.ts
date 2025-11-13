@@ -5,7 +5,7 @@ interface HistoryState {
 }
 
 const initialState: HistoryState = {
-    isOpen: false,
+    isOpen: true,
 };
 
 const historySlice = createSlice({
