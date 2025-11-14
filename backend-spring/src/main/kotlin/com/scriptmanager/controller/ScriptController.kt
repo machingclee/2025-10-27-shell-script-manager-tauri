@@ -126,7 +126,7 @@ class ScriptController(
                         currentFolder = currentFolder.parentFolder
                     } else {
                         // root level folder now, it has workspace
-                        currentWorkspace = currentFolder.parentWorkspace?.name
+                        currentWorkspace = currentFolder.parentWorkspace?.name?.value
                         break
                     }
                 }

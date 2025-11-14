@@ -5,7 +5,7 @@ import com.scriptmanager.common.entity.*
 data class ApiResponse<T>(
     val result: T? = null,
     val success: Boolean? = true,
-    val message: String? = null,
+    val errorMessage: String? = null,
     // HTTP / application error code (optional). For successful responses this is null.
     val errorCode: Int? = null
 )
@@ -131,7 +131,7 @@ data class WorkspaceWithFoldersDTO(
 fun Workspace.toWorkspaceWithFoldersDTO(): WorkspaceWithFoldersDTO {
     return WorkspaceWithFoldersDTO(
         id = this.id,
-        name = this.name,
+        name = this.name.value,
         ordering = this.ordering,
         createdAt = this.createdAt,
         createdAtHk = this.createdAtHk,
@@ -167,7 +167,7 @@ data class ReorderWorkspaceFoldersRequest(
 fun Workspace.toResponse(): WorkspaceResponse {
     return WorkspaceResponse(
         id = this.id,
-        name = this.name,
+        name = this.name.value,
         ordering = this.ordering,
         folders = this.folders.sortedBy { it.ordering }.map { it.toResponse() },
         createdAt = this.createdAt,

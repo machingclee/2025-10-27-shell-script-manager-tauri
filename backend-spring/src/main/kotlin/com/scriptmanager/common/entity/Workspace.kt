@@ -15,8 +15,8 @@ class Workspace(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null,
 
-    @Column(name = "name", nullable = false)
-    var name: String = "",
+    @Embedded
+    var name: Name,
 
     @Column(name = "ordering", nullable = false)
     var ordering: Int = 0,
@@ -27,6 +27,16 @@ class Workspace(
     @Column(name = "created_at_hk")
     val createdAtHk: String? = null
 ) {
+    @Embeddable
+    class Name(
+        @Column(name = "name", nullable = false)
+        var value: String,
+    ) {
+        init {
+            require(value.isNotBlank()) { "Workspace name cannot be blank" }
+            require(value.length >= 3) { "Workspace name must be at least 3 characters long" }
+        }
+    }
 
     @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true)
     @Cascade(CascadeType.ALL)
@@ -57,4 +67,3 @@ class Workspace(
         }
     }
 }
-

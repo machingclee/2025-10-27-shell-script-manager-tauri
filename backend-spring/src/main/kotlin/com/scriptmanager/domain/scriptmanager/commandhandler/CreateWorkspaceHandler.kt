@@ -16,12 +16,15 @@ class CreateWorkspaceHandler(
 ) : CommandHandler<CreateWorkspaceCommand, WorkspaceDTO> {
 
     override fun handle(eventQueue: EventQueue, command: CreateWorkspaceCommand): WorkspaceDTO {
+        // Validate workspace name
+        require(command.name.isNotBlank()) { "Workspace name cannot be blank" }
+
         // Get count of workspaces to determine ordering
         val count = workspaceRepository.findAll().size
 
         // Create workspace with ordering
         val newWorkspace = Workspace(
-            name = command.name,
+            name = Workspace.Name(command.name),
             ordering = count
         )
 
@@ -33,4 +36,3 @@ class CreateWorkspaceHandler(
         return dto
     }
 }
-

@@ -13,6 +13,7 @@ import configSlice from "./store/slices/configSlice";
 import { folderApi } from "./store/api/folderApi";
 import HistoryButton from "./app-component/History/HistoryButton";
 import HistoryPanel from "./app-component/History/HistoryPanel";
+import { Toaster } from "./components/ui/toaster";
 
 function App() {
     const dispatch = useAppDispatch();
@@ -188,25 +189,23 @@ function App() {
             </div>
 
             {/* Main content */}
-            <div className="flex-1 overflow-hidden">
-                <ResizablePanelGroup direction="horizontal">
+            <div className="flex-1 overflow-hidden flex flex-row">
+                <ResizablePanelGroup direction="horizontal" className="flex-1">
                     <ResizablePanel defaultSize={25} minSize={25} maxSize={50}>
                         <FolderColumn />
                     </ResizablePanel>
                     <ResizableHandle withHandle />
-                    <ResizablePanel defaultSize={isHistoryOpen ? 50 : 70}>
+                    <ResizablePanel defaultSize={75}>
                         <ScriptsColumn />
                     </ResizablePanel>
-                    {isHistoryOpen && (
-                        <>
-                            <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={20} minSize={10} maxSize={40}>
-                                <HistoryPanel />
-                            </ResizablePanel>
-                        </>
-                    )}
                 </ResizablePanelGroup>
+                {isHistoryOpen && (
+                    <div className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700">
+                        <HistoryPanel />
+                    </div>
+                )}
             </div>
+            <Toaster />
         </div>
     );
 }

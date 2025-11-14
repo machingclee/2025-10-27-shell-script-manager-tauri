@@ -1,5 +1,6 @@
 import { BaseQueryFn } from "@reduxjs/toolkit/query";
 import type { RootState } from "../../store";
+import { toast } from "@/hooks/use-toast";
 
 // Helper to get backend URL from Redux state
 function getBackendUrl(getState: () => unknown): string {
@@ -34,7 +35,6 @@ export const httpBaseQuery = (): BaseQueryFn<HttpQueryArgs, unknown, HttpQueryEr
                 });
             }
 
-            // Make fetch request
             const response = await fetch(fullUrl.toString(), {
                 method,
                 headers: {
@@ -43,13 +43,32 @@ export const httpBaseQuery = (): BaseQueryFn<HttpQueryArgs, unknown, HttpQueryEr
                 body: body ? JSON.stringify(body) : undefined,
             });
 
-            // Handle response
             if (!response.ok) {
-                const errorData = await response.text();
+                const errorText = await response.text();
+                let errorData = errorText || response.statusText;
+                let errorMessage = errorText || response.statusText;
+
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    if (errorJson.errorMessage) {
+                        errorMessage = errorJson.errorMessage;
+                        errorData = errorJson;
+                    }
+                } catch {
+                    // do nothing
+                }
+
+                // Show toast notification with error message
+                toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: errorMessage,
+                });
+
                 return {
                     error: {
                         status: response.status,
-                        data: errorData || response.statusText,
+                        data: errorData,
                     },
                 };
             }
@@ -64,10 +83,19 @@ export const httpBaseQuery = (): BaseQueryFn<HttpQueryArgs, unknown, HttpQueryEr
             return { data: undefined };
         } catch (error) {
             // Handle network errors
+            const errorMessage = error instanceof Error ? error.message : String(error);
+
+            // Show toast notification for network errors
+            toast({
+                variant: "destructive",
+                title: "Network Error",
+                description: errorMessage,
+            });
+
             return {
                 error: {
                     status: 0,
-                    data: error instanceof Error ? error.message : String(error),
+                    data: errorMessage,
                 },
             };
         }

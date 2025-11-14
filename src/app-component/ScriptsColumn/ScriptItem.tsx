@@ -178,7 +178,11 @@ export default function ScriptItem({
             )}
             <div className="flex items-center gap-2 justify-between mb-4">
                 <div className="flex items-center gap-2">
-                    <div className="font-bold text-lg">{script.name}</div>
+                    <div>
+                        <div className="font-bold text-lg">{script.name}</div>
+                        {liteVersionDisplay && liteVersionDisplay}
+                    </div>
+
                     {executingScript && <Loader2 className="w-5 h-5 animate-spin" />}
                 </div>
                 <div
@@ -188,7 +192,6 @@ export default function ScriptItem({
                     onMouseUp={(e) => e.stopPropagation()}
                     onDoubleClick={(e) => e.stopPropagation()}
                 >
-                    {liteVersionDisplay && liteVersionDisplay}
                     {!liteVersionDisplay && (
                         <>
                             <div className="flex items-center gap-2 mr-2">

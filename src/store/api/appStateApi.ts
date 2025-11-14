@@ -14,7 +14,12 @@ export const appStateApi = baseApi.injectEndpoints({
             providesTags: ["AppState"],
             onQueryStarted: async (_, { queryFulfilled, dispatch }) => {
                 const { data } = await queryFulfilled;
+
                 console.log("[appStateApi] getAppState data:", data);
+
+                if (data) {
+                    dispatch(baseApi.util.invalidateTags(["ScriptHistory"]));
+                }
 
                 // Apply last opened folder
                 if (data?.lastOpenedFolderId) {

@@ -50,7 +50,7 @@ class GlobalExceptionHandler {
 
         val body = ApiResponse<Unit>(
             success = false,
-            message = e.message ?: "An error occurred",
+            errorMessage = e.message ?: "An error occurred",
             errorCode = code
         )
 

@@ -1,5 +1,6 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
+import com.scriptmanager.common.entity.Workspace
 import com.scriptmanager.common.entity.WorkspaceDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
@@ -16,10 +17,13 @@ class UpdateWorkspaceHandler(
 ) : CommandHandler<UpdateWorkspaceCommand, WorkspaceDTO> {
 
     override fun handle(eventQueue: EventQueue, command: UpdateWorkspaceCommand): WorkspaceDTO {
+        // Validate workspace name
+        require(command.name.isNotBlank()) { "Workspace name cannot be blank" }
+
         val workspace = workspaceRepository.findByIdOrNull(command.id)
             ?: throw Exception("Workspace not found")
 
-        workspace.name = command.name
+        workspace.name = Workspace.Name(command.name)
         workspace.ordering = command.ordering
 
         val result = workspaceRepository.save(workspace)
@@ -30,4 +34,3 @@ class UpdateWorkspaceHandler(
         return dto
     }
 }
-
