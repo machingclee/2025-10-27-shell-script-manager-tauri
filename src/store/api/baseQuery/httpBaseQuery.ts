@@ -46,24 +46,23 @@ export const httpBaseQuery = (): BaseQueryFn<HttpQueryArgs, unknown, HttpQueryEr
             if (!response.ok) {
                 const errorText = await response.text();
                 let errorData = errorText || response.statusText;
-                let errorMessage = errorText || response.statusText;
 
+                // Try to parse error response as JSON to get errorMessage
                 try {
                     const errorJson = JSON.parse(errorText);
+                    errorData = errorJson;
+
+                    // Only show toast if errorMessage field exists
                     if (errorJson.errorMessage) {
-                        errorMessage = errorJson.errorMessage;
-                        errorData = errorJson;
+                        toast({
+                            variant: "destructive",
+                            title: "Error",
+                            description: errorJson.errorMessage,
+                        });
                     }
                 } catch {
-                    // do nothing
+                    // If not JSON, don't show toast
                 }
-
-                // Show toast notification with error message
-                toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: errorMessage,
-                });
 
                 return {
                     error: {
@@ -82,15 +81,8 @@ export const httpBaseQuery = (): BaseQueryFn<HttpQueryArgs, unknown, HttpQueryEr
             // For DELETE, return empty data
             return { data: undefined };
         } catch (error) {
-            // Handle network errors
+            // Handle network errors - don't show toast
             const errorMessage = error instanceof Error ? error.message : String(error);
-
-            // Show toast notification for network errors
-            toast({
-                variant: "destructive",
-                title: "Network Error",
-                description: errorMessage,
-            });
 
             return {
                 error: {

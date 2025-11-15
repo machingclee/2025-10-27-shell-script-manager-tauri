@@ -100,7 +100,7 @@ export const scriptApi = baseApi.injectEndpoints({
                     patchResult.undo();
                 }
             },
-            invalidatesTags: [{ type: "FolderContent" }],
+            invalidatesTags: ["FolderContent", "ScriptHistory"],
             // Removed invalidatesTags - optimistic update handles the UI update
         }),
         updateScript: builder.mutation<ShellScriptDTO, ShellScriptDTO>({

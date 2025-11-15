@@ -43,7 +43,7 @@ export const workspaceApi = baseApi.injectEndpoints({
                 method: "PUT",
                 body: workspace,
             }),
-            invalidatesTags: ["Workspace", "WorkspaceDetail"],
+            invalidatesTags: ["Workspace", "WorkspaceDetail", "ScriptHistory"],
         }),
 
         deleteWorkspace: builder.mutation<void, number>({
