@@ -101,7 +101,6 @@ export const scriptApi = baseApi.injectEndpoints({
                 }
             },
             invalidatesTags: ["FolderContent", "ScriptHistory"],
-            // Removed invalidatesTags - optimistic update handles the UI update
         }),
         updateScript: builder.mutation<ShellScriptDTO, ShellScriptDTO>({
             query: (request) => ({
@@ -112,7 +111,8 @@ export const scriptApi = baseApi.injectEndpoints({
             invalidatesTags: (_result, _error, { id }) => [
                 { type: "Script", id },
                 "Script",
-                { type: "FolderContent" },
+                "FolderContent",
+                "ScriptHistory",
             ],
         }),
 
