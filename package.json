@@ -11,6 +11,7 @@
     "tauri": "tauri",
     "start:dev": "tauri dev",
     "bundle": "sh build-production.sh",
+    "bundle-frontend": "sh build-frontend-only.sh",
     "icon": "tauri icon"
   },
   "dependencies": {

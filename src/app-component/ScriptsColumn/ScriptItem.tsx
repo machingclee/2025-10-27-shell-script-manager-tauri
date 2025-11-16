@@ -161,7 +161,7 @@ export default function ScriptItem({
 
     const scriptCard = (
         <div
-            className={`px-3 py-2 rounded-md border transition-colors cursor-pointer ${
+            className={`px-3 py-2 rounded-md border transition-colors cursor-pointer w-full overflow-hidden ${
                 isSelected
                     ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
                     : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
@@ -172,21 +172,21 @@ export default function ScriptItem({
             onDoubleClick={(e) => handleRun(e)}
         >
             {parentFolderPath && (
-                <div className="text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)] flex flex-row justify-start">
+                <div className="text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)] flex flex-row justify-start truncate">
                     {parentFolderPath}
                 </div>
             )}
-            <div className="flex items-center gap-2 justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <div>
-                        <div className="font-bold text-lg">{script.name}</div>
+            <div className="flex items-center gap-2 justify-between mb-4 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="min-w-0 flex-1">
+                        <div className="font-bold text-lg break-words">{script.name}</div>
                         {liteVersionDisplay && liteVersionDisplay}
                     </div>
 
-                    {executingScript && <Loader2 className="w-5 h-5 animate-spin" />}
+                    {executingScript && <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />}
                 </div>
                 <div
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => e.stopPropagation()}
                     onMouseUp={(e) => e.stopPropagation()}
@@ -230,7 +230,7 @@ export default function ScriptItem({
                     )}
                 </div>
             </div>
-            <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)] max-h-16 overflow-y-auto line-clamp-4">
+            <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)] max-h-16 overflow-y-auto overflow-x-hidden break-all whitespace-pre-wrap w-full">
                 {script.command}
             </div>
 

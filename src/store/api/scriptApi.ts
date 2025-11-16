@@ -121,7 +121,7 @@ export const scriptApi = baseApi.injectEndpoints({
                 url: `/scripts/${id}?folderId=${folderId}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["Script", { type: "FolderContent" }],
+            invalidatesTags: ["Script", { type: "FolderContent" }, "ScriptHistory"],
             async onQueryStarted({ id, folderId }, { dispatch, queryFulfilled }) {
                 // Optimistically update the cache
                 const patchResult = dispatch(

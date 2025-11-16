@@ -187,7 +187,6 @@ function App() {
                     {selectedFolder?.name}
                 </div>
             </div>
-
             {/* Main content */}
             <div className="flex-1 overflow-hidden flex flex-row">
                 <ResizablePanelGroup direction="horizontal" className="flex-1">

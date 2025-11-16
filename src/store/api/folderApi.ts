@@ -65,7 +65,13 @@ export const folderApi = baseApi.injectEndpoints({
                 url: `/folders/${id}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["FolderContent", "Folder", "Workspace", "WorkspaceDetail"],
+            invalidatesTags: [
+                "FolderContent",
+                "Folder",
+                "Workspace",
+                "WorkspaceDetail",
+                "ScriptHistory",
+            ],
             onQueryStarted: async (id, { dispatch, queryFulfilled, getState }) => {
                 try {
                     await queryFulfilled;
@@ -202,7 +208,7 @@ export const folderApi = baseApi.injectEndpoints({
                 }
             },
 
-            invalidatesTags: ["Folder", "Workspace"],
+            invalidatesTags: ["Folder", "Workspace", "ScriptHistory"],
             // Removed invalidatesTags - optimistic update handles the UI update
         }),
 

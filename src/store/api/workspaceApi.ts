@@ -66,6 +66,7 @@ export const workspaceApi = baseApi.injectEndpoints({
                 { type: "WorkspaceDetail", id: workspaceId },
                 "Workspace",
                 "Folder",
+                "ScriptHistory",
             ],
         }),
         resetFolderParentWorkspace: builder.mutation<WorkspaceWithFoldersDTO, { folderId: number }>(
@@ -74,7 +75,7 @@ export const workspaceApi = baseApi.injectEndpoints({
                     url: `/workspace/folders/${folderId}/reset`,
                     method: "PUT",
                 }),
-                invalidatesTags: ["Workspace", "Folder"],
+                invalidatesTags: ["Workspace", "Folder", "ScriptHistory"],
             }
         ),
 
