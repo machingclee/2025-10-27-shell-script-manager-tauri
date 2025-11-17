@@ -161,7 +161,7 @@ export default function ScriptItem({
 
     const scriptCard = (
         <div
-            className={`px-3 py-2 rounded-md border transition-colors cursor-pointer w-full overflow-hidden ${
+            className={`px-3 py-2 rounded-md border transition-colors cursor-pointer w-full overflow-hidden select-none ${
                 isSelected
                     ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
                     : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
@@ -179,7 +179,9 @@ export default function ScriptItem({
             <div className="flex items-center gap-2 justify-between mb-4 min-w-0">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="min-w-0 flex-1">
-                        <div className="font-bold text-lg break-words">{script.name}</div>
+                        <div className="font-bold text-lg break-words select-none">
+                            {script.name}
+                        </div>
                         {liteVersionDisplay && liteVersionDisplay}
                     </div>
 
