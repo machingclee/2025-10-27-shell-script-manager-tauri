@@ -10,12 +10,15 @@ use prisma::PrismaClient;
 use serde_json;
 use std::process::{Child, Command};
 use std::sync::{Arc, Mutex, OnceLock};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
 pub static PRISMA_CLIENT: OnceLock<PrismaClient> = OnceLock::new();
 pub static SPRING_BOOT_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
 pub static BACKEND_PORT: OnceLock<u16> = OnceLock::new();
+pub static CLEANUP_DONE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
+#[cfg(target_os = "macos")]
+pub static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 
 #[tauri::command]
 async fn run_script(command: String) -> Result<(), String> {
@@ -198,6 +201,17 @@ pub fn run() {
             set_title_bar_color,
         ])
         .setup(|app| {
+            // 0. Initialize cleanup flag
+            CLEANUP_DONE
+                .set(Arc::new(Mutex::new(false)))
+                .map_err(|_| "Failed to initialize cleanup flag")?;
+
+            // 0.1. Store app handle for macOS delegate
+            #[cfg(target_os = "macos")]
+            APP_HANDLE
+                .set(app.handle().clone())
+                .map_err(|_| "Failed to store app handle")?;
+
             // 1. Setup macOS window appearance
             #[cfg(target_os = "macos")]
             setup_macos_window(app);
@@ -226,25 +240,56 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Check if cleanup has already been done
+                if let Some(cleanup_flag) = CLEANUP_DONE.get() {
+                    let mut cleanup_done = cleanup_flag.lock().unwrap();
+
+                    if *cleanup_done {
+                        // Cleanup already done, allow the close
+                        println!("Cleanup already completed, allowing window to close");
+                        return;
+                    }
+
+                    // Mark cleanup as in progress
+                    *cleanup_done = true;
+                }
+
                 // Prevent default close behavior
                 api.prevent_close();
 
-                // Kill Spring Boot backend and wait for it to finish
-                println!("Window close requested, shutting down backend...");
-                kill_spring_boot_backend();
+                // Emit event to frontend to show loading spinner
+                window.emit("app-closing", ()).ok();
 
-                // Give it extra time to ensure cleanup is complete
-                std::thread::sleep(std::time::Duration::from_secs(2));
+                // Clone window for async task
+                let window_clone = window.clone();
 
-                // Verify the process is actually dead
-                verify_backend_killed();
+                // Spawn async task to handle shutdown
+                tauri::async_runtime::spawn(async move {
+                    // Give frontend time to show the spinner
+                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
-                // Now allow the window to close
-                window.close().ok();
+                    // Kill Spring Boot backend and wait for it to finish
+                    println!("Window close requested, shutting down backend...");
+                    kill_spring_boot_backend();
+
+                    // Give it extra time to ensure cleanup is complete
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+                    // Verify the process is actually dead
+                    verify_backend_killed();
+
+                    println!("Cleanup complete, closing window now");
+
+                    // Now allow the window to close
+                    window_clone.close().ok();
+                });
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_app_handle, _event| {
+            // Event handling - Command+Q is intercepted by NSApplication delegate on macOS
+        });
 }
 
 // Function to determine database path based on environment
@@ -941,6 +986,98 @@ fn setup_macos_window(app: &tauri::App) {
                 }
             }
         }
+    }
+
+    // Setup application delegate to intercept Command+Q
+    setup_app_delegate();
+}
+
+// Setup NSApplication delegate to intercept terminate events (Command+Q)
+#[cfg(target_os = "macos")]
+fn setup_app_delegate() {
+    use cocoa::appkit::NSApplication;
+    use cocoa::base::{id, nil};
+    use objc::declare::ClassDecl;
+    use objc::runtime::{Class, Object, Sel};
+
+    unsafe {
+        // Get the shared NSApplication instance
+        let app: id = NSApplication::sharedApplication(nil);
+
+        // Create a custom delegate class
+        let superclass = Class::get("NSObject").unwrap();
+        let mut decl = ClassDecl::new("TauriAppDelegate", superclass).unwrap();
+
+        // Add applicationShouldTerminate: method
+        extern "C" fn should_terminate(_: &Object, _: Sel, _sender: id) -> usize {
+            eprintln!("=== applicationShouldTerminate called (Command+Q intercepted) ===");
+
+            // Check if cleanup has already been done
+            if let Some(cleanup_flag) = CLEANUP_DONE.get() {
+                let mut cleanup_done = cleanup_flag.lock().unwrap();
+
+                if *cleanup_done {
+                    eprintln!("=== Cleanup already completed, allowing termination ===");
+                    return 1; // NSTerminateNow
+                }
+
+                // Mark cleanup as in progress
+                *cleanup_done = true;
+            }
+
+            // Emit event to frontend to show loading spinner
+            if let Some(app_handle) = APP_HANDLE.get() {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    eprintln!("=== Emitting app-closing event ===");
+                    window.emit("app-closing", ()).ok();
+                }
+
+                // Clone app_handle for async task
+                let app_handle_clone = app_handle.clone();
+
+                // Spawn async task for cleanup
+                tauri::async_runtime::spawn(async move {
+                    // Give frontend time to show the spinner
+                    tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+
+                    // Kill Spring Boot backend synchronously
+                    eprintln!("=== Killing Spring Boot backend... ===");
+                    kill_spring_boot_backend();
+
+                    // Wait for cleanup
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+                    // Verify cleanup
+                    verify_backend_killed();
+
+                    eprintln!("=== Backend killed, terminating app ===");
+
+                    // Terminate the application
+                    unsafe {
+                        use cocoa::appkit::NSApplication;
+                        use cocoa::base::nil;
+                        let app: id = NSApplication::sharedApplication(nil);
+                        let _: () = msg_send![app, terminate: nil];
+                    }
+                });
+            }
+
+            // Return NSTerminateLater (0) to allow async cleanup
+            0
+        }
+
+        decl.add_method(
+            sel!(applicationShouldTerminate:),
+            should_terminate as extern "C" fn(&Object, Sel, id) -> usize,
+        );
+
+        let delegate_class = decl.register();
+        let delegate_object: id = msg_send![delegate_class, new];
+
+        // Set the delegate
+        let _: () = msg_send![app, setDelegate: delegate_object];
+
+        eprintln!("=== macOS app delegate installed successfully ===");
     }
 }
 

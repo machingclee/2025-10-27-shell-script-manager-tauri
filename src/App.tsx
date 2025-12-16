@@ -14,6 +14,7 @@ import { folderApi } from "./store/api/folderApi";
 import HistoryButton from "./app-component/History/HistoryButton";
 import HistoryPanel from "./app-component/History/HistoryPanel";
 import { Toaster } from "./components/ui/toaster";
+import AppClosingOverlay from "./components/AppClosingOverlay";
 
 function App() {
     const dispatch = useAppDispatch();
@@ -205,6 +206,7 @@ function App() {
                 )}
             </div>
             <Toaster />
+            <AppClosingOverlay />
         </div>
     );
 }

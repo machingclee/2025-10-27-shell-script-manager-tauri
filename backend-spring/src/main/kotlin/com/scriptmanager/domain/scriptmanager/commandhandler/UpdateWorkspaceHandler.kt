@@ -17,9 +17,6 @@ class UpdateWorkspaceHandler(
 ) : CommandHandler<UpdateWorkspaceCommand, WorkspaceDTO> {
 
     override fun handle(eventQueue: EventQueue, command: UpdateWorkspaceCommand): WorkspaceDTO {
-        // Validate workspace name
-        require(command.name.isNotBlank()) { "Workspace name cannot be blank" }
-
         val workspace = workspaceRepository.findByIdOrNull(command.id)
             ?: throw Exception("Workspace not found")
 
@@ -34,3 +31,4 @@ class UpdateWorkspaceHandler(
         return dto
     }
 }
+
