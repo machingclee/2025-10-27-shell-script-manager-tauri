@@ -128,7 +128,7 @@ class GenerateDTOProcessor(
 
     private fun getEmbeddedProperties(
         embeddedProperty: KSPropertyDeclaration,
-        resolver: Resolver,
+        @Suppress("UNUSED_PARAMETER") resolver: Resolver,
         typeParameterResolver: TypeParameterResolver,
     ): List<DTOProperty> {
         val embeddedProperties = mutableListOf<DTOProperty>()

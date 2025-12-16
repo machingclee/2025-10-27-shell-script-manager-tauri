@@ -225,8 +225,22 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Prevent default close behavior
+                api.prevent_close();
+
+                // Kill Spring Boot backend and wait for it to finish
+                println!("Window close requested, shutting down backend...");
                 kill_spring_boot_backend();
+
+                // Give it extra time to ensure cleanup is complete
+                std::thread::sleep(std::time::Duration::from_secs(2));
+
+                // Verify the process is actually dead
+                verify_backend_killed();
+
+                // Now allow the window to close
+                window.close().ok();
             }
         })
         .run(tauri::generate_context!())
@@ -284,12 +298,17 @@ pub fn open_terminal_and_keep_open(command: String) {
     #[cfg(target_os = "macos")]
     {
         let home_dir = dirs::home_dir().unwrap_or_default();
-        
+
         // Create a temporary script file to avoid complex quoting issues
         let temp_dir = std::env::temp_dir();
         let script_path = temp_dir.join(format!("tauri_script_{}.sh", std::process::id()));
 
-        let script_content = format!("#!/bin/bash\ncd '{}'\n{}\nrm '{}'\n", home_dir.display(), command, script_path.display());
+        let script_content = format!(
+            "#!/bin/bash\ncd '{}'\n{}\nrm '{}'\n",
+            home_dir.display(),
+            command,
+            script_path.display()
+        );
 
         // Write the script file
         if let Err(e) = std::fs::write(&script_path, script_content) {
@@ -634,8 +653,128 @@ fn kill_spring_boot_backend() {
     if let Some(process_mutex) = SPRING_BOOT_PROCESS.get() {
         if let Some(mut process) = process_mutex.lock().unwrap().take() {
             println!("Shutting down Spring Boot backend...");
-            let _ = process.kill();
+
+            // Get the process ID
+            let pid = process.id();
+
+            // Try to kill the process
+            match process.kill() {
+                Ok(_) => {
+                    println!(
+                        "Successfully sent kill signal to Spring Boot backend (PID: {})",
+                        pid
+                    );
+
+                    // Wait for the process to actually die (with longer timeout)
+                    let start = std::time::Instant::now();
+                    let timeout = std::time::Duration::from_secs(10);
+                    let mut exited = false;
+
+                    while start.elapsed() < timeout {
+                        match process.try_wait() {
+                            Ok(Some(status)) => {
+                                println!("Spring Boot backend exited with status: {:?}", status);
+                                exited = true;
+                                break;
+                            }
+                            Ok(None) => {
+                                // Still running, wait a bit more
+                                std::thread::sleep(std::time::Duration::from_millis(200));
+                            }
+                            Err(e) => {
+                                eprintln!("Error waiting for Spring Boot backend: {}", e);
+                                break;
+                            }
+                        }
+                    }
+
+                    if !exited {
+                        println!("Process did not exit gracefully, forcing kill...");
+                    }
+
+                    // Force kill if still running on Unix systems
+                    #[cfg(unix)]
+                    {
+                        use std::process::Command;
+                        // Try to kill the process group to ensure all children are killed
+                        let _ = Command::new("pkill")
+                            .arg("-P")
+                            .arg(pid.to_string())
+                            .output();
+
+                        // Also kill by process name as a fallback
+                        let _ = Command::new("pkill")
+                            .arg("-9") // Force kill
+                            .arg("-f")
+                            .arg("backend-native")
+                            .output();
+
+                        // Wait a bit for force kill to complete
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to kill Spring Boot backend: {}", e);
+
+                    // Try killing by process name as fallback
+                    #[cfg(unix)]
+                    {
+                        use std::process::Command;
+                        let _ = Command::new("pkill")
+                            .arg("-9") // Force kill
+                            .arg("-f")
+                            .arg("backend-native")
+                            .output();
+                    }
+                }
+            }
+        } else {
+            println!("No Spring Boot backend process to kill");
         }
+    } else {
+        println!("Spring Boot process storage not initialized");
+    }
+}
+
+// Verify that the backend process is actually killed
+fn verify_backend_killed() {
+    #[cfg(unix)]
+    {
+        use std::process::Command;
+
+        // Check if backend-native process is still running
+        let output = Command::new("pgrep")
+            .arg("-f")
+            .arg("backend-native")
+            .output();
+
+        match output {
+            Ok(output) => {
+                if output.stdout.is_empty() {
+                    println!("✓ Backend process verified as killed");
+                } else {
+                    println!("⚠ Warning: Backend process may still be running");
+                    println!("Attempting final cleanup...");
+
+                    // One more aggressive kill attempt
+                    let _ = Command::new("pkill")
+                        .arg("-9")
+                        .arg("-f")
+                        .arg("backend-native")
+                        .output();
+
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                }
+            }
+            Err(e) => {
+                eprintln!("Could not verify backend status: {}", e);
+            }
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        println!("Process verification not available on this platform");
     }
 }
 

@@ -78,7 +78,9 @@ class ScriptController(
     @PostMapping("/reorder")
     fun reorderScripts(@RequestBody request: ReorderScriptsRequest): ApiResponse<Unit> {
         val command = ReorderScriptsCommand(
-
+            folderId = request.folderId,
+            fromIndex = request.fromIndex,
+            toIndex = request.toIndex
         )
         commandInvoker.invoke(reorderScriptsHandler, command)
         return ApiResponse()
