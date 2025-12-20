@@ -125,6 +125,7 @@ export default function ScriptItem({
             command: editCommand,
             showShell: showShell,
             locked: locked,
+            isMarkdown: script.isMarkdown,
         };
         await updateScript(finalScriptDTO);
         setIsEditOpen(false);
@@ -285,10 +286,19 @@ export default function ScriptItem({
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsEditOpen(false)}
+                            className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                        >
                             Cancel
                         </Button>
-                        <Button onClick={handleUpdate}>Save Changes</Button>
+                        <Button
+                            onClick={handleUpdate}
+                            className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                        >
+                            Save Changes
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

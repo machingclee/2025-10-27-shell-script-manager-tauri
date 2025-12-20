@@ -5,7 +5,9 @@ import com.scriptmanager.common.dto.toResponse
 import com.scriptmanager.common.entity.ShellScript
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
+import com.scriptmanager.domain.scriptmanager.command.CreateMarkdownCommand
 import com.scriptmanager.domain.scriptmanager.command.CreateScriptCommand
+import com.scriptmanager.domain.scriptmanager.event.MarkdownCreatedEvent
 import com.scriptmanager.domain.scriptmanager.event.ScriptCreatedEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository
@@ -13,14 +15,15 @@ import jakarta.persistence.EntityManager
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
-@Component
-class CreateScriptHandler(
-    private val scriptRepository: ShellScriptRepository,
-    private val folderRepository: ScriptsFolderRepository,
-    private val entityManager: EntityManager
-) : CommandHandler<CreateScriptCommand, ShellScriptResponse> {
 
-    override fun handle(eventQueue: EventQueue, command: CreateScriptCommand): ShellScriptResponse {
+@Component
+class CreateMarkdownHandler(
+    private val folderRepository: ScriptsFolderRepository,
+    private val scriptRepository: ShellScriptRepository,
+    private val entityManager: EntityManager
+) : CommandHandler<CreateMarkdownCommand, ShellScriptResponse> {
+
+    override fun handle(eventQueue: EventQueue, command: CreateMarkdownCommand): ShellScriptResponse {
 
         val folder = folderRepository.findByIdOrNull(command.folderId)
             ?: throw Exception("Folder not found")
@@ -28,7 +31,7 @@ class CreateScriptHandler(
         val script = ShellScript(
             name = command.name,
             command = command.content,
-            isMarkdown = false
+            isMarkdown = true
         )
 
         val savedScript = scriptRepository.save(script)
@@ -40,9 +43,14 @@ class CreateScriptHandler(
         entityManager.refresh(savedScript)
 
         val response = savedScript.toResponse()
-        eventQueue.add(ScriptCreatedEvent(response))
+
+        eventQueue.add(
+            MarkdownCreatedEvent(
+                scriptId = response.id!!,
+                content = response.command
+            )
+        )
 
         return response
     }
 }
-

@@ -44,6 +44,14 @@ export const scriptApi = baseApi.injectEndpoints({
 
             invalidatesTags: ["FolderContent", "Folder"],
         }),
+        createMarkdownScript: builder.mutation<ShellScriptResponse, CreateScriptRequest>({
+            query: (request) => ({
+                url: "/scripts/markdowns",
+                method: "POST",
+                body: request,
+            }),
+            invalidatesTags: ["FolderContent", "Folder"],
+        }),
         moveScriptIntoFolder: builder.mutation<
             ShellScriptDTO,
             { scriptId: number; folderId: number; rootFolderId: number }
@@ -115,7 +123,19 @@ export const scriptApi = baseApi.injectEndpoints({
                 "ScriptHistory",
             ],
         }),
-
+        updateMarkdownScript: builder.mutation<ShellScriptDTO, ShellScriptDTO>({
+            query: (request) => ({
+                url: `/scripts/markdowns/${request.id}`,
+                method: "PUT",
+                body: request,
+            }),
+            invalidatesTags: (_result, _error, { id }) => [
+                { type: "Script", id },
+                "Script",
+                "FolderContent",
+                "ScriptHistory",
+            ],
+        }),
         deleteScript: builder.mutation<void, { id: number; folderId: number }>({
             query: ({ id, folderId }) => ({
                 url: `/scripts/${id}?folderId=${folderId}`,

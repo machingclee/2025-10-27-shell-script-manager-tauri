@@ -22,6 +22,7 @@ export type ShellScriptDTO = {
     showShell: boolean;
     createdAt?: number;
     createdAtHk?: string;
+    isMarkdown: boolean;
 };
 
 export type ScriptsFolderResponse = {
@@ -46,6 +47,7 @@ export type ShellScriptResponse = {
     createdAt: number;
     createdAtHk: string;
     parentFolderId: number;
+    isMarkdown: boolean;
 };
 
 export type AppStateDTO = {

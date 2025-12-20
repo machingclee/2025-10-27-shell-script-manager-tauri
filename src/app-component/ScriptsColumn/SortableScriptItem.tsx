@@ -3,7 +3,7 @@ import { defaultAnimateLayoutChanges, useSortable } from "@dnd-kit/sortable";
 import React from "react";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
-import ScriptItem from "./ScriptItem";
+import GenericScriptItem from "./GenericScriptItem.tsx";
 
 export default function SortableScriptItem({
     script,
@@ -57,7 +57,7 @@ export default function SortableScriptItem({
                 <GripVertical className="w-4 h-4" />
             </div>
             <div className="flex-1">
-                <ScriptItem script={script} parentFolderId={parentFolderId} />
+                <GenericScriptItem script={script} parentFolderId={parentFolderId} />
             </div>
         </div>
     );

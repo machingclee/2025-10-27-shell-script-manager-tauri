@@ -16,11 +16,13 @@ class ScriptController(
     private val scriptRepository: ShellScriptRepository,
     private val commandInvoker: CommandInvoker,
     private val createScriptHandler: CreateScriptHandler,
+    private val createMarkdownHandler: CreateMarkdownHandler,
     private val updateScriptHandler: UpdateScriptHandler,
     private val deleteScriptHandler: DeleteScriptHandler,
     private val reorderScriptsHandler: ReorderScriptsHandler,
     private val moveScriptToFolderHandler: MoveScriptToFolderHandler,
     private val createScriptHistoryHandler: CreateScriptHistoryHandler,
+    private val updateMarkdownHandler: UpdateMarkdownHandler,
     private val historicalShellScriptRepository: HistoricalShellScriptRepository
 ) {
 
@@ -47,6 +49,18 @@ class ScriptController(
         return ApiResponse(result)
     }
 
+
+    @PostMapping("/markdowns")
+    fun createMarkdown(@RequestBody request: CreateMarkdownRequest): ApiResponse<ShellScriptResponse> {
+        val command = CreateMarkdownCommand(
+            folderId = request.folderId,
+            name = request.name,
+            content = request.content
+        )
+        val result = commandInvoker.invoke(createMarkdownHandler, command)
+        return ApiResponse(result)
+    }
+
     @PutMapping("/{id}")
     fun updateScript(
         @PathVariable id: Int,
@@ -61,6 +75,20 @@ class ScriptController(
         )
         return commandInvoker.invoke(updateScriptHandler, command)
     }
+
+
+    @PutMapping("/markdowns/{id}")
+    fun updateMarkdownScript(
+        @PathVariable id: Int,
+        @RequestBody scriptDetails: ShellScriptDTO
+    ): ShellScriptDTO {
+        val command = UpdateMarkdownCommand(
+            id,
+            content = scriptDetails.command
+        )
+        return commandInvoker.invoke(updateMarkdownHandler, command)
+    }
+
 
     @DeleteMapping("/{id}")
     fun deleteScript(

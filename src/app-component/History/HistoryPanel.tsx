@@ -1,5 +1,5 @@
 import { scriptApi } from "@/store/api/scriptApi";
-import ScriptItem from "../ScriptsColumn/ScriptItem";
+import GenericScriptItem from "../ScriptsColumn/GenericScriptItem";
 import dayjs from "dayjs";
 
 export default function HistoryPanel() {
@@ -22,7 +22,7 @@ export default function HistoryPanel() {
                 <div className="space-y-3">
                     {histories?.map((item) => (
                         <div key={item.history.id}>
-                            <ScriptItem
+                            <GenericScriptItem
                                 parentFolderPath={item.parentFolderPath}
                                 script={item.shellScript}
                                 parentFolderId={0}

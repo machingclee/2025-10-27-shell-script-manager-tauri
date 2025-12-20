@@ -23,7 +23,7 @@ import { ShellScriptDTO, ScriptsFolderResponse, ShellScriptResponse } from "@/ty
 import folderSlice from "@/store/slices/folderSlice";
 import SortableSubfoldersContext from "./SortableSubfoldersContext";
 import SortableScriptsContext from "./SortableScriptsContext";
-import ScriptItem from "./ScriptItem";
+import GenericScriptItem from "./GenericScriptItem";
 import CollapsableFolder from "./SortatbleCollapsableFolder";
 
 // Helper function to find script recursively in folders and subfolders
@@ -392,7 +392,7 @@ export default function ScriptsColumn() {
                                 return scriptInfo ? (
                                     <div className="opacity-80 cursor-grabbing">
                                         <div className="bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700">
-                                            <ScriptItem
+                                            <GenericScriptItem
                                                 script={scriptInfo.script}
                                                 parentFolderId={scriptInfo.parentFolderId}
                                             />

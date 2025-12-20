@@ -35,7 +35,11 @@ class ShellScript(
 
     @Column(name = "created_at_hk")
     @Generated
-    val createdAtHk: String? = null
+    val createdAtHk: String? = null,
+
+    @Column(name = "is_markdown")
+    val isMarkdown: Boolean
+
 ) {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(

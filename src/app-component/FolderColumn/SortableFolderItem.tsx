@@ -76,14 +76,18 @@ export default React.memo(
         });
         const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
         const [createScript] = scriptApi.endpoints.createScript.useMutation();
+        const [createMarkdownScript] = scriptApi.endpoints.createMarkdownScript.useMutation();
         const [isRenameOpen, setIsRenameOpen] = useState(false);
         const [isDeleteOpen, setIsDeleteOpen] = useState(false);
         const [isCreateSubfolderOpen, setIsCreateSubfolderOpen] = useState(false);
         const [isAddScriptOpen, setIsAddScriptOpen] = useState(false);
+        const [isAddMarkdownOpen, setIsAddMarkdownOpen] = useState(false);
         const [newName, setNewName] = useState(folder.name);
         const [subfolderName, setSubfolderName] = useState("");
         const [scriptName, setScriptName] = useState("");
         const [scriptCommand, setScriptCommand] = useState("");
+        const [markdownName, setMarkdownName] = useState("");
+        const [markdownContent, setMarkdownContent] = useState("");
 
         const style: React.CSSProperties = {
             transform: CSS.Transform.toString(transform),
@@ -123,6 +127,19 @@ export default React.memo(
                 setScriptName("");
                 setScriptCommand("");
                 setIsAddScriptOpen(false);
+            }
+        };
+
+        const handleAddMarkdown = async () => {
+            if (markdownName.trim() && markdownContent.trim()) {
+                await createMarkdownScript({
+                    name: markdownName,
+                    content: markdownContent,
+                    folderId: folder.id,
+                });
+                setMarkdownName("");
+                setMarkdownContent("");
+                setIsAddMarkdownOpen(false);
             }
         };
 
@@ -179,6 +196,19 @@ export default React.memo(
                                 <Plus className="w-4 h-4 mr-2" />
                                 Add Script
                             </ContextMenuItem>
+
+                            <ContextMenuItem
+                                className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                                onClick={() => {
+                                    setMarkdownName("");
+                                    setMarkdownContent("");
+                                    setIsAddMarkdownOpen(true);
+                                }}
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Markdown
+                            </ContextMenuItem>
+
                             <ContextMenuItem
                                 className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                                 onClick={() => {
@@ -347,6 +377,52 @@ export default React.memo(
                                 disabled={!scriptName.trim() || !scriptCommand.trim()}
                             >
                                 Create Script
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Add Markdown Dialog */}
+                <Dialog open={isAddMarkdownOpen} onOpenChange={setIsAddMarkdownOpen}>
+                    <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
+                        <DialogHeader>
+                            <DialogTitle>Add Markdown to "{folder.name}"</DialogTitle>
+                            <DialogDescription>
+                                Create a new markdown document inside this folder.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="markdown-name">Name</Label>
+                                <Input
+                                    className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                                    id="markdown-name"
+                                    value={markdownName}
+                                    onChange={(e) => setMarkdownName(e.target.value)}
+                                    placeholder="Markdown name"
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="markdown-content">Content</Label>
+                                <Textarea
+                                    id="markdown-content"
+                                    value={markdownContent}
+                                    onChange={(e) => setMarkdownContent(e.target.value)}
+                                    placeholder="Markdown content"
+                                    rows={18}
+                                    className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsAddMarkdownOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleAddMarkdown}
+                                disabled={!markdownName.trim() || !markdownContent.trim()}
+                            >
+                                Create Markdown
                             </Button>
                         </DialogFooter>
                     </DialogContent>

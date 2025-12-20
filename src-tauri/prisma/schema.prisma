@@ -49,6 +49,7 @@ model rel_scriptsfolder_shellscript {
 
 model shell_script {
     id                            Int                             @id @default(autoincrement())
+    is_markdown                   Boolean                         @default(false)
     name                          String
     command                       String
     ordering                      Int

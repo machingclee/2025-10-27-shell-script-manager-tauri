@@ -21,6 +21,12 @@ data class CreateScriptRequest(
     val folderId: Int
 )
 
+data class CreateMarkdownRequest(
+    val name: String,
+    val content: String,
+    val folderId: Int
+)
+
 data class ReorderRequest(
     val parentFolderId: Int?,
     val parentWorkspaceId: Int?,
@@ -89,7 +95,8 @@ fun ShellScript.toResponse(): ShellScriptResponse {
         showShell = this.showShell,
         createdAt = this.createdAt,
         createdAtHk = this.createdAtHk,
-        parentFolderId = this.parentFolder?.id
+        parentFolderId = this.parentFolder?.id,
+        isMarkdown = this.isMarkdown ?: false
     )
 }
 
@@ -103,7 +110,8 @@ data class ShellScriptResponse(
     val showShell: Boolean,
     val createdAt: Double?,
     val createdAtHk: String?,
-    val parentFolderId: Int?
+    val parentFolderId: Int?,
+    val isMarkdown: Boolean
 )
 
 data class CreateSubfolderRequest(
