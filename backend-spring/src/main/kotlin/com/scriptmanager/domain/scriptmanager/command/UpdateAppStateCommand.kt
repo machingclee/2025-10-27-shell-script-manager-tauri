@@ -1,5 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.command
 
+import com.scriptmanager.common.entity.AppStateDTO
+import com.scriptmanager.domain.infrastructure.Command
 
 data class UpdateAppStateCommand(
     val id: Int?,
@@ -7,4 +9,4 @@ data class UpdateAppStateCommand(
     val darkMode: Boolean,
     val createdAt: Double?,
     val createdAtHk: String?,
-)
+) : Command<AppStateDTO>

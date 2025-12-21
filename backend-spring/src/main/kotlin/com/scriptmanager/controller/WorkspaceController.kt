@@ -2,39 +2,29 @@ package com.scriptmanager.controller
 
 import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.WorkspaceDTO
-import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
+import com.scriptmanager.domain.infrastructure.QueryInvoker
 import com.scriptmanager.domain.scriptmanager.command.*
-import com.scriptmanager.domain.scriptmanager.commandhandler.*
-import com.scriptmanager.repository.WorkspaceRepository
+import com.scriptmanager.domain.scriptmanager.query.GetAllWorkspacesQuery
+import com.scriptmanager.domain.scriptmanager.query.GetWorkspaceByIdQuery
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/workspace")
 @Tag(name = "Workspace Management", description = "APIs for managing workspaces")
 class WorkspaceController(
-    private val workspaceRepository: WorkspaceRepository,
     private val commandInvoker: CommandInvoker,
-    private val createWorkspaceHandler: CreateWorkspaceHandler,
-    private val updateWorkspaceHandler: UpdateWorkspaceHandler,
-    private val deleteWorkspaceHandler: DeleteWorkspaceHandler,
-    private val addFolderToWorkspaceHandler: AddFolderToWorkspaceHandler,
-    private val removeFolderFromWorkspaceHandler: RemoveFolderFromWorkspaceHandler,
-    private val reorderWorkspacesHandler: ReorderWorkspacesHandler,
-    private val reorderWorkspaceFoldersHandler: ReorderWorkspaceFoldersHandler,
-    private val createFolderInWorkspaceHandler: CreateFolderInWorkspaceHandler
+    private val queryInvoker: QueryInvoker
 ) {
 
     @Operation(summary = "Get all workspaces", description = "Retrieves all workspaces ordered by their ordering value")
     @GetMapping
     fun getAllWorkspaces(): ApiResponse<List<WorkspaceResponse>> {
-        val workspaces = workspaceRepository.findAll()
-            .sortedBy { it.ordering }
-            .map { it.toResponse() }
+        val query = GetAllWorkspacesQuery()
+        val workspaces = queryInvoker.invoke(query)
         return ApiResponse(workspaces)
     }
 
@@ -44,9 +34,9 @@ class WorkspaceController(
         @Parameter(description = "Workspace ID", required = true)
         @PathVariable id: Int
     ): ApiResponse<WorkspaceWithFoldersDTO> {
-        val workspace = workspaceRepository.findByIdOrNull(id)
-            ?: throw Exception("Workspace not found")
-        return ApiResponse(workspace.toWorkspaceWithFoldersDTO())
+        val query = GetWorkspaceByIdQuery(workspaceId = id)
+        val workspace = queryInvoker.invoke(query)
+        return ApiResponse(workspace)
     }
 
     @Operation(summary = "Create a new workspace", description = "Creates a new workspace with automatic ordering")
@@ -56,7 +46,7 @@ class WorkspaceController(
         @RequestBody request: CreateWorkspaceRequest
     ): ApiResponse<WorkspaceDTO> {
         val command = CreateWorkspaceCommand(name = request.name)
-        val result = commandInvoker.invoke(createWorkspaceHandler, command)
+        val result = commandInvoker.invoke(command)
         return ApiResponse(result)
     }
 
@@ -73,7 +63,7 @@ class WorkspaceController(
             name = workspaceDetails.name,
             ordering = workspaceDetails.ordering
         )
-        val result = commandInvoker.invoke(updateWorkspaceHandler, command)
+        val result = commandInvoker.invoke(command)
         return ApiResponse(result)
     }
 
@@ -84,7 +74,7 @@ class WorkspaceController(
         @PathVariable id: Int
     ): ApiResponse<Unit> {
         val command = DeleteWorkspaceCommand(id = id)
-        commandInvoker.invoke(deleteWorkspaceHandler, command)
+        commandInvoker.invoke(command)
         return ApiResponse()
     }
 
@@ -99,7 +89,7 @@ class WorkspaceController(
             workspaceId = workspaceId,
             folderId = folderId
         )
-        val result = commandInvoker.invoke(addFolderToWorkspaceHandler, command)
+        val result = commandInvoker.invoke(command)
         return ApiResponse(result)
     }
 
@@ -110,7 +100,7 @@ class WorkspaceController(
         @PathVariable folderId: Int
     ): ApiResponse<WorkspaceWithFoldersDTO> {
         val command = RemoveFolderFromWorkspaceCommand(folderId = folderId)
-        val result = commandInvoker.invoke(removeFolderFromWorkspaceHandler, command)
+        val result = commandInvoker.invoke(command)
         return ApiResponse(result)
     }
 
@@ -124,7 +114,7 @@ class WorkspaceController(
             fromIndex = request.fromIndex,
             toIndex = request.toIndex
         )
-        commandInvoker.invoke(reorderWorkspacesHandler, command)
+        commandInvoker.invoke(command)
         return ApiResponse()
     }
 
@@ -141,7 +131,7 @@ class WorkspaceController(
             fromIndex = request.fromIndex,
             toIndex = request.toIndex
         )
-        commandInvoker.invoke(reorderWorkspaceFoldersHandler, command)
+        commandInvoker.invoke(command)
         return ApiResponse()
     }
 
@@ -158,7 +148,7 @@ class WorkspaceController(
             workspaceId = workspaceId,
             name = request.name
         )
-        val result = commandInvoker.invoke(createFolderInWorkspaceHandler, command)
+        val result = commandInvoker.invoke(command)
         return ApiResponse(result)
     }
 }

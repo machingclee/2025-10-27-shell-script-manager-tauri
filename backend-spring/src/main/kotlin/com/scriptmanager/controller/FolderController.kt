@@ -3,32 +3,27 @@ package com.scriptmanager.controller
 import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.ScriptsFolderDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
+import com.scriptmanager.domain.infrastructure.QueryInvoker
 import com.scriptmanager.domain.scriptmanager.command.*
-import com.scriptmanager.domain.scriptmanager.commandhandler.*
-import com.scriptmanager.repository.ScriptsFolderRepository
+import com.scriptmanager.domain.scriptmanager.query.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/folders")
 @Tag(name = "Folder Management", description = "APIs for managing script folders")
 class FolderController(
-    private val folderRepository: ScriptsFolderRepository,
     private val commandInvoker: CommandInvoker,
-    private val createFolderHandler: CreateFolderHandler,
-    private val updateFolderHandler: UpdateFolderHandler,
-    private val deleteFolderHandler: DeleteFolderHandler,
-    private val reorderFoldersHandler: ReorderFoldersHandler,
-    private val addSubfolderHandler: AddSubfolderHandler
+    private val queryInvoker: QueryInvoker
 ) {
 
     @Operation(summary = "Get all folders", description = "Retrieves all script folders ordered by their ordering value")
     @GetMapping
     fun getAllFolders(): ApiResponse<List<ScriptsFolderResponse>> {
-        val folders = folderRepository.findAllRootLevelFolder().map { it.toResponse() }
+        val query = GetAllRootFoldersQuery()
+        val folders = queryInvoker.invoke(query)
         return ApiResponse(folders)
     }
 
@@ -38,8 +33,9 @@ class FolderController(
         @Parameter(description = "Folder ID", required = true)
         @PathVariable id: Int
     ): ApiResponse<ScriptsFolderResponse> {
-        val folder = folderRepository.findByIdOrNull(id) ?: throw Exception("Folder not found")
-        return ApiResponse(folder.toResponse())
+        val query = GetFolderByIdQuery(folderId = id)
+        val folder = queryInvoker.invoke(query)
+        return ApiResponse(folder)
     }
 
     @Operation(summary = "Create a new folder", description = "Creates a new script folder with automatic ordering")
@@ -49,7 +45,7 @@ class FolderController(
         @RequestBody request: CreateFolderRequest
     ): ApiResponse<ScriptsFolderDTO> {
         val command = CreateFolderCommand(name = request.name)
-        val result = commandInvoker.invoke(createFolderHandler, command)
+        val result = commandInvoker.invoke(command)
         return ApiResponse(result)
     }
 
@@ -66,7 +62,7 @@ class FolderController(
             name = folderDetails.name,
             ordering = folderDetails.ordering
         )
-        val result = commandInvoker.invoke(updateFolderHandler, command)
+        val result = commandInvoker.invoke(command)
         return ApiResponse(result)
     }
 
@@ -77,7 +73,7 @@ class FolderController(
         @PathVariable id: Int
     ): ApiResponse<Unit> {
         val command = DeleteFolderCommand(id = id)
-        commandInvoker.invoke(deleteFolderHandler, command)
+        commandInvoker.invoke(command)
         return ApiResponse()
     }
 
@@ -88,8 +84,9 @@ class FolderController(
         @Parameter(description = "Folder ID", required = true)
         @PathVariable id: Int
     ): ApiResponse<ScriptsFolderResponse> {
-        val folder = folderRepository.findByIdOrNull(id) ?: throw Exception("Folder not found")
-        return ApiResponse(folder.toResponse())
+        val query = GetFolderContentByIdQuery(folderId = id)
+        val folder = queryInvoker.invoke(query)
+        return ApiResponse(folder)
     }
 
 
@@ -105,7 +102,7 @@ class FolderController(
             fromIndex = request.fromIndex,
             toIndex = request.toIndex
         )
-        commandInvoker.invoke(reorderFoldersHandler, command)
+        commandInvoker.invoke(command)
         return ApiResponse()
     }
 
@@ -120,7 +117,7 @@ class FolderController(
             parentFolderId = parentFolderId,
             name = request.name
         )
-        commandInvoker.invoke(addSubfolderHandler, command)
+        commandInvoker.invoke(command)
         return ApiResponse()
     }
 }

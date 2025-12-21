@@ -1,23 +1,23 @@
 package com.scriptmanager.controller
 
-import org.springframework.beans.factory.annotation.Value
+import com.scriptmanager.domain.infrastructure.QueryInvoker
+import com.scriptmanager.domain.scriptmanager.query.GetHealthQuery
+import com.scriptmanager.domain.scriptmanager.query.HealthResponse
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
+@Tag(name = "Health Check", description = "APIs for health monitoring")
 class HealthController(
-    @Value("\${spring.datasource.url}")
-    private val databaseUrl: String
+    private val queryInvoker: QueryInvoker
 ) {
 
-    data class HealthResponse(
-        val status: String = "UP",
-        val timestamp: Long = System.currentTimeMillis(),
-        val databaseUrl: String
-    )
-
+    @Operation(summary = "Health check", description = "Returns the health status of the application")
     @GetMapping("/health")
     fun health(): HealthResponse {
-        return HealthResponse(databaseUrl = databaseUrl)
+        val query = GetHealthQuery()
+        return queryInvoker.invoke(query)
     }
 }

@@ -61,39 +61,8 @@ class SmartEventQueue : EventQueue {
     }
 
     private fun captureCurrentCommandContext(): ExecutionContext {
-        val stackTrace = Thread.currentThread().stackTrace
         var commandName: String? = null
 
-        // Look for command handler in the stack trace
-        for (stackElement in stackTrace) {
-            val className = stackElement.className
-
-            //if (className.contains("dev.james.alicetimetable.domain.context.timetable.commandhandler") &&
-            //    className.endsWith("Handler")
-            //) {
-            //    val handlerName = className.substringAfterLast(".")
-            //    commandName = handlerName.replace("Handler", "Command")
-            //    break
-            //}
-            //
-            //if (className.contains("dev.james.alicetimetable.domain.context.user.commandhandler") &&
-            //    className.endsWith("Handler")
-            //) {
-            //    val handlerName = className.substringAfterLast(".")
-            //    commandName = handlerName.replace("Handler", "Command")
-            //    break
-            //}
-            //
-            //if (className.contains("dev.james.alicetimetable.domain.context.notification.commandhandler") &&
-            //    className.endsWith("Handler")
-            //) {
-            //    val handlerName = className.substringAfterLast(".")
-            //    commandName = handlerName.replace("Handler", "Command")
-            //    break
-            //}
-        }
-
-        //val user = "me"
         return ExecutionContext(
             userEmail = "me",
             requestId = MDC.get("requestId"),
@@ -209,12 +178,10 @@ data class ExecutionContext(
     val commandName: String? = null,
 )
 
-interface CommandHandler<T : Any, R> {
-    fun handle(eventQueue: EventQueue, command: T): R
-}
 
 interface CommandInvoker {
     fun <T : Any, R> invoke(handler: CommandHandler<T, R>, command: T): R
+    fun <R> invoke(command: Command<R>): R
 }
 
 @Component
@@ -223,8 +190,61 @@ class OneTransactionCommandInvoker(
     private val domainEventDispatcher: DomainEventDispatcher,
     private val commandAuditor: CommandAuditor,
     private val eventRepository: EventRepository,
+    private val commandHandlers: List<CommandHandler<*, *>>
 ) : CommandInvoker {
     private val transactionTemplate: TransactionTemplate = TransactionTemplate(transactionManager)
+
+    /**
+     * Map of command class to its handler for fast lookup
+     */
+    private val handlerMap: Map<Class<*>, CommandHandler<*, *>> = buildHandlerMap()
+
+    private fun buildHandlerMap(): Map<Class<*>, CommandHandler<*, *>> {
+        val map = mutableMapOf<Class<*>, CommandHandler<*, *>>()
+
+        commandHandlers.forEach { handler ->
+            val commandClass = extractCommandClass(handler)
+            if (commandClass != null) {
+                if (map.containsKey(commandClass)) {
+                    throw IllegalStateException(
+                        "Multiple handlers found for command: ${commandClass.simpleName}"
+                    )
+                }
+                map[commandClass] = handler
+                println("Registered command handler: ${handler::class.simpleName} for ${commandClass.simpleName}")
+            }
+        }
+
+        return map
+    }
+
+    private fun extractCommandClass(handler: CommandHandler<*, *>): Class<*>? {
+        val handlerClass = handler::class.java
+        val genericInterfaces = handlerClass.genericInterfaces
+
+        for (genericInterface in genericInterfaces) {
+            if (genericInterface is java.lang.reflect.ParameterizedType) {
+                val rawType = genericInterface.rawType
+                if (rawType == CommandHandler::class.java) {
+                    val typeArgs = genericInterface.actualTypeArguments
+                    if (typeArgs.isNotEmpty()) {
+                        return typeArgs[0] as? Class<*>
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <R> invoke(command: Command<R>): R {
+        val handler = handlerMap[command::class.java]
+            ?: throw IllegalArgumentException(
+                "No handler registered for command: ${command::class.simpleName}"
+            )
+
+        return invoke(handler as CommandHandler<Any, R>, command as Any)
+    }
 
     override fun <T : Any, R> invoke(handler: CommandHandler<T, R>, command: T): R {
         // Preserve existing requestId for nested commands, or create new one for top-level commands
