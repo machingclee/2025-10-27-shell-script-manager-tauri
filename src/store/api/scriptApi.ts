@@ -205,9 +205,9 @@ export const scriptApi = baseApi.injectEndpoints({
             }),
             providesTags: ["ScriptHistory"],
         }),
-        createScriptHistory: builder.mutation<void, { scriptId: number }>({
+        notifyScriptExecuted: builder.mutation<void, { scriptId: number }>({
             query: ({ scriptId }) => ({
-                url: `/scripts/${scriptId}/history`,
+                url: `/scripts/events/script-executed/${scriptId}`,
                 method: "POST",
             }),
             invalidatesTags: ["ScriptHistory"],

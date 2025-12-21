@@ -12,8 +12,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class CreateScriptHistoryHandler(
-    private val scriptHistoryRepository: HistoricalShellScriptRepository,
-    private val historicalShellScriptRepository: HistoricalShellScriptRepository
+    private val scriptHistoryRepository: HistoricalShellScriptRepository
 ) : CommandHandler<CreateScriptHistoryCommand, Unit> {
 
     override fun handle(eventQueue: EventQueue, command: CreateScriptHistoryCommand) {
@@ -38,7 +37,7 @@ class CreateScriptHistoryHandler(
                 history = history.toDTO()
             )
         }
-        
+
         eventQueue.add(event)
     }
 }

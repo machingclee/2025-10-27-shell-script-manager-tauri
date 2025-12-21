@@ -51,7 +51,7 @@ export default function ScriptItem({
     const dispatch = useAppDispatch();
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateScript] = scriptApi.endpoints.updateScript.useMutation();
-    const [createScriptHistory] = scriptApi.endpoints.createScriptHistory.useMutation();
+    const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [editName, setEditName] = useState(script.name);
@@ -79,13 +79,13 @@ export default function ScriptItem({
             dispatch(
                 folderSlice.actions.setExecutingScript({ script_id: script.id ?? 0, loading: true })
             );
-            // promise, no one cares the response:
-            createScriptHistory({ scriptId: script.id! });
+
             if (script.showShell) {
                 await invoke("execute_command_in_shell", { command: script.command });
             } else {
                 await invoke("execute_command", { command: script.command });
             }
+            await notifyScriptExecuted({ scriptId: script.id! });
         } catch (error) {
             console.error("Failed to run script:", error);
         } finally {

@@ -5,12 +5,14 @@ import com.scriptmanager.common.entity.*
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
 import com.scriptmanager.domain.scriptmanager.command.*
+import com.scriptmanager.domain.scriptmanager.event.ScriptExecutedEvent
 import com.scriptmanager.domain.scriptmanager.query.GetAllScriptsQuery
 import com.scriptmanager.domain.scriptmanager.query.GetScriptByIdQuery
 import com.scriptmanager.domain.scriptmanager.query.GetScriptHistoriesQuery
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -18,7 +20,8 @@ import org.springframework.web.bind.annotation.*
 @Tag(name = "Script Management", description = "APIs for managing shell scripts")
 class ScriptController(
     private val commandInvoker: CommandInvoker,
-    private val queryInvoker: QueryInvoker
+    private val queryInvoker: QueryInvoker,
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
 
     @Operation(summary = "Get all scripts", description = "Retrieves all scripts ordered by their ordering value")
@@ -140,17 +143,19 @@ class ScriptController(
         return ApiResponse()
     }
 
-    @Operation(summary = "Create script history", description = "Records a script execution in the history")
-    @PostMapping("/{scriptId}/history")
-    fun creatScriptHistory(
-        @Parameter(description = "Script ID", required = true)
+    @Operation(
+        summary = "Record script execution",
+        description = "Publishes a domain event indicating a script was executed successfully (called by external system). The event triggers a policy that automatically creates the history record."
+    )
+    @PostMapping("/events/script-executed/{scriptId}")
+    fun recordScriptExecution(
+        @Parameter(description = "Script ID that was executed", required = true)
         @PathVariable scriptId: Int
     ): ApiResponse<Unit> {
-        val command = CreateScriptHistoryCommand(
-            scriptId = scriptId,
-            time = System.currentTimeMillis()
-        )
-        commandInvoker.invoke(command)
+        // Publish domain event - this is the integration point with external backend
+        // The event will be caught by RecordExecutedCommandIntoHistoryPolicy
+        // which will invoke CreateScriptHistoryCommand as a side effect
+        applicationEventPublisher.publishEvent(ScriptExecutedEvent(scriptId))
         return ApiResponse()
     }
 
