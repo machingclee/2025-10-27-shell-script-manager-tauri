@@ -47,6 +47,12 @@ class Workspace(
     )
     var folders: MutableSet<ScriptsFolder> = mutableSetOf()
 
+    fun resetFolderOrders() {
+        folders.sortedBy { it.ordering }.forEachIndexed { idx, f ->
+            f.ordering = idx
+        }
+    }
+
     fun addFolder(folder: ScriptsFolder) {
         folders.add(folder)
         folders.forEachIndexed { idx, f ->
@@ -61,9 +67,4 @@ class Workspace(
         }
     }
 
-    fun resetFolderOrders() {
-        folders.sortedBy { it.ordering }.forEachIndexed { idx, f ->
-            f.ordering = idx
-        }
-    }
 }

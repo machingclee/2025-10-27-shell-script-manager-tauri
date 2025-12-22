@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Edit, Loader2, Play, Trash, Lock, LockOpen } from "lucide-react";
+import { Edit, Loader2, Play, Trash, Lock, LockOpen, Terminal } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
     ContextMenu,
@@ -177,10 +177,11 @@ export default function ScriptItem({
                     {parentFolderPath}
                 </div>
             )}
-            <div className="flex items-center gap-2 justify-between mb-4 min-w-0">
+            <div className="flex items-center gap-2 justify-between mb-4 min-w-0 pt-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="min-w-0 flex-1">
-                        <div className="font-bold text-lg break-words select-none">
+                        <div className="font-bold text-lg break-words select-none flex items-center gap-2">
+                            <Terminal className="w-7 h-7 flex-shrink-0 text-green-500 dark:text-green-400" />
                             {script.name}
                         </div>
                         {liteVersionDisplay && liteVersionDisplay}
