@@ -4,7 +4,7 @@ import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github-dark.css";
 import { ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
-import { useState, useEffect } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Box, Popover } from "@mui/material";
 import MarkdownDialog from "./MarkdownDialog";
 import {
@@ -22,11 +22,18 @@ import { Trash2, Eye, FileText } from "lucide-react";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 
+// List spacing constants for alignment calibration
+// These values work together: checkbox uses left: -LIST_GUTTER_WIDTH to position in the gutter
+const LIST_GUTTER_WIDTH = "2em"; // Width of the bullet/checkbox column (ul/ol paddingLeft)
+const LIST_ITEM_PADDING = "0em"; // Additional spacing after bullet for regular list items
+const CHECKBOX_SPACING = "-1.25em"; // Spacing between checkbox and text
+const LIST_ITEM_LINE_HEIGHT = "1.2"; // Line height for list items (default is ~1.6)
+const LIST_ITEM_MARGIN = "0.3em 0"; // Vertical margin between list items
+
 export default function MarkdownItem({
     script,
     parentFolderId,
     parentFolderPath = "",
-    readOnly = true,
 }: {
     script: ShellScriptDTO;
     parentFolderId: number;
@@ -36,10 +43,74 @@ export default function MarkdownItem({
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
+    const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
     const [isSelected, setIsSelected] = useState(false);
     const [previewAnchor, setPreviewAnchor] = useState<HTMLElement | null>(null);
     const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+
+    const latestContentRef = useRef("");
+
+    const handleCheckboxToggle = async (checkboxIndex: number) => {
+        const content = latestContentRef.current || script.command;
+        const lines = content.split("\n");
+
+        let checkboxCount = 0;
+        for (let i = 0; i < lines.length; i++) {
+            const match = lines[i].match(/^(\s*-\s+)\[([ xX])\](.*)$/);
+            if (match) {
+                if (checkboxCount === checkboxIndex) {
+                    const isChecked = match[2].toLowerCase() === "x";
+                    lines[i] = `${match[1]}[${isChecked ? " " : "x"}]${match[3]}`;
+                    break;
+                }
+                checkboxCount++;
+            }
+        }
+
+        const newContent = lines.join("\n");
+        latestContentRef.current = newContent;
+
+        await updateMarkdown({
+            ...script,
+            command: newContent,
+        }).unwrap();
+    };
+
+    const markdownComponents = useMemo(
+        () => ({
+            input: ({ node, checked, disabled, ...props }: any) => {
+                if (props.type === "checkbox") {
+                    return (
+                        <input
+                            {...props}
+                            defaultChecked={checked}
+                            disabled={false}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const target = e.target as HTMLInputElement;
+                                const allCheckboxes =
+                                    document.querySelectorAll('input[type="checkbox"]');
+                                let index = -1;
+                                for (let i = 0; i < allCheckboxes.length; i++) {
+                                    if (allCheckboxes[i] === target) {
+                                        index = i;
+                                        break;
+                                    }
+                                }
+                                if (index !== -1) {
+                                    handleCheckboxToggle(index);
+                                }
+                            }}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                        />
+                    );
+                }
+                return <input {...props} />;
+            },
+        }),
+        [script?.command]
+    );
 
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -259,7 +330,7 @@ export default function MarkdownItem({
                             marginTop: "0",
                         },
                         "& ul, & ol": {
-                            paddingLeft: "1.5em",
+                            paddingLeft: LIST_GUTTER_WIDTH,
                             marginTop: "0.5em",
                             marginBottom: "0.5em",
                         },
@@ -273,25 +344,32 @@ export default function MarkdownItem({
                         },
                         "& li": {
                             display: "list-item",
-                            marginLeft: "1em",
+                            paddingLeft: LIST_ITEM_PADDING,
+                            lineHeight: LIST_ITEM_LINE_HEIGHT,
+                            margin: LIST_ITEM_MARGIN,
                         },
                         "& li.task-list-item": {
                             listStyleType: "none",
-                            marginLeft: "0",
+                            paddingLeft: "0",
                         },
                         "& input[type='checkbox']": {
                             appearance: "none",
                             width: "16px",
                             height: "16px",
-                            marginRight: "0.5em",
+                            marginTop: "-2px",
+                            marginRight: CHECKBOX_SPACING,
+                            marginLeft: "0",
                             cursor: "pointer",
                             border: "2px solid rgba(255, 255, 255, 0.3)",
                             borderRadius: "3px",
                             backgroundColor: "transparent",
                             position: "relative",
+                            left: `-${LIST_GUTTER_WIDTH}`,
                             display: "inline-flex",
                             alignItems: "center",
                             justifyContent: "center",
+                            verticalAlign: "middle",
+                            flexShrink: 0,
                             "&:checked": {
                                 backgroundColor: "rgb(59, 130, 246)",
                                 borderColor: "rgb(59, 130, 246)",
@@ -327,7 +405,11 @@ export default function MarkdownItem({
                         },
                     }}
                 >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                    <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        components={markdownComponents}
+                    >
                         {script.command || ""}
                     </ReactMarkdown>
                 </Box>

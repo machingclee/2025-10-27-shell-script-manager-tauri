@@ -35,7 +35,7 @@ const getSubfolder = (
 
 export const scriptApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        getScriptById: builder.query<ShellScriptDTO, number>({
+        getScriptById: builder.query<ShellScriptDTO, number | undefined>({
             query: (id) => ({
                 url: `/scripts/${id}`,
                 method: "GET",

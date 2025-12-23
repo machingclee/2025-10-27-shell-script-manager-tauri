@@ -1,9 +1,9 @@
-import Editor, { type Monaco } from "@monaco-editor/react";
+import Editor from "@monaco-editor/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { scriptApi } from "@/store/api/scriptApi";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Box } from "@mui/material";
 import {
     Dialog,
@@ -17,6 +17,13 @@ import { Edit, Eye } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
+
+// List spacing constants for alignment calibration
+// These values work together: checkbox uses left: -LIST_GUTTER_WIDTH to position in the gutter
+const LIST_GUTTER_WIDTH = "2em"; // Width of the bullet/checkbox column (ul/ol paddingLeft)
+const LIST_ITEM_PADDING = "0.5em"; // Additional spacing after bullet for regular list items
+const CHECKBOX_SPACING = "-1.25em"; // Spacing between checkbox and text
+const LIST_ITEM_LINE_HEIGHT = "1.4"; // Line height for list items (default is ~1.6)
 
 export default function MarkdownDialog({
     scriptId,
@@ -37,6 +44,9 @@ export default function MarkdownDialog({
     const [hasChanges, setHasChanges] = useState(false);
     const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
+    // Track the latest markdown content for checkbox toggles
+    const latestContentRef = useRef("");
+
     const handleEnableEdit = () => {
         setIsDialogEditMode(true);
         setHasChanges(false);
@@ -51,6 +61,7 @@ export default function MarkdownDialog({
             ...script,
             command: editContent,
         }).unwrap();
+        latestContentRef.current = editContent;
         setHasChanges(false);
         setEdited(true);
         setTimeout(() => setEdited(false), 2000); // Show "Saved" for 2 seconds
@@ -71,9 +82,88 @@ export default function MarkdownDialog({
         }
     };
 
+    const handleCheckboxToggle = async (checkboxIndex: number) => {
+        if (!script) return;
+
+        // Use the latest content from ref instead of stale script.command
+        const currentContent = latestContentRef.current || script.command;
+        const lines = currentContent.split("\n");
+        let currentCheckboxIndex = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            // Match task list items: - [ ] or - [x] or - [X]
+            const match = line.match(/^(\s*-\s+)\[([ xX])\](.*)$/);
+            if (match) {
+                if (currentCheckboxIndex === checkboxIndex) {
+                    // Toggle the checkbox
+                    const isChecked = match[2].toLowerCase() === "x";
+                    lines[i] = `${match[1]}[${isChecked ? " " : "x"}]${match[3]}`;
+                    break;
+                }
+                currentCheckboxIndex++;
+            }
+        }
+
+        const updatedContent = lines.join("\n");
+        latestContentRef.current = updatedContent;
+
+        console.log("checkboxIndex toggled:", checkboxIndex);
+        console.log("Updated markdown content after checkbox toggle:", updatedContent);
+
+        await updateMarkdown({
+            ...script,
+            command: updatedContent,
+        });
+    };
+
     useEffect(() => {
         setEditContent(script?.command || "");
+        latestContentRef.current = script?.command || "";
     }, [script]);
+
+    // Memoize components to prevent re-creation on every render
+    const markdownComponents = useMemo(() => {
+        return {
+            input: ({ node, checked, disabled, ...props }: any) => {
+                if (props.type === "checkbox") {
+                    return (
+                        <input
+                            {...props}
+                            style={{ cursor: "pointer" }}
+                            type="checkbox"
+                            defaultChecked={checked}
+                            disabled={false}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const target = e.target as HTMLInputElement;
+
+                                // Find all checkboxes in the document and count how many come before this one
+                                const allCheckboxes =
+                                    document.querySelectorAll('input[type="checkbox"]');
+                                let index = -1;
+                                for (let i = 0; i < allCheckboxes.length; i++) {
+                                    if (allCheckboxes[i] === target) {
+                                        index = i;
+                                        break;
+                                    }
+                                }
+
+                                console.log("Checkbox clicked, computed index:", index);
+                                if (index !== -1) {
+                                    handleCheckboxToggle(index);
+                                }
+                            }}
+                            onDoubleClick={(e) => {
+                                e.stopPropagation();
+                            }}
+                        />
+                    );
+                }
+                return <input {...props} />;
+            },
+        };
+    }, [script?.command]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -211,7 +301,7 @@ export default function MarkdownDialog({
                                         marginTop: "0",
                                     },
                                 "& ul, & ol": {
-                                    paddingLeft: "1.5em",
+                                    paddingLeft: LIST_GUTTER_WIDTH,
                                     marginTop: "0.5em",
                                     marginBottom: "0.5em",
                                 },
@@ -223,23 +313,31 @@ export default function MarkdownDialog({
                                 },
                                 "& li": {
                                     display: "list-item",
+                                    paddingLeft: LIST_ITEM_PADDING,
+                                    lineHeight: LIST_ITEM_LINE_HEIGHT,
                                 },
                                 "& li.task-list-item": {
                                     listStyleType: "none",
+                                    paddingLeft: "0",
                                 },
                                 "& input[type='checkbox']": {
                                     appearance: "none",
                                     width: "16px",
                                     height: "16px",
-                                    marginRight: "0.5em",
+                                    marginTop: "-2px",
+                                    marginRight: CHECKBOX_SPACING,
+                                    marginLeft: "0",
                                     cursor: "pointer",
                                     border: "2px solid rgba(255, 255, 255, 0.3)",
                                     borderRadius: "3px",
                                     backgroundColor: "transparent",
                                     position: "relative",
+                                    left: `-${LIST_GUTTER_WIDTH}`,
                                     display: "inline-flex",
                                     alignItems: "center",
                                     justifyContent: "center",
+                                    verticalAlign: "middle",
+                                    flexShrink: 0,
                                     "&:checked": {
                                         backgroundColor: "rgb(59, 130, 246)",
                                         borderColor: "rgb(59, 130, 246)",
@@ -306,8 +404,10 @@ export default function MarkdownDialog({
                             onDoubleClick={handleEnableEdit}
                         >
                             <ReactMarkdown
+                                key={script?.command}
                                 remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeHighlight]}
+                                components={markdownComponents}
                             >
                                 {script?.command || ""}
                             </ReactMarkdown>
