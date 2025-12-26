@@ -6,7 +6,8 @@ import { ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useState, useRef, useMemo } from "react";
 import { Box, Popover } from "@mui/material";
-import MarkdownDialog from "./MarkdownDialog";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -18,7 +19,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Eye, FileText } from "lucide-react";
+import { Trash2, Eye, FileText, Edit } from "lucide-react";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 
@@ -40,7 +41,6 @@ export default function MarkdownItem({
     parentFolderPath?: string;
     readOnly?: boolean;
 }) {
-    const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
@@ -50,6 +50,67 @@ export default function MarkdownItem({
     const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
 
     const latestContentRef = useRef("");
+
+    const handleViewClick = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        try {
+            if (!script.id) {
+                console.error("Script ID is undefined. Cannot open markdown window.");
+                return;
+            }
+            const url = getSubwindowPaths.markdown(script.id, false);
+
+            const webview = new WebviewWindow(`markdown-${script.id}`, {
+                url,
+                title: `View: ${script.name}`,
+                width: 1000,
+                height: 700,
+                minWidth: 800,
+                minHeight: 600,
+                skipTaskbar: false,
+                alwaysOnTop: false,
+                focus: true,
+            });
+
+            webview.once("tauri://error", function (e) {
+                console.error("Error creating markdown window:", e);
+            });
+        } catch (error) {
+            console.error("Error opening markdown window:", error);
+        }
+    };
+
+    const handleEditClick = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        try {
+            if (!script.id) {
+                console.error("Script ID is undefined. Cannot open markdown window.");
+                return;
+            }
+            const url = getSubwindowPaths.markdown(script.id, true);
+
+            const webview = new WebviewWindow(`markdown-${script.id}`, {
+                url,
+                title: `Edit: ${script.name}`,
+                width: 1000,
+                height: 700,
+                minWidth: 800,
+                minHeight: 600,
+                skipTaskbar: false,
+                alwaysOnTop: false,
+                focus: true,
+                devtools: true, // Enable dev tools to see console errors
+            });
+
+            webview.once("tauri://error", (e) => {
+                console.error("Error creating markdown window:", e);
+            });
+        } catch (error) {
+            console.error("Failed to create webview window:", error);
+        }
+    };
 
     const handleCheckboxToggle = async (checkboxIndex: number) => {
         const content = latestContentRef.current || script.command;
@@ -112,11 +173,6 @@ export default function MarkdownItem({
         [script?.command]
     );
 
-    const handleEditClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        setIsEditOpen(true);
-    };
-
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsDeleteOpen(true);
@@ -135,6 +191,7 @@ export default function MarkdownItem({
                         ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
                         : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
                 }`}
+                onContextMenu={(e) => e.preventDefault()}
                 onMouseDown={() => setIsSelected(true)}
                 onMouseUp={() => setIsSelected(false)}
                 onMouseEnter={(e) => {
@@ -249,7 +306,7 @@ export default function MarkdownItem({
                         },
                         sx: {
                             position: "relative",
-                            maxWidth: "800px",
+                            maxWidth: "500px",
                             maxHeight: "600px",
                             overflow: "auto",
                             backgroundColor: "rgb(38, 38, 38)",
@@ -277,12 +334,23 @@ export default function MarkdownItem({
                         size="sm"
                         onClick={(e) => {
                             setPreviewAnchor(null);
-                            handleEditClick(e);
+                            handleViewClick(e);
                         }}
                         className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
                     >
                         <Eye className="w-4 h-4 mr-2" />
                         View
+                    </Button>
+                    <Button
+                        size="sm"
+                        onClick={(e) => {
+                            setPreviewAnchor(null);
+                            handleEditClick(e);
+                        }}
+                        className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                    >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
                     </Button>
                     <Button
                         size="sm"
@@ -405,17 +473,17 @@ export default function MarkdownItem({
                         },
                     }}
                 >
-                    <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeHighlight]}
-                        components={markdownComponents}
-                    >
-                        {script.command || ""}
-                    </ReactMarkdown>
+                    <div>
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight]}
+                            components={markdownComponents}
+                        >
+                            {script.command || ""}
+                        </ReactMarkdown>
+                    </div>
                 </Box>
             </Popover>
-
-            <MarkdownDialog scriptId={script.id} open={isEditOpen} onOpenChange={setIsEditOpen} />
         </>
     );
 }

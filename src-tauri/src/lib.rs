@@ -240,6 +240,12 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Only handle close for the main window
+                if window.label() != "main" {
+                    // Allow child windows to close normally
+                    return;
+                }
+
                 // Check if cleanup has already been done
                 if let Some(cleanup_flag) = CLEANUP_DONE.get() {
                     let mut cleanup_done = cleanup_flag.lock().unwrap();

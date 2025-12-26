@@ -21,6 +21,7 @@ class UpdateMarkdownHandler(
         val markdownScript = shellScriptRepository.findByIdOrNull(command.scriptId)
             ?: throw Exception("Script not found")
 
+        markdownScript.name = command.name
         markdownScript.command = command.content
         val savedScript = shellScriptRepository.save(markdownScript)
         entityManager.flush()

@@ -5,13 +5,16 @@ import App from "./App";
 import { store } from "./store/store";
 import { BackendLoadingScreen } from "./components/BackendLoadingScreen";
 import "./index.css";
+import { StyledEngineProvider } from "@mui/material/styles";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
-        <Provider store={store}>
-            <BackendLoadingScreen>
-                <App />
-            </BackendLoadingScreen>
-        </Provider>
+        <StyledEngineProvider injectFirst>
+            <Provider store={store}>
+                <BackendLoadingScreen>
+                    <App />
+                </BackendLoadingScreen>
+            </Provider>
+        </StyledEngineProvider>
     </React.StrictMode>
 );

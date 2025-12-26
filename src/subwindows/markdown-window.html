@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Markdown Editor</title>
+        <!-- Ensure styles are loaded before content -->
+        <style>
+            /* Prevent FOUC (Flash of Unstyled Content) */
+            html { visibility: hidden; }
+            html.loading { visibility: visible; }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="module" src="/src/subwindows/markdown-window-entry.tsx"></script>
+        <script>
+            // Enable visibility once loaded
+            document.documentElement.classList.add('loading');
+        </script>
+    </body>
+</html>

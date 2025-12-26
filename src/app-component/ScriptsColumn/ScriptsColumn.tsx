@@ -183,13 +183,6 @@ export default function ScriptsColumn() {
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
 
-        console.log("Drag end event:", {
-            activeId: active.id,
-            activeType: active.data.current?.type,
-            overId: over?.id,
-            overType: over?.data.current?.type,
-        });
-
         if (!over || !folderResponse || !selectedRootFolderId) {
             dispatch(folderSlice.actions.setIsReorderingFolder(false));
             return;
@@ -197,8 +190,6 @@ export default function ScriptsColumn() {
 
         const activeData = active.data.current;
         const overData = over.data.current;
-
-        console.log("Drag end full data:", { active, over, activeData, overData });
 
         // Case 1: Script dropped on folder (or root folder area) - move script to folder
         if (activeData?.type === "script" && overData?.type === "folder") {

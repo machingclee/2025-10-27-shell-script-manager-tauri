@@ -1,54 +1,76 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "shell-script-manager",
-  "version": "0.1.0",
-  "identifier": "com.chingcheonglee.shell-script-manager",
-  "build": {
-    "beforeDevCommand": "yarn dev",
-    "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "yarn build",
-    "frontendDist": "../dist"
-  },
-  "app": {
-    "windows": [
-      {
-        "title": "Shell Script Manager",
-        "width": 1300,
-        "height": 800,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true
-      }
-    ],
-    "security": {
-      "csp": null,
-      "capabilities": [
-        {
-          "identifier": "main-window",
-          "windows": ["main"],
-          "permissions": [
-            "core:window:allow-start-dragging",
-            "core:window:allow-toggle-maximize",
-            "core:window:allow-maximize",
-            "core:window:allow-unmaximize",
-            "core:window:allow-minimize",
-            "core:window:allow-close",
-            "core:window:allow-is-maximized",
-            "core:event:default"
-          ]
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "shell-script-manager",
+    "version": "0.1.0",
+    "identifier": "com.chingcheonglee.shell-script-manager",
+    "build": {
+        "beforeDevCommand": "yarn dev",
+        "devUrl": "http://localhost:1420",
+        "beforeBuildCommand": "yarn build",
+        "frontendDist": "../dist"
+    },
+    "app": {
+        "withGlobalTauri": true,
+        "windows": [
+            {
+                "title": "Shell Script Manager",
+                "width": 1300,
+                "height": 800,
+                "titleBarStyle": "Overlay",
+                "hiddenTitle": true
+            }
+        ],
+        "security": {
+            "csp": "default-src 'self' tauri: http://tauri.localhost; connect-src 'self' tauri: http://tauri.localhost http://localhost:* ws://localhost:*; font-src 'self' tauri: http://tauri.localhost; img-src 'self' tauri: http://tauri.localhost data: https:; style-src 'self' tauri: http://tauri.localhost 'unsafe-inline'; style-src-elem 'self' tauri: http://tauri.localhost 'unsafe-inline'; script-src 'self' tauri: http://tauri.localhost 'unsafe-inline' 'unsafe-eval'",
+            "capabilities": [
+                {
+                    "identifier": "main-window",
+                    "windows": ["main"],
+                    "permissions": [
+                        "core:window:allow-start-dragging",
+                        "core:window:allow-toggle-maximize",
+                        "core:window:allow-maximize",
+                        "core:window:allow-unmaximize",
+                        "core:window:allow-minimize",
+                        "core:window:allow-close",
+                        "core:window:allow-is-maximized",
+                        "core:window:allow-get-all-windows",
+                        "core:window:allow-set-focus",
+                        "core:event:default",
+                        "core:webview:allow-create-webview-window",
+                        "core:webview:allow-webview-close",
+                        "core:webview:allow-webview-position",
+                        "core:webview:allow-webview-size"
+                    ]
+                },
+                {
+                    "identifier": "markdown-windows",
+                    "windows": ["markdown-*"],
+                    "permissions": [
+                        "core:window:allow-close",
+                        "core:window:allow-start-dragging",
+                        "core:window:allow-toggle-maximize",
+                        "core:window:allow-maximize",
+                        "core:window:allow-unmaximize",
+                        "core:window:allow-minimize",
+                        "core:event:default",
+                        "core:path:default",
+                        "core:default"
+                    ]
+                }
+            ]
         }
-      ]
+    },
+    "bundle": {
+        "active": true,
+        "targets": "all",
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/128x128@2x.png",
+            "icons/icon.icns",
+            "icons/icon.ico"
+        ],
+        "resources": ["resources/backend-spring/backend-native"]
     }
-  },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "resources": ["resources/backend-spring/backend-native"]
-  }
 }

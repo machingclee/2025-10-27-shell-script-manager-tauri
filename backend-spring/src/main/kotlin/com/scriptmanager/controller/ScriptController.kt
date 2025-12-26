@@ -94,6 +94,7 @@ class ScriptController(
     ): ShellScriptDTO {
         val command = UpdateMarkdownCommand(
             id,
+            name = scriptDetails.name,
             content = scriptDetails.command
         )
         return commandInvoker.invoke(command)

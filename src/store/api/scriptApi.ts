@@ -186,7 +186,6 @@ export const scriptApi = baseApi.injectEndpoints({
                 { folderId, fromIndex, toIndex, rootFolderId: rootFolderId },
                 { dispatch, queryFulfilled }
             ) {
-                console.log("rootFolderId", rootFolderId);
                 const action = dispatch(
                     folderApi.util.updateQueryData("getFolderById", rootFolderId || 0, (draft) => {
                         const folder = getSubfolder(draft, folderId);

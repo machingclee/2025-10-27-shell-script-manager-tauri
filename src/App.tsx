@@ -7,6 +7,7 @@ import FolderColumn from "./app-component/FolderColumn/FolderColumn";
 import ScriptsColumn from "./app-component/ScriptsColumn/ScriptsColumn";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "./components/ui/resizable";
 import { appStateApi } from "./store/api/appStateApi";
+import { scriptApi } from "./store/api/scriptApi";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import folderSlice from "./store/slices/folderSlice";
 import configSlice from "./store/slices/configSlice";
@@ -102,6 +103,23 @@ function App() {
         };
     }, []); // Empty deps - only register once!
 
+    // Listen for markdown updates from subwindows and invalidate cache
+    useEffect(() => {
+        const unlisten = listen<{ scriptId: number }>("markdown-updated", ({ payload }) => {
+            console.log("[App] Markdown updated, invalidating cache for script:", payload.scriptId);
+            dispatch(
+                scriptApi.util.invalidateTags([
+                    { type: "Script", id: payload.scriptId },
+                    { type: "FolderContent" },
+                ])
+            );
+        });
+
+        return () => {
+            unlisten.then((fn) => fn());
+        };
+    }, [dispatch]);
+
     const [isMaximized, setIsMaximized] = useState(false);
 
     const handleDragStart = (e: React.MouseEvent) => {
@@ -143,7 +161,7 @@ function App() {
         <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-800 flex flex-col">
             {/* Custom title bar with window controls */}
             <div
-                className="h-12 flex-shrink-0 bg-transparent select-none dark:bg-[rgba(255,255,255,0.05)] flex items-center dark:text-white w-full relative"
+                className="h-12 flex-shrink-0 bg-transparent select-none dark:bg-[rgba(255,255,255,0.05)] flex items-center dark:text-white w-full relative z-[200] pointer-events-auto"
                 onMouseDown={handleDragStart}
                 onDoubleClick={handleDoubleClick}
             >

@@ -163,7 +163,6 @@ export default function FolderColumn() {
                 setActiveFolder(null);
             }
         } else if (id.startsWith("folder-")) {
-            console.log("active folder");
             const folderId = Number(id.replace("folder-", ""));
             const folder = folders.find((f) => f.id === folderId);
             if (folder) {
@@ -178,8 +177,6 @@ export default function FolderColumn() {
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
-        console.log("active", active);
-        console.log("over", over);
 
         if (over) {
             const activeData = active.data.current as LeftColumnCollision;

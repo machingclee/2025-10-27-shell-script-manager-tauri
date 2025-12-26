@@ -2,92 +2,95 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
+/* Prism.js Dark Theme for Code Editor */
+@import "prismjs/themes/prism-okaidia.css";
 
-  .dark {
-    --background: 0 0% 7%;           /* Pure black-gray #121212 */
-    --foreground: 0 0% 98%;          /* Pure white #FAFAFA */
-    --card: 0 0% 10%;                /* Dark gray card #1A1A1A */
-    --card-foreground: 0 0% 98%;     /* Pure white text */
-    --popover: 0 0% 10%;             /* Dark gray popover */
-    --popover-foreground: 0 0% 98%;  /* Pure white text */
-    --primary: 0 0% 98%;             /* Pure white */
-    --primary-foreground: 0 0% 10%;  /* Dark gray */
-    --secondary: 0 0% 15%;           /* Medium dark gray #262626 */
-    --secondary-foreground: 0 0% 98%; /* Pure white */
-    --muted: 0 0% 15%;               /* Medium dark gray */
-    --muted-foreground: 0 0% 65%;    /* Medium gray text #A6A6A6 */
-    --accent: 0 0% 18%;              /* Slightly lighter gray #2E2E2E */
-    --accent-foreground: 0 0% 98%;   /* Pure white */
-    --destructive: 0 62.8% 30.6%;    /* Keep red for destructive actions */
-    --destructive-foreground: 0 0% 98%; /* Pure white */
-    --border: 0 0% 20%;              /* Border gray #333333 */
-    --input: 0 0% 20%;               /* Input border gray */
-    --ring: 0 0% 83.9%;              /* Focus ring light gray */
-  }
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+        --card: 0 0% 100%;
+        --card-foreground: 222.2 84% 4.9%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222.2 84% 4.9%;
+        --primary: 222.2 47.4% 11.2%;
+        --primary-foreground: 210 40% 98%;
+        --secondary: 210 40% 96.1%;
+        --secondary-foreground: 222.2 47.4% 11.2%;
+        --muted: 210 40% 96.1%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+        --accent: 210 40% 96.1%;
+        --accent-foreground: 222.2 47.4% 11.2%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 222.2 84% 4.9%;
+        --radius: 0.5rem;
+    }
+
+    .dark {
+        --background: 0 0% 7%; /* Pure black-gray #121212 */
+        --foreground: 0 0% 98%; /* Pure white #FAFAFA */
+        --card: 0 0% 10%; /* Dark gray card #1A1A1A */
+        --card-foreground: 0 0% 98%; /* Pure white text */
+        --popover: 0 0% 10%; /* Dark gray popover */
+        --popover-foreground: 0 0% 98%; /* Pure white text */
+        --primary: 0 0% 98%; /* Pure white */
+        --primary-foreground: 0 0% 10%; /* Dark gray */
+        --secondary: 0 0% 15%; /* Medium dark gray #262626 */
+        --secondary-foreground: 0 0% 98%; /* Pure white */
+        --muted: 0 0% 15%; /* Medium dark gray */
+        --muted-foreground: 0 0% 65%; /* Medium gray text #A6A6A6 */
+        --accent: 0 0% 18%; /* Slightly lighter gray #2E2E2E */
+        --accent-foreground: 0 0% 98%; /* Pure white */
+        --destructive: 0 62.8% 30.6%; /* Keep red for destructive actions */
+        --destructive-foreground: 0 0% 98%; /* Pure white */
+        --border: 0 0% 20%; /* Border gray #333333 */
+        --input: 0 0% 20%; /* Input border gray */
+        --ring: 0 0% 83.9%; /* Focus ring light gray */
+    }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
 }
 
 @layer utilities {
-  .shadow-xs {
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  }
+    .shadow-xs {
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
 }
 
 /* Custom scrollbar styling */
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+    width: 8px;
+    height: 8px;
 }
 
 *::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 4px;
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 4px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.7);
+    background-color: rgba(156, 163, 175, 0.7);
 }
 
 /* Dark mode scrollbar */
 .dark *::-webkit-scrollbar-thumb {
-  background-color: rgba(115, 115, 115, 0.5);
+    background-color: rgba(115, 115, 115, 0.5);
 }
 
 .dark *::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(115, 115, 115, 0.7);
+    background-color: rgba(115, 115, 115, 0.7);
 }

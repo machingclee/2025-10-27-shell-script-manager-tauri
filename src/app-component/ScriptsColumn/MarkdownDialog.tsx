@@ -1,10 +1,13 @@
-import Editor from "@monaco-editor/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Box } from "@mui/material";
+import SimpleEditor from "react-simple-code-editor";
+import { highlight, languages } from "prismjs";
+import "prismjs/components/prism-markdown";
+import "prismjs/themes/prism-tomorrow.css";
 import {
     Dialog,
     DialogContent,
@@ -68,7 +71,23 @@ export default function MarkdownDialog({
         if (closeDialog) {
             setIsDialogEditMode(false);
         }
+        dispatch(scriptApi.util.invalidateTags([{ type: "Script", id: script.id }]));
     };
+
+    // Cmd+S handler
+    useEffect(() => {
+        if (!isDialogEditMode) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+                e.preventDefault();
+                handleSaveEdit(false);
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [isDialogEditMode, handleSaveEdit]);
 
     const handleCancelEdit = () => {
         if (isDialogEditMode) {
@@ -108,9 +127,6 @@ export default function MarkdownDialog({
         const updatedContent = lines.join("\n");
         latestContentRef.current = updatedContent;
 
-        console.log("checkboxIndex toggled:", checkboxIndex);
-        console.log("Updated markdown content after checkbox toggle:", updatedContent);
-
         await updateMarkdown({
             ...script,
             command: updatedContent,
@@ -149,7 +165,6 @@ export default function MarkdownDialog({
                                     }
                                 }
 
-                                console.log("Checkbox clicked, computed index:", index);
                                 if (index !== -1) {
                                     handleCheckboxToggle(index);
                                 }
@@ -192,50 +207,30 @@ export default function MarkdownDialog({
                     }}
                 >
                     {isDialogEditMode ? (
-                        <Editor
-                            height="100vh"
-                            defaultLanguage="markdown"
-                            value={editContent}
-                            onChange={(value) => {
-                                setEditContent(value || "");
-                                setHasChanges(true);
-                                setEdited(false);
-                            }}
-                            onMount={(editor, monaco) => {
-                                editor.addCommand(
-                                    monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
-                                    async () => {
-                                        const currentValue = editor.getValue();
-                                        if (!script) {
-                                            return;
-                                        }
-                                        await updateMarkdown({
-                                            ...script,
-                                            command: currentValue,
-                                        }).unwrap();
-                                        setEditContent(currentValue);
-                                        setHasChanges(false);
-                                        setEdited(true);
-                                        setTimeout(() => setEdited(false), 2000);
-                                        dispatch(
-                                            scriptApi.util.invalidateTags([
-                                                { type: "Script", id: script.id },
-                                            ])
-                                        );
-                                    }
-                                );
-                            }}
-                            theme="vs-dark"
-                            options={{
-                                minimap: { enabled: false },
-                                fontSize: 15,
-                                wordWrap: "on",
-                                lineNumbers: "on",
-                                scrollBeyondLastLine: false,
-                                automaticLayout: true,
-                                padding: { top: 16, bottom: 16 },
-                            }}
-                        />
+                        <div className="h-full overflow-auto bg-[#1e1e1e] p-4">
+                            <SimpleEditor
+                                value={editContent}
+                                onValueChange={(code) => {
+                                    setEditContent(code);
+                                    setHasChanges(true);
+                                    setEdited(false);
+                                }}
+                                highlight={(code) =>
+                                    highlight(code, languages.markdown, "markdown")
+                                }
+                                padding={16}
+                                style={{
+                                    fontFamily:
+                                        '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                    fontSize: 15,
+                                    lineHeight: 1.5,
+                                    minHeight: "100%",
+                                    backgroundColor: "#1e1e1e",
+                                    color: "#d4d4d4",
+                                }}
+                                textareaClassName="focus:outline-none"
+                            />
+                        </div>
                     ) : (
                         <Box
                             sx={{

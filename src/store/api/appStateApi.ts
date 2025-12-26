@@ -15,8 +15,6 @@ export const appStateApi = baseApi.injectEndpoints({
             onQueryStarted: async (_, { queryFulfilled, dispatch }) => {
                 const { data } = await queryFulfilled;
 
-                console.log("[appStateApi] getAppState data:", data);
-
                 if (data) {
                     dispatch(baseApi.util.invalidateTags(["ScriptHistory"]));
                 }
@@ -36,7 +34,6 @@ export const appStateApi = baseApi.injectEndpoints({
                             document.documentElement.classList.remove("dark");
                             await invoke("set_title_bar_color", { isDark: false });
                         }
-                        console.log("[appStateApi] Applied dark mode:", data.darkMode);
                     } catch (error) {
                         console.error("[appStateApi] Failed to apply dark mode:", error);
                     }
@@ -71,7 +68,6 @@ export const appStateApi = baseApi.injectEndpoints({
                             document.documentElement.classList.remove("dark");
                             await invoke("set_title_bar_color", { isDark: false });
                         }
-                        console.log("[appStateApi] Applied dark mode update:", updates.darkMode);
                     } catch (error) {
                         console.error("[appStateApi] Failed to apply dark mode update:", error);
                     }
