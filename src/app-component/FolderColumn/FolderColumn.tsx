@@ -70,7 +70,9 @@ export default function FolderColumn() {
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const pythonPort = useAppSelector((s) => s.config.pythonPort);
-    const [openingLocalhost, setOpeningLocalhost] = useState(false);
+    const [openingBackend, setOpeningBackend] = useState(false);
+    const [openingPython, setOpeningPython] = useState(false);
+    const [isBackendClicked, setIsBackendClicked] = useState(false);
     const [isPythonClicked, setIsPythonClicked] = useState(false);
 
     // Track active dragging item for DragOverlay
@@ -114,7 +116,6 @@ export default function FolderColumn() {
     const [newFolderName, setNewFolderName] = useState("");
     const [isCreateWorkspaceDialogOpen, setIsCreateWorkspaceDialogOpen] = useState(false);
     const [newWorkspaceName, setNewWorkspaceName] = useState("");
-    const [isBackendClicked, setIsBackendClicked] = useState(false);
 
     const { data: appState } = appStateApi.endpoints.getAppState.useQuery(undefined, {
         skip: !backendPort,
@@ -392,12 +393,12 @@ export default function FolderColumn() {
             } else {
                 command = `xdg-open "${url}"`;
             }
-            setOpeningLocalhost(true);
+            setOpeningBackend(true);
             await invoke("execute_command", { command });
         } catch (error) {
             console.error("Failed to open backend API:", error);
         } finally {
-            setOpeningLocalhost(false);
+            setOpeningBackend(false);
         }
     };
 
@@ -421,12 +422,12 @@ export default function FolderColumn() {
             } else {
                 command = `xdg-open "${url}"`;
             }
-            setOpeningLocalhost(true);
+            setOpeningPython(true);
             await invoke("execute_command", { command });
         } catch (error) {
             console.error("Failed to open Python docs:", error);
         } finally {
-            setOpeningLocalhost(false);
+            setOpeningPython(false);
         }
     };
 
@@ -563,7 +564,7 @@ export default function FolderColumn() {
                 title="Click to open backend API in browser"
             >
                 <span>Backend: localhost:{backendPort}/api</span>
-                {openingLocalhost && (
+                {openingBackend && (
                     <span className="absolute top-1/2 right-4 -translate-y-1/2">
                         <Loader2 className="w-4 h-4 animate-spin" />
                     </span>
@@ -587,7 +588,7 @@ export default function FolderColumn() {
                 }
             >
                 <span>Python: localhost:{pythonPort || "not started"}</span>
-                {openingLocalhost && pythonPort && (
+                {openingPython && pythonPort && (
                     <span className="absolute top-1/2 right-4 -translate-y-1/2">
                         <Loader2 className="w-4 h-4 animate-spin" />
                     </span>

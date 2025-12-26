@@ -206,7 +206,9 @@ async fn get_python_path(app_handle: tauri::AppHandle) -> Result<String, String>
         _ => return Err(format!("Unsupported architecture: {}", arch)),
     };
 
+    // Tauri places bundled resources in a "resources" subdirectory
     let python_bin = resource_path
+        .join("resources")
         .join("python-runtime")
         .join(python_arch)
         .join("bin")
@@ -416,14 +418,17 @@ pub fn run() {
             // 4. Initialize and optionally start Spring Boot
             init_spring_boot(app.handle().clone())?;
 
-            // 5. Setup macOS menu and handlers
+            // 5. Initialize and optionally start Python backend
+            init_python(app.handle().clone())?;
+
+            // 6. Setup macOS menu and handlers
             #[cfg(target_os = "macos")]
             {
                 setup_macos_menu(app)?;
                 setup_menu_handlers(app);
             }
 
-            // // 6. Open DevTools in debug mode
+            // // 7. Open DevTools in debug mode
             // #[cfg(debug_assertions)]
             // open_devtools(app);
 
@@ -1199,6 +1204,91 @@ fn init_spring_boot(app_handle: tauri::AppHandle) -> Result<(), String> {
         println!("Development mode: Please start Spring Boot manually from IntelliJ");
         println!("Run the Application.kt file or use 'bootRun' Gradle task");
         println!("Use port: {}", port);
+    }
+
+    Ok(())
+}
+
+// Initialize Python process storage and conditionally start Python backend
+fn init_python(app_handle: tauri::AppHandle) -> Result<(), String> {
+    // Initialize Python process storage
+    PYTHON_PROCESS
+        .set(Arc::new(Mutex::new(None)))
+        .map_err(|_| "Failed to initialize Python process storage".to_string())?;
+
+    // Determine port based on build mode
+    #[cfg(debug_assertions)]
+    let port = 8000; // Fixed port for development
+
+    #[cfg(not(debug_assertions))]
+    let port = find_available_port()?; // Random port for production
+
+    PYTHON_PORT
+        .set(port)
+        .map_err(|_| "Failed to set Python port".to_string())?;
+    println!("Python backend will use port: {}", port);
+
+    // Start Python backend (only in production mode)
+    #[cfg(not(debug_assertions))]
+    {
+        println!("Production mode: Auto-starting Python FastAPI backend...");
+        std::thread::spawn(move || {
+            if let Err(e) = start_python_backend(app_handle, port) {
+                eprintln!("Failed to start Python backend: {}", e);
+            }
+        });
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        println!("Development mode: Python backend not started in dev mode");
+        println!("Python commands will return 'not available in dev mode' errors");
+        println!("Expected port (if running manually): {}", port);
+    }
+
+    Ok(())
+}
+
+#[cfg(not(debug_assertions))]
+fn start_python_backend(app_handle: tauri::AppHandle, port: u16) -> Result<(), String> {
+    use tauri::Manager;
+
+    // Resolve the path to app.py
+    let resource_path = app_handle
+        .path()
+        .resolve(
+            "resources/python-backend/app.py",
+            tauri::path::BaseDirectory::Resource,
+        )
+        .map_err(|e| format!("Failed to resolve app.py path: {}", e))?;
+
+    let script_path = resource_path
+        .to_str()
+        .ok_or("Failed to convert path to string")?;
+
+    // Get Python executable path
+    let python_path_result = tauri::async_runtime::block_on(get_python_path(app_handle.clone()));
+    let python_path = python_path_result?;
+
+    println!("Starting Python server at: {}", script_path);
+    println!("Using Python: {}", python_path);
+
+    // Start the Python server
+    let child = Command::new(&python_path)
+        .arg(script_path)
+        .env("PORT", port.to_string())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to start Python server: {}", e))?;
+
+    let pid = child.id();
+    println!("Python server started successfully with PID: {}", pid);
+
+    // Store the process handle
+    if let Some(process_lock) = PYTHON_PROCESS.get() {
+        let mut process_guard = process_lock.lock().unwrap();
+        *process_guard = Some(child);
     }
 
     Ok(())
