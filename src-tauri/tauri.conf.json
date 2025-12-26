@@ -71,6 +71,10 @@
             "icons/icon.icns",
             "icons/icon.ico"
         ],
-        "resources": ["resources/backend-spring/backend-native"]
+        "resources": [
+            "resources/backend-spring/backend-native",
+            "resources/python-runtime/**/*",
+            "resources/python-backend/**/*"
+        ]
     }
 }

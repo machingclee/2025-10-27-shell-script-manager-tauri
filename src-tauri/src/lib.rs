@@ -16,7 +16,9 @@ pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
 pub static PRISMA_CLIENT: OnceLock<PrismaClient> = OnceLock::new();
 pub static SPRING_BOOT_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
 pub static BACKEND_PORT: OnceLock<u16> = OnceLock::new();
+pub static PYTHON_PORT: OnceLock<u16> = OnceLock::new();
 pub static CLEANUP_DONE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
+pub static PYTHON_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
 #[cfg(target_os = "macos")]
 pub static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 
@@ -188,6 +190,190 @@ async fn set_title_bar_color(is_dark: bool) -> Result<(), String> {
     Ok(())
 }
 
+// Get the path to the bundled Python runtime
+#[tauri::command]
+async fn get_python_path(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let resource_path = app_handle
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Failed to get resource directory: {}", e))?;
+
+    // Detect architecture
+    let arch = std::env::consts::ARCH;
+    let python_arch = match arch {
+        "aarch64" => "aarch64",
+        "x86_64" => "x86_64",
+        _ => return Err(format!("Unsupported architecture: {}", arch)),
+    };
+
+    let python_bin = resource_path
+        .join("python-runtime")
+        .join(python_arch)
+        .join("bin")
+        .join("python3.12");
+
+    if !python_bin.exists() {
+        return Err(format!("Python binary not found at: {:?}", python_bin));
+    }
+
+    Ok(python_bin.to_string_lossy().to_string())
+}
+
+// Start a Python FastAPI server as a background process with automatic port assignment
+#[tauri::command]
+async fn start_python_server(
+    app_handle: tauri::AppHandle,
+    script_path: String,
+) -> Result<String, String> {
+    #[cfg(debug_assertions)]
+    {
+        return Err("Python server not available in dev mode. Please run Python directly from python-backend/ folder.".to_string());
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        start_python_server_prod(app_handle, script_path).await
+    }
+}
+
+#[cfg(not(debug_assertions))]
+async fn start_python_server_prod(
+    app_handle: tauri::AppHandle,
+    script_path: String,
+) -> Result<String, String> {
+    // Initialize PYTHON_PROCESS if needed
+    if PYTHON_PROCESS.get().is_none() {
+        PYTHON_PROCESS
+            .set(Arc::new(Mutex::new(None)))
+            .map_err(|_| "Failed to initialize Python process storage")?;
+    }
+
+    let python_path = get_python_path(app_handle).await?;
+
+    // Check if a server is already running
+    let process_lock = PYTHON_PROCESS.get().unwrap();
+    let mut process_guard = process_lock.lock().unwrap();
+
+    if let Some(child) = process_guard.as_mut() {
+        // Check if the previous process is still running
+        match child.try_wait() {
+            Ok(Some(_)) => {
+                // Process has exited, we can start a new one
+            }
+            Ok(None) => {
+                return Err("Python server is already running".to_string());
+            }
+            Err(e) => {
+                return Err(format!("Failed to check process status: {}", e));
+            }
+        }
+    }
+
+    // Find an available port (always random in production)
+    let port = find_available_port()?;
+
+    println!("Starting Python server on port {}...", port);
+
+    // Store the port
+    if PYTHON_PORT.get().is_none() {
+        PYTHON_PORT
+            .set(port)
+            .map_err(|_| "Failed to set Python port")?;
+    }
+
+    // Start the Python server
+    let child = Command::new(&python_path)
+        .arg(&script_path)
+        .env("PORT", port.to_string())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to start Python server: {}", e))?;
+
+    let pid = child.id();
+    *process_guard = Some(child);
+
+    println!("Python server started successfully with PID: {}", pid);
+    Ok(format!(
+        "Python server started on port {} with PID: {}",
+        port, pid
+    ))
+}
+
+// Stop the Python FastAPI server
+#[tauri::command]
+async fn stop_python_server() -> Result<String, String> {
+    let process_lock = PYTHON_PROCESS
+        .get()
+        .ok_or("Python process not initialized")?;
+    let mut process_guard = process_lock.lock().unwrap();
+
+    if let Some(mut child) = process_guard.take() {
+        child
+            .kill()
+            .map_err(|e| format!("Failed to kill Python server: {}", e))?;
+        Ok("Python server stopped".to_string())
+    } else {
+        Err("No Python server is running".to_string())
+    }
+}
+
+// Execute a Python script and return the output
+#[tauri::command]
+async fn execute_python_script(
+    app_handle: tauri::AppHandle,
+    script_path: String,
+    args: Vec<String>,
+) -> Result<String, String> {
+    #[cfg(debug_assertions)]
+    {
+        return Err("Python execution not available in dev mode. Please run Python directly from python-backend/ folder.".to_string());
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        execute_python_script_prod(app_handle, script_path, args).await
+    }
+}
+
+#[cfg(not(debug_assertions))]
+async fn execute_python_script_prod(
+    app_handle: tauri::AppHandle,
+    script_path: String,
+    args: Vec<String>,
+) -> Result<String, String> {
+    let python_path = get_python_path(app_handle).await?;
+
+    let output = Command::new(&python_path)
+        .arg(&script_path)
+        .args(&args)
+        .output()
+        .map_err(|e| format!("Failed to execute Python script: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if !output.status.success() {
+        let error_msg = if !stderr.is_empty() {
+            stderr
+        } else {
+            format!("Script failed with exit code: {:?}", output.status.code())
+        };
+        return Err(error_msg);
+    }
+
+    Ok(stdout)
+}
+
+// Get the Python server port
+#[tauri::command]
+async fn get_python_port() -> Result<u16, String> {
+    PYTHON_PORT
+        .get()
+        .copied()
+        .ok_or_else(|| "Python server not started or port not initialized".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -199,6 +385,11 @@ pub fn run() {
             get_backend_port,
             check_backend_health,
             set_title_bar_color,
+            get_python_path,
+            get_python_port,
+            start_python_server,
+            stop_python_server,
+            execute_python_script,
         ])
         .setup(|app| {
             // 0. Initialize cleanup flag
@@ -274,14 +465,15 @@ pub fn run() {
                     // Give frontend time to show the spinner
                     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
-                    // Kill Spring Boot backend and wait for it to finish
-                    println!("Window close requested, shutting down backend...");
+                    // Kill both Spring Boot and Python backends
+                    println!("Window close requested, shutting down backends...");
                     kill_spring_boot_backend();
+                    kill_python_server();
 
                     // Give it extra time to ensure cleanup is complete
                     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
-                    // Verify the process is actually dead
+                    // Verify the processes are actually dead
                     verify_backend_killed();
 
                     println!("Cleanup complete, closing window now");
@@ -788,6 +980,67 @@ fn kill_spring_boot_backend() {
 }
 
 // Verify that the backend process is actually killed
+fn kill_python_server() {
+    if let Some(process_mutex) = PYTHON_PROCESS.get() {
+        if let Some(mut process) = process_mutex.lock().unwrap().take() {
+            println!("Shutting down Python server...");
+
+            let pid = process.id();
+
+            match process.kill() {
+                Ok(_) => {
+                    println!(
+                        "Successfully sent kill signal to Python server (PID: {})",
+                        pid
+                    );
+
+                    // Wait for the process to exit
+                    let start = std::time::Instant::now();
+                    let timeout = std::time::Duration::from_secs(5);
+                    let mut exited = false;
+
+                    while start.elapsed() < timeout {
+                        match process.try_wait() {
+                            Ok(Some(status)) => {
+                                println!("Python server exited with status: {:?}", status);
+                                exited = true;
+                                break;
+                            }
+                            Ok(None) => {
+                                std::thread::sleep(std::time::Duration::from_millis(200));
+                            }
+                            Err(e) => {
+                                eprintln!("Error waiting for Python server: {}", e);
+                                break;
+                            }
+                        }
+                    }
+
+                    if !exited {
+                        println!("Python server did not exit gracefully, forcing kill...");
+                    }
+
+                    // Force kill if still running on Unix systems
+                    #[cfg(unix)]
+                    {
+                        use std::process::Command;
+                        let _ = Command::new("pkill")
+                            .arg("-9")
+                            .arg("-P")
+                            .arg(pid.to_string())
+                            .output();
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to kill Python server: {}", e);
+                }
+            }
+        } else {
+            println!("No Python server process to kill");
+        }
+    }
+}
+
 fn verify_backend_killed() {
     #[cfg(unix)]
     {
@@ -1046,9 +1299,11 @@ fn setup_app_delegate() {
                     // Give frontend time to show the spinner
                     tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
 
-                    // Kill Spring Boot backend synchronously
+                    // Kill both backends synchronously
                     eprintln!("=== Killing Spring Boot backend... ===");
                     kill_spring_boot_backend();
+                    eprintln!("=== Killing Python server... ===");
+                    kill_python_server();
 
                     // Wait for cleanup
                     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;

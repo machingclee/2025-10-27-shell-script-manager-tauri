@@ -43,7 +43,6 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const [hasChanges, setHasChanges] = useState(false);
     const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
-    const editorRef = useRef<any>(null);
     const latestContentRef = useRef("");
     const handleSaveEditRef = useRef<((closeEditMode?: boolean) => Promise<void>) | null>(null);
 
@@ -114,14 +113,38 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     }, [isEditMode, handleSaveEdit]);
 
     const handleCancelEdit = () => {
-        if (isEditMode) {
-            setEditContent(script?.command || "");
-            setIsEditMode(false);
-        } else {
-            // Close the window
-            getCurrentWindow().close();
-        }
+        setEditContent(script?.command || "");
+        setIsEditMode(false);
     };
+
+    // const handleClose = () => {
+    //     // Close the window
+    //     getCurrentWindow().close();
+    // };
+
+    const endEditButton = () => {
+        return (
+            <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+            >
+                End Edit
+            </Button>
+        );
+    };
+
+    // const closeButton = () => {
+    //     return (
+    //         <Button
+    //             variant="outline"
+    //             onClick={handleClose}
+    //             className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+    //         >
+    //             Close
+    //         </Button>
+    //     );
+    // };
 
     const handleCheckboxToggle = async (checkboxIndex: number) => {
         const content = latestContentRef.current || script?.command || "";
@@ -222,7 +245,11 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                             <input
                                 type="text"
                                 value={editName}
-                                onChange={(e) => setEditName(e.target.value)}
+                                onChange={(e) => {
+                                    setEditName(e.target.value);
+                                    setHasChanges(true);
+                                    setEdited(false);
+                                }}
                                 className="text-lg font-semibold bg-transparent border border-gray-300 dark:border-neutral-600 focus:outline-none focus:border-blue-500 text-black dark:text-white px-2 py-1 rounded flex-1 max-w-md"
                                 placeholder="Markdown name"
                             />
@@ -241,28 +268,29 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 {edited ? "Saved" : hasChanges ? "Not Saved" : ""}
                             </span>
                         )}
-                        <Button
-                            variant="outline"
-                            onClick={handleCancelEdit}
-                            className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                        >
-                            {isEditMode ? "Cancel Edit" : "Close"}
-                        </Button>
                         {!isEditMode ? (
-                            <Button
-                                onClick={handleEnableEdit}
-                                className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                            >
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit
-                            </Button>
+                            <>
+                                <Button
+                                    onClick={handleEnableEdit}
+                                    className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                                >
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit
+                                </Button>
+                                {}
+                                {/* {closeButton()} */}
+                            </>
                         ) : (
-                            <Button
-                                onClick={() => handleSaveEdit(true)}
-                                className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                            >
-                                Save Changes
-                            </Button>
+                            <>
+                                <Button
+                                    onClick={() => handleSaveEdit(true)}
+                                    disabled={!hasChanges}
+                                    className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                                >
+                                    Save Changes
+                                </Button>
+                                {endEditButton()}
+                            </>
                         )}
                     </div>
                 </div>

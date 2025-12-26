@@ -48,6 +48,22 @@ function App() {
         }
     }, [dispatch]);
 
+    // Fetch Python backend port on mount (only in production, dev uses default 8000)
+    useEffect(() => {
+        if (!import.meta.env.DEV) {
+            const fetchPythonPort = async () => {
+                try {
+                    const port = await invoke<number>("get_python_port");
+                    dispatch(configSlice.actions.setPythonPort(port)); // Save to Redux
+                    console.log("Python backend running on port:", port);
+                } catch (error) {
+                    console.error("Failed to get Python port:", error);
+                }
+            };
+            fetchPythonPort();
+        }
+    }, [dispatch]);
+
     // Load the last opened folder on app start
     useEffect(() => {
         if (appState?.lastOpenedFolderId) {

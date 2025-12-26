@@ -90,15 +90,38 @@ export default function MarkdownDialog({
     }, [isDialogEditMode, handleSaveEdit]);
 
     const handleCancelEdit = () => {
-        if (isDialogEditMode) {
-            // If in edit mode, just switch back to view mode
-            setEditContent(script?.command || "");
-            setIsDialogEditMode(false);
-            setHasChanges(false);
-        } else {
-            // If in view mode, close the dialog
-            onOpenChange(false);
-        }
+        setEditContent(script?.command || "");
+        setIsDialogEditMode(false);
+        setHasChanges(false);
+    };
+
+    const handleClose = () => {
+        // If in view mode, close the dialog
+        onOpenChange(false);
+    };
+
+    const cancelEditButton = () => {
+        return (
+            <Button
+                variant="outline"
+                onClick={handleCancelEdit}
+                className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+            >
+                End Edit
+            </Button>
+        );
+    };
+
+    const closeButton = () => {
+        return (
+            <Button
+                variant="outline"
+                onClick={handleClose}
+                className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+            >
+                End Edit
+            </Button>
+        );
     };
 
     const handleCheckboxToggle = async (checkboxIndex: number) => {
@@ -415,31 +438,31 @@ export default function MarkdownDialog({
                             {edited ? "Saved" : hasChanges ? "Not Saved" : ""}
                         </span>
                     )}
-                    <Button
-                        variant="outline"
-                        onClick={handleCancelEdit}
-                        className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                    >
-                        {isDialogEditMode ? "Cancel Edit" : "Close"}
-                    </Button>
+
                     {!isDialogEditMode ? (
-                        <Button
-                            onClick={handleEnableEdit}
-                            className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                        >
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit
-                        </Button>
+                        <>
+                            <Button
+                                onClick={handleEnableEdit}
+                                className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                            >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit
+                            </Button>
+                            {closeButton()}
+                        </>
                     ) : (
-                        <Button
-                            onClick={() => {
-                                const closeDialog = true;
-                                handleSaveEdit(closeDialog);
-                            }}
-                            className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                        >
-                            Save Changes
-                        </Button>
+                        <>
+                            <Button
+                                onClick={() => {
+                                    const closeDialog = true;
+                                    handleSaveEdit(closeDialog);
+                                }}
+                                className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                            >
+                                Save Changes
+                            </Button>
+                            {cancelEditButton()}
+                        </>
                     )}
                 </DialogFooter>
             </DialogContent>

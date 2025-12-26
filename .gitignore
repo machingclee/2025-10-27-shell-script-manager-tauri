@@ -31,3 +31,5 @@ src-tauri/target/
 *.db
 *.db-journal
 *.db-wal
+
+aarch64/

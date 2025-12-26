@@ -15,8 +15,36 @@ echo "Building Shell Script Manager Production"
 echo "========================================="
 echo ""
 
-# Step 0: Clean up old build artifacts
-echo "Step 0: Cleaning up old build artifacts..."
+# Step 0: Ensure Python runtime is installed
+echo "Step 0: Checking Python runtime..."
+sh "$PROJECT_ROOT/install_python_runtime.sh"
+echo ""
+
+# Step 0.5: Copy Python scripts to resources
+echo "Step 0.5: Copying Python scripts to resources..."
+sh "$PROJECT_ROOT/copy-python-scripts.sh"
+echo ""
+
+# Step 0.6: Update tauri.conf.json to include Python resources
+echo "Step 0.6: Updating tauri.conf.json for production build..."
+TAURI_CONF="$TAURI_DIR/tauri.conf.json"
+# Backup original config
+cp "$TAURI_CONF" "$TAURI_CONF.backup"
+
+# Add Python resources using jq (or sed if jq not available)
+if command -v jq &> /dev/null; then
+    jq '.bundle.resources += ["resources/python-runtime/**/*", "resources/python-backend/**/*"]' "$TAURI_CONF" > "$TAURI_CONF.tmp"
+    mv "$TAURI_CONF.tmp" "$TAURI_CONF"
+    echo "✓ Added Python resources to tauri.conf.json"
+else
+    # Fallback to sed if jq is not available
+    sed -i '' 's/"resources\/backend-spring\/backend-native"/"resources\/backend-spring\/backend-native",\n            "resources\/python-runtime\/**\/*",\n            "resources\/python-backend\/**\/*"/' "$TAURI_CONF"
+    echo "✓ Added Python resources to tauri.conf.json (using sed)"
+fi
+echo ""
+
+# Step 1: Clean up old build artifacts
+echo "Step 1: Cleaning up old build artifacts..."
 if [ -f "$TAURI_DIR/target/release/bundle/dmg/shell-script-manager_0.1.0_aarch64.dmg" ]; then
     rm -f "$TAURI_DIR/target/release/bundle/dmg/shell-script-manager_0.1.0_aarch64.dmg"
     echo "✓ Removed old DMG"
@@ -27,8 +55,8 @@ if [ -d "$TAURI_DIR/target/release/bundle/macos/shell-script-manager.app" ]; the
 fi
 echo ""
 
-# Step 1: Build GraalVM Native Image
-echo "Step 1: Building GraalVM Native Image (this may take 5-10 minutes)..."
+# Step 2: Build GraalVM Native Image
+echo "Step 2: Building GraalVM Native Image (this may take 5-10 minutes)..."
 cd "$BACKEND_DIR"
 
 # Detect GraalVM installation
@@ -47,8 +75,8 @@ fi
 echo "✓ Native image built successfully"
 echo ""
 
-# Step 2: Create resources directory structure
-echo "Step 2: Preparing Tauri resources..."
+# Step 3: Create resources directory structure
+echo "Step 3: Preparing Tauri resources..."
 mkdir -p "$RESOURCES_DIR/backend-spring"
 
 # Copy the native binary
@@ -63,22 +91,22 @@ chmod +x "$RESOURCES_DIR/backend-spring/backend-native"
 echo "✓ Native binary copied to: $RESOURCES_DIR/backend-spring/backend-native"
 echo ""
 
-# Step 3: Build frontend
-echo "Step 3: Building frontend..."
+# Step 4: Build frontend
+echo "Step 4: Building frontend..."
 cd "$PROJECT_ROOT"
 yarn build
 echo "✓ Frontend built successfully"
 echo ""
 
-# Step 4: Build Tauri app (without DMG to avoid bundling error)
-echo "Step 4: Building Tauri application..."
+# Step 5: Build Tauri app (without DMG to avoid bundling error)
+echo "Step 5: Building Tauri application..."
 cd "$PROJECT_ROOT"
 yarn tauri build --bundles app
 echo "✓ .app bundle created successfully"
 echo ""
 
-# Step 5: Manually create DMG using create-dmg
-echo "Step 5: Creating DMG installer..."
+# Step 6: Manually create DMG using create-dmg
+echo "Step 6: Creating DMG installer..."
 APP_PATH="$TAURI_DIR/target/release/bundle/macos/shell-script-manager.app"
 DMG_DIR="$TAURI_DIR/target/release/bundle/dmg"
 mkdir -p "$DMG_DIR"

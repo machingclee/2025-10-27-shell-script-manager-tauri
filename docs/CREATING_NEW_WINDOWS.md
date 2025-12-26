@@ -546,125 +546,126 @@ useEffect(() => {
 - Ensure HTML file is added to `vite.config.ts` rollupOptions.input
 - Verify all import paths are correct relative to the entry file location
 
-### Offline Monaco Editor in Tauri Subwindows
+### Content Security Policy (CSP)
 
-This section documents the configuration required to run Monaco Editor completely offline within a Tauri v2 application, specifically addressing issues with loading web workers in nested subwindows.
+Tauri applications run in a secure webview environment that enforces a Content Security Policy (CSP) to prevent security vulnerabilities. When creating new windows or adding features that interact with external resources, you may need to adjust the CSP.
 
-#### The Challenge
+#### When to Configure CSP
 
-When using Monaco Editor in a Tauri application, especially in secondary windows (subwindows), you may encounter the following issues:
+You need to modify the CSP when:
 
-1.  **"Loading..." Infinite Loop**: The editor never initializes because it cannot find the web worker files.
-2.  **Path Resolution**: Tauri's custom protocol (`tauri://` or `http://tauri.localhost`) combined with nested file structures (e.g., `src/subwindows/`) breaks the default relative path resolution for workers.
-3.  **Offline Requirement**: Loading Monaco from a CDN (the default behavior of `@monaco-editor/react`) is not suitable for offline desktop apps and can be blocked by CSP.
+1. **Backend Communication**: Your frontend needs to fetch data from a local backend server (e.g., Spring Boot on `localhost`)
+2. **External API Calls**: Your app makes requests to external APIs (e.g., OpenAI, weather APIs)
+3. **Dynamic Styles**: Using CSS-in-JS libraries that inject styles dynamically (e.g., MUI with Emotion, styled-components)
+4. **WebSockets**: Establishing WebSocket connections to local or remote servers
+5. **Images from External Sources**: Loading images from HTTPS URLs or data URIs
+6. **Web Workers**: If your dependencies use web workers (though this is rare in typical React apps)
 
-#### The Solution
+#### CSP Configuration Location
 
-To solve these issues, we implemented a fully offline solution using `vite-plugin-monaco-editor` and manual worker path configuration.
+Edit `src-tauri/tauri.conf.json`:
 
-##### 1. Vite Configuration (`vite.config.ts`)
-
-We use `vite-plugin-monaco-editor` to bundle the Monaco web workers during the build process. This ensures all necessary files are available locally.
-
-```typescript
-import monacoEditorPlugin from "vite-plugin-monaco-editor";
-
-export default defineConfig({
-    plugins: [
-        // ... other plugins
-        // Cast to any to avoid type issues with ESM/CJS interop
-        (monacoEditorPlugin as any).default({
-            languageWorkers: ["editorWorkerService"], // Add other workers if needed (e.g., 'json', 'css')
-        }),
-    ],
-    build: {
-        rollupOptions: {
-            output: {
-                manualChunks: {
-                    monaco: ["monaco-editor"],
-                    // ...
-                },
-            },
-        },
-    },
-});
-```
-
-##### 2. Component Configuration (`MarkdownEditor.tsx`)
-
-We configure the `@monaco-editor/react` loader to use the installed `monaco-editor` package instead of fetching it from a CDN.
-
-```tsx
-import Editor, { loader } from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
-
-// Configure Monaco to use local instance
-loader.config({ monaco });
-
-export default function MarkdownEditor() {
-    // ...
+```json
+{
+    "app": {
+        "security": {
+            "csp": "default-src 'self' tauri: http://tauri.localhost; ..."
+        }
+    }
 }
 ```
 
-##### 3. Subwindow Worker Path Override (`markdown-window-entry.tsx`)
+#### Common CSP Directives
 
-This is the critical fix for subwindows. By default, Monaco tries to resolve workers relative to the current HTML file. For a subwindow located at `src/subwindows/window.html`, it looks in `src/subwindows/`. However, the Vite plugin outputs workers to the root `dist/monacoeditorwork/`.
+**Backend Communication (Critical):**
 
-We must override `MonacoEnvironment.getWorkerUrl` in the subwindow's entry point to point to the correct location relative to the subwindow HTML.
-
-```tsx
-// src/subwindows/markdown-window-entry.tsx
-
-// Override the MonacoEnvironment to fix the worker path in the subwindow
-if (!import.meta.env.DEV) {
-    (window as any).MonacoEnvironment = {
-        getWorkerUrl: function (_moduleId: string, _label: string) {
-            // Navigate up two levels from /subwindows/ to root, then into monacoeditorwork
-            return "../../monacoeditorwork/editor.worker.bundle.js";
-        },
-    };
-}
+```json
+"csp": "... connect-src 'self' tauri: http://tauri.localhost http://localhost:* ws://localhost:*; ..."
 ```
 
-#### Tauri Configuration & Permissions
+- `http://localhost:*` - Allows `fetch()` requests to your local backend on any port
+- `ws://localhost:*` - Allows WebSocket connections to local backend
+- **Why needed**: Tauri runs on `http://tauri.localhost`, but your backend runs on `http://localhost:port`. These are different origins, so CORS applies.
 
-##### Content Security Policy (CSP)
+**External API Calls:**
 
-To allow Monaco Editor to load workers and styles, and to allow the frontend to communicate with the backend, your `tauri.conf.json` must have a compatible CSP.
+```json
+"csp": "... connect-src 'self' tauri: http://tauri.localhost https://api.example.com; ..."
+```
+
+- Add specific HTTPS domains for each external API you call
+- Example: `https://api.openai.com` for OpenAI API calls
+
+**Dynamic Styles (MUI/Emotion):**
+
+```json
+"csp": "... style-src 'self' tauri: http://tauri.localhost 'unsafe-inline'; ..."
+```
+
+- `'unsafe-inline'` - Required for libraries that inject `<style>` tags dynamically
+- **Needed for**: MUI (Emotion), styled-components, CSS-in-JS libraries
+
+**External Images:**
+
+```json
+"csp": "... img-src 'self' tauri: http://tauri.localhost data: https:; ..."
+```
+
+- `data:` - Allows inline base64-encoded images
+- `https:` - Allows images from any HTTPS source (more permissive, use specific domains for stricter security)
+
+#### Complete Example
+
+Here's a typical CSP for an app with a local backend and MUI:
 
 ```json
 "security": {
-    "csp": "default-src 'self' tauri: http://tauri.localhost; connect-src 'self' tauri: http://tauri.localhost http://localhost:* ws://localhost:*; script-src 'self' tauri: http://tauri.localhost 'unsafe-inline' 'unsafe-eval'; style-src 'self' tauri: http://tauri.localhost 'unsafe-inline'; worker-src 'self' blob:; ..."
+    "csp": "default-src 'self' tauri: http://tauri.localhost; connect-src 'self' tauri: http://tauri.localhost http://localhost:* ws://localhost:*; font-src 'self' tauri: http://tauri.localhost; img-src 'self' tauri: http://tauri.localhost data: https:; style-src 'self' tauri: http://tauri.localhost 'unsafe-inline'; script-src 'self' tauri: http://tauri.localhost 'unsafe-inline' 'unsafe-eval'"
 }
 ```
 
-- `connect-src ... http://localhost:*`: **Critical for Backend Communication.** The Tauri webview runs on a secure origin (e.g., `http://tauri.localhost`), while the Spring Boot backend runs on `http://localhost:<port>`. These are treated as different origins by the browser. You must explicitly allow `http://localhost:*` to enable `fetch` requests to your backend. If you call external APIs (e.g., `https://api.openai.com`), you must add them here too.
-- `worker-src 'self' blob:`: Required because Monaco creates web workers, sometimes using blobs.
-- `style-src 'self' ... 'unsafe-inline'`: Required because Monaco injects styles dynamically.
-- `script-src 'self' ... 'unsafe-eval'`: Often required for Monaco's internal operations.
+**Breakdown:**
 
-##### Backend Synchronization
+- `default-src 'self' tauri: http://tauri.localhost` - Base policy for all resources
+- `connect-src ... http://localhost:*` - Backend API calls + WebSockets
+- `font-src 'self' tauri: http://tauri.localhost` - Local fonts only
+- `img-src ... data: https:` - Local images + base64 + HTTPS images
+- `style-src ... 'unsafe-inline'` - Dynamic styles for MUI/Emotion
+- `script-src ... 'unsafe-eval'` - Some frameworks need this (use cautiously)
 
-While not strictly required for Monaco to load, our implementation waits for the backend to be ready before mounting the editor to ensure data availability.
+#### Debugging CSP Issues
 
-1.  **Backend Port**: We wait for the Spring Boot backend to start and report its port.
-2.  **Health Check**: We use a `useBackendHealth` hook to verify the backend is responsive.
-3.  **Data Fetching**: Once ready, we fetch the script content using `scriptApi`.
+**Symptoms:**
 
-```tsx
-// Example usage in window entry
-const { isBackendReady } = useBackendHealth();
+- `fetch()` calls fail with CORS errors
+- Styles don't apply or look broken
+- Console shows CSP violation errors: `"Refused to load ... because it violates the following Content Security Policy directive..."`
 
-if (!isBackendReady) {
-    return <BackendLoadingScreen />;
-}
+**Debugging Steps:**
 
-return <MarkdownEditor scriptId={scriptId} />;
+1. **Check Browser Console**: Look for CSP violation messages
+2. **Identify the Blocked Resource**: Note which directive is violated (e.g., `connect-src`, `style-src`)
+3. **Add to CSP**: Update the relevant directive in `tauri.conf.json`
+4. **Rebuild**: CSP changes require a full rebuild (`yarn bundle`)
+5. **Test**: Verify the resource now loads correctly
+
+**Example Error:**
+
+```
+Refused to connect to 'http://localhost:8080/api/data' because it violates
+the following Content Security Policy directive: "connect-src 'self' tauri: http://tauri.localhost".
 ```
 
-#### Summary of Files Changed
+**Solution:** Add `http://localhost:*` to `connect-src`.
 
-- `package.json`: Added `vite-plugin-monaco-editor`.
-- `vite.config.ts`: Added plugin configuration.
-- `src/app-component/ScriptsColumn/MarkdownEditor.tsx`: Configured local loader.
-- `src/subwindows/markdown-window-entry.tsx`: Added `MonacoEnvironment` override.
+#### Security Best Practices
+
+1. **Be Specific**: Instead of `https:`, list specific domains: `https://api.example.com https://cdn.example.com`
+2. **Avoid `unsafe-eval`**: Only use if absolutely necessary (some frameworks require it)
+3. **Minimize `unsafe-inline`**: Only add for `style-src` if using CSS-in-JS libraries
+4. **Test Thoroughly**: Test all features after CSP changes to ensure nothing is blocked
+5. **Development vs Production**: CSP applies to both - test in production builds
+
+#### Common Pitfall: Backend Port Changes
+
+If your backend port changes dynamically, `http://localhost:*` (with wildcard) is the safest approach. Alternatively, use a fixed port in your backend configuration.
