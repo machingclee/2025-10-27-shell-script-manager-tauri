@@ -198,5 +198,12 @@ data class HistoricalShellScriptResponse(
     val shellScript: ShellScriptDTO
 )
 
+data class CreateAIProfile(
+    val name: String,
+    val description: String
+)
+
+
+
 
 
