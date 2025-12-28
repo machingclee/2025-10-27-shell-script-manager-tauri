@@ -58,6 +58,8 @@ model shell_script {
     created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
     show_shell                    Boolean                         @default(false)
     rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
+    rel_shellscript_aiconfig      rel_shellscript_aiconfig[]
+    ai_scripted_tool              ai_scripted_tool[]
 
     @@index([id])
 }
@@ -121,4 +123,91 @@ model event {
     request_user_email String
     success            Boolean @default(true)
     failure_reason     String  @default("")
+}
+
+model ai_profile {
+    id                           Int                            @id @default(autoincrement())
+    name                         String
+    selected_model_config_id     Int
+    rel_aiprofile_modelconfig    rel_aiprofile_modelconfig[]
+    created_at                   Float                          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk                String                         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    rel_aiprofile_aiscriptedtool rel_aiprofile_aiscriptedtool[]
+}
+
+model script_ai_config {
+    id                       Int                        @id @default(autoincrement())
+    enabled_ai_search        Boolean                    @default(false)
+    rel_shellscript_aiconfig rel_shellscript_aiconfig[]
+    created_at               Float                      @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk            String                     @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+}
+
+model rel_shellscript_aiconfig {
+    id                  Int              @id @default(autoincrement())
+    shell_script        shell_script     @relation(fields: [shell_script_id], references: [id])
+    shell_script_id     Int
+    script_ai_config    script_ai_config @relation(fields: [script_ai_config_id], references: [id])
+    script_ai_config_id Int
+}
+
+model model_config {
+    id                        Int                         @id @default(autoincrement())
+    name                      String
+    model_source              String                      @default("AZURE_OPENAI") // Enum values: OPENAI, AZURE_OPENAI
+    rel_aiprofile_modelconfig rel_aiprofile_modelconfig[]
+    azure_model_config        azure_model_config[]
+    openai_model_config       openai_model_config[]
+    created_at                Float                       @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk             String                      @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+}
+
+model rel_aiprofile_modelconfig {
+    id              Int          @id @default(autoincrement())
+    ai_profile      ai_profile   @relation(fields: [ai_profile_id], references: [id])
+    ai_profile_id   Int
+    model_config    model_config @relation(fields: [model_config_id], references: [id])
+    model_config_id Int
+}
+
+model azure_model_config {
+    id                       Int          @id @default(autoincrement())
+    model_config_id          Int
+    azure_openai_api_key     String // e.g., "DvvBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    azure_openai_endpoint    String // e.g., https://shellscriptmanager.openai.azure.com
+    azure_openai_api_version String // e.g., 2025-01-01-preview
+    azure_openai_model       String // e.g., gpt-4.1-mini
+    model_config             model_config @relation(fields: [model_config_id], references: [id])
+    created_at               Float        @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk            String       @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+}
+
+model openai_model_config {
+    id              Int          @id @default(autoincrement())
+    model_config_id Int
+    openai_api_key  String // e.g., "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    openai_model    String // e.g., gpt-4, gpt-3.5-turbo
+    model_config    model_config @relation(fields: [model_config_id], references: [id])
+    created_at      Float        @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk   String       @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+}
+
+model ai_scripted_tool {
+    id                           Int                            @id @default(autoincrement())
+    name                         String
+    tool_description             String
+    is_enabled                   Boolean                        @default(true)
+    shell_script_id              Int
+    created_at                   Float                          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk                String                         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    shell_script                 shell_script                   @relation(fields: [shell_script_id], references: [id])
+    rel_aiprofile_aiscriptedtool rel_aiprofile_aiscriptedtool[]
+}
+
+model rel_aiprofile_aiscriptedtool {
+    id                  Int              @id @default(autoincrement())
+    ai_profile          ai_profile       @relation(fields: [ai_profile_id], references: [id])
+    ai_profile_id       Int
+    ai_scripted_tool    ai_scripted_tool @relation(fields: [ai_scripted_tool_id], references: [id])
+    ai_scripted_tool_id Int
 }

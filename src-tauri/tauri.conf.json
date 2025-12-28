@@ -86,6 +86,8 @@
       "resources/python-runtime/**/*",
       "resources/python-backend/**/*",
       "resources/python-runtime/**/*",
+      "resources/python-backend/**/*",
+      "resources/python-runtime/**/*",
       "resources/python-backend/**/*"
     ]
   }

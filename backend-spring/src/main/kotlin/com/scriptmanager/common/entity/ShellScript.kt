@@ -48,4 +48,12 @@ class ShellScript(
         inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id", insertable = false)]
     )
     var parentFolder: ScriptsFolder? = null
+
+    @OneToOne
+    @JoinTable(
+        name = "rel_shellscript_aiconfig",
+        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", insertable = false)],
+        inverseJoinColumns = [JoinColumn(name = "script_ai_config_id", referencedColumnName = "id", insertable = false)]
+    )
+    var aiConfig: ScriptAiConfig? = null
 }
