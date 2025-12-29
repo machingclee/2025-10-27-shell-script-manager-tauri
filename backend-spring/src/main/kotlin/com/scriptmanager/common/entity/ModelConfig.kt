@@ -17,8 +17,8 @@ class ModelConfig(
     @Column(name = "name", nullable = false)
     var name: String = "",
 
-    @Column(name = "model_source", nullable = false)
-    var modelSource: String = "AZURE_OPENAI", // Enum values: OPENAI, AZURE_OPENAI
+    @Embedded
+    var modelSource: ModelSource,
 
     @Column(name = "created_at")
     @Generated
@@ -33,4 +33,26 @@ class ModelConfig(
 
     @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     var azureModelConfigs: AzureModelConfig? = null
+
+
+    @Embeddable
+    class ModelSource(
+        @Column(name = "model_source", nullable = false)
+        var modelSource: String = "AZURE_OPENAI", // Enum values: OPENAI, AZURE_OPENAI
+    ) {
+        init {
+            val allowedValues = listOf(
+                Companion.OPENAI,
+                Companion.AZURE_OPENAI
+            )
+            require(allowedValues.contains(modelSource)) { "Model source must be one of: ${allowedValues.joinToString(", ")}" }
+        }
+
+        companion object {
+            val OPENAI = "OPENAI"
+            val AZURE_OPENAI = "AZURE_OPENAI"
+        }
+    }
+
+
 }

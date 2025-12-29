@@ -8,7 +8,7 @@ generator client {
 
 datasource db {
     provider = "sqlite"
-    url      = "file:../database.db"
+    url      = "file:../database.db?connection_limit=1&socket_timeout=10&foreign_keys=true"
 }
 
 model application_state {
@@ -39,8 +39,8 @@ model rel_scriptsfolder_shellscript {
     shell_script_id   Int
     created_at        Float          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
     created_at_hk     String         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
-    shell_script      shell_script   @relation(fields: [shell_script_id], references: [id])
-    scripts_folder    scripts_folder @relation(fields: [scripts_folder_id], references: [id])
+    shell_script      shell_script   @relation(fields: [shell_script_id], references: [id], onDelete: Cascade)
+    scripts_folder    scripts_folder @relation(fields: [scripts_folder_id], references: [id], onDelete: Cascade)
 
     @@unique([shell_script_id, scripts_folder_id])
     @@index([scripts_folder_id])
@@ -70,8 +70,8 @@ model rel_folder_folder {
     child_folder_id  Int
     created_at       Float          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
     created_at_hk    String         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
-    parent_folder    scripts_folder @relation("ParentFolder", fields: [parent_folder_id], references: [id])
-    child_folder     scripts_folder @relation("ChildFolder", fields: [child_folder_id], references: [id])
+    parent_folder    scripts_folder @relation("ParentFolder", fields: [parent_folder_id], references: [id], onDelete: Cascade)
+    child_folder     scripts_folder @relation("ChildFolder", fields: [child_folder_id], references: [id], onDelete: Cascade)
 
     @@unique([parent_folder_id, child_folder_id])
     @@index([parent_folder_id])
@@ -128,7 +128,9 @@ model event {
 model ai_profile {
     id                           Int                            @id @default(autoincrement())
     name                         String
-    selected_model_config_id     Int
+    description                  String
+    selected_model_config_id     Int?
+    model_config                 model_config?                  @relation(fields: [selected_model_config_id], references: [id])
     rel_aiprofile_modelconfig    rel_aiprofile_modelconfig[]
     created_at                   Float                          @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
     created_at_hk                String                         @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
@@ -145,9 +147,9 @@ model script_ai_config {
 
 model rel_shellscript_aiconfig {
     id                  Int              @id @default(autoincrement())
-    shell_script        shell_script     @relation(fields: [shell_script_id], references: [id])
+    shell_script        shell_script     @relation(fields: [shell_script_id], references: [id], onDelete: Cascade)
     shell_script_id     Int
-    script_ai_config    script_ai_config @relation(fields: [script_ai_config_id], references: [id])
+    script_ai_config    script_ai_config @relation(fields: [script_ai_config_id], references: [id], onDelete: Cascade)
     script_ai_config_id Int
 }
 
@@ -160,13 +162,14 @@ model model_config {
     openai_model_config       openai_model_config[]
     created_at                Float                       @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
     created_at_hk             String                      @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    ai_profile                ai_profile[]
 }
 
 model rel_aiprofile_modelconfig {
     id              Int          @id @default(autoincrement())
-    ai_profile      ai_profile   @relation(fields: [ai_profile_id], references: [id])
+    ai_profile      ai_profile   @relation(fields: [ai_profile_id], references: [id], onDelete: Cascade)
     ai_profile_id   Int
-    model_config    model_config @relation(fields: [model_config_id], references: [id])
+    model_config    model_config @relation(fields: [model_config_id], references: [id], onDelete: Cascade)
     model_config_id Int
 }
 
@@ -177,7 +180,7 @@ model azure_model_config {
     azure_openai_endpoint    String // e.g., https://shellscriptmanager.openai.azure.com
     azure_openai_api_version String // e.g., 2025-01-01-preview
     azure_openai_model       String // e.g., gpt-4.1-mini
-    model_config             model_config @relation(fields: [model_config_id], references: [id])
+    model_config             model_config @relation(fields: [model_config_id], references: [id], onDelete: Cascade)
     created_at               Float        @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
     created_at_hk            String       @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
 }
@@ -187,7 +190,7 @@ model openai_model_config {
     model_config_id Int
     openai_api_key  String // e.g., "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     openai_model    String // e.g., gpt-4, gpt-3.5-turbo
-    model_config    model_config @relation(fields: [model_config_id], references: [id])
+    model_config    model_config @relation(fields: [model_config_id], references: [id], onDelete: Cascade)
     created_at      Float        @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
     created_at_hk   String       @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
 }
@@ -206,8 +209,8 @@ model ai_scripted_tool {
 
 model rel_aiprofile_aiscriptedtool {
     id                  Int              @id @default(autoincrement())
-    ai_profile          ai_profile       @relation(fields: [ai_profile_id], references: [id])
+    ai_profile          ai_profile       @relation(fields: [ai_profile_id], references: [id], onDelete: Cascade)
     ai_profile_id       Int
-    ai_scripted_tool    ai_scripted_tool @relation(fields: [ai_scripted_tool_id], references: [id])
+    ai_scripted_tool    ai_scripted_tool @relation(fields: [ai_scripted_tool_id], references: [id], onDelete: Cascade)
     ai_scripted_tool_id Int
 }

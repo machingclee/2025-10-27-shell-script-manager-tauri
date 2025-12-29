@@ -19,8 +19,11 @@ class AiProfile(
     @Column(name = "name", nullable = false)
     var name: String = "",
 
-    @Column(name = "selected_model_config_id", nullable = false)
-    var selectedModelConfigId: Int = 0,
+    @Column(name = "selected_model_config_id")
+    var selectedModelConfigId: Int? = null,
+
+    @Column(name = "description", nullable = false)
+    var description: String = "",
 
     @Column(name = "created_at")
     @Generated
@@ -53,4 +56,9 @@ class AiProfile(
         inverseJoinColumns = [JoinColumn(name = "ai_scripted_tool_id", referencedColumnName = "id")]
     )
     var aiScriptedTools: MutableList<AiScriptedTool> = mutableListOf()
+
+
+    @OneToOne
+    @JoinColumn(name = "selected_model_config_id", insertable = false, updatable = false)
+    var selectedModelConfig: ModelConfig? = null
 }

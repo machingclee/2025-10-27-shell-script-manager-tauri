@@ -878,7 +878,10 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
     // Use GraalVM native image (no Java required!)
     let child = Command::new(&native_binary)
         .arg(format!("--server.port={}", port))
-        .arg(format!("--spring.datasource.url=jdbc:sqlite:{}", db_path))
+        .arg(format!(
+            "--spring.datasource.url=jdbc:sqlite:{}?foreign_keys=true",
+            db_path
+        ))
         .spawn()
         .map_err(|e| format!("Failed to start Spring Boot backend: {}", e))?;
 
@@ -1104,7 +1107,11 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<(), String> {
     println!("Database location: {}", db_path);
 
     // Set DATABASE_URL environment variable for Prisma
-    let database_url = format!("file:{}", db_path);
+    // Include foreign_keys=true to enable CASCADE deletion in SQLite
+    let database_url = format!(
+        "file:{}?connection_limit=1&socket_timeout=10&foreign_keys=true",
+        db_path
+    );
     std::env::set_var("DATABASE_URL", &database_url);
 
     // Initialize Prisma client and run migrations to create database
@@ -1127,6 +1134,34 @@ pub fn init_db(app_handle: &tauri::AppHandle) -> Result<(), String> {
             let client = prisma::new_client_with_url(&database_url_clone)
                 .await
                 .expect("Failed to create Prisma client");
+
+            // Enable foreign key constraints for this connection
+            // SQLite disables foreign keys by default, so we must enable them explicitly
+            println!("Enabling foreign key constraints...");
+            client
+                ._execute_raw(prisma_client_rust::raw!("PRAGMA foreign_keys = ON"))
+                .exec()
+                .await
+                .expect("Failed to enable foreign keys");
+
+            // Verify foreign keys are actually enabled
+            let fk_status: i32 = client
+                ._query_raw(prisma_client_rust::raw!("PRAGMA foreign_keys"))
+                .exec()
+                .await
+                .expect("Failed to check foreign key status")
+                .into_iter()
+                .next()
+                .and_then(|row: serde_json::Value| row.get("foreign_keys").and_then(|v| v.as_i64()))
+                .unwrap_or(0) as i32;
+
+            println!(
+                "Foreign key constraints status: {} (1=enabled, 0=disabled)",
+                fk_status
+            );
+            if fk_status != 1 {
+                panic!("Failed to enable foreign key constraints!");
+            }
 
             // Always run schema sync to ensure database matches current schema
             // This allows automatic schema updates when the app is updated
