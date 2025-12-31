@@ -4,10 +4,12 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Profile
 import org.springframework.core.env.Environment
 import javax.sql.DataSource
 
 @Configuration
+@Profile("!test")  // Don't use this config in test profile - let Testcontainers provide the datasource
 class DatabaseConfig(private val env: Environment) {
 
     @Bean

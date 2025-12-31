@@ -180,8 +180,8 @@ data class ExecutionContext(
 
 
 interface CommandInvoker {
-    fun <T : Any, R> invoke(handler: CommandHandler<T, R>, command: T): R
-    fun <R> invoke(command: Command<R>): R
+    fun <T : Any, R> invoke(handler: CommandHandler<T, R>, command: T, eventQueue: EventQueue? = null): R
+    fun <R> invoke(command: Command<R>, eventQueue: EventQueue? = null): R
 }
 
 @Component
@@ -237,16 +237,16 @@ class OneTransactionCommandInvoker(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <R> invoke(command: Command<R>): R {
+    override fun <R> invoke(command: Command<R>, eventQueue: EventQueue?): R {
         val handler = handlerMap[command::class.java]
             ?: throw IllegalArgumentException(
                 "No handler registered for command: ${command::class.simpleName}"
             )
 
-        return invoke(handler as CommandHandler<Any, R>, command as Any)
+        return invoke(handler as CommandHandler<Any, R>, command as Any, eventQueue)
     }
 
-    override fun <T : Any, R> invoke(handler: CommandHandler<T, R>, command: T): R {
+    override fun <T : Any, R> invoke(handler: CommandHandler<T, R>, command: T, eventQueue: EventQueue?): R {
         // Preserve existing requestId for nested commands, or create new one for top-level commands
         val existingRequestId = MDC.get("requestId")
         val requestId = existingRequestId ?: UUID.randomUUID().toString()
@@ -255,8 +255,6 @@ class OneTransactionCommandInvoker(
         // Always ensure MDC has the requestId
         MDC.put("requestId", requestId)
         MDC.put("userEmail", "me")
-        var commandEventId: Int? = null
-        var dispatchedEvents: List<EventWrapper<Any>> = emptyList()
 
         // Debug logging
         println("Command: ${command.javaClass.simpleName}, isNested: $isNestedCommand, requestId: $requestId")
@@ -266,15 +264,17 @@ class OneTransactionCommandInvoker(
             val result = if (isNestedCommand && TransactionSynchronizationManager.isSynchronizationActive()) {
                 // Execute directly in existing transaction for nested commands
                 println("Executing nested command in existing transaction")
-                val eventQueue = SmartEventQueue()
+                // Use provided eventQueue for testing, or create new one for production
+                val queue = eventQueue ?: SmartEventQueue()
 
                 // Log command audit INSIDE the transaction
                 val commandEvent = commandAuditor.logCommandInTransaction(command, requestId)
-                commandEventId = commandEvent.id
 
-                val result = handler.handle(eventQueue, command)
-                dispatchedEvents = eventQueue.allEvents
-                domainEventDispatcher.dispatch(eventQueue, requestId)
+                // the queue is injected so that we can put an event after command, like SthSth is Done Event.
+                val result = handler.handle(queue, command)
+
+                // Always dispatch events (even when test queue is provided)
+                domainEventDispatcher.dispatch(queue, requestId)
 
                 // Mark as success immediately (same transaction)
                 commandEvent.success = true
@@ -284,17 +284,17 @@ class OneTransactionCommandInvoker(
             } else {
                 // Create new transaction for top-level commands
                 println("Executing top-level command in new transaction")
-                var tempDispatchedEvents: List<EventWrapper<Any>> = emptyList()
                 val result = transactionTemplate.execute { _ ->
-                    val eventQueue = SmartEventQueue()
+                    // Use provided eventQueue for testing, or create new one for production
+                    val queue = eventQueue ?: SmartEventQueue()
 
                     // Log command audit INSIDE the transaction
                     val commandEvent = commandAuditor.logCommandInTransaction(command, requestId)
-                    commandEventId = commandEvent.id
 
-                    val result = handler.handle(eventQueue, command)
-                    tempDispatchedEvents = eventQueue.allEvents
-                    domainEventDispatcher.dispatch(eventQueue, requestId)
+                    val result = handler.handle(queue, command)
+
+                    // Always dispatch events (even when test queue is provided)
+                    domainEventDispatcher.dispatch(queue, requestId)
 
                     // Mark as success immediately (same transaction)
                     commandEvent.success = true
@@ -302,7 +302,6 @@ class OneTransactionCommandInvoker(
 
                     result
                 } ?: throw IllegalStateException()
-                dispatchedEvents = tempDispatchedEvents
                 result
             }
 

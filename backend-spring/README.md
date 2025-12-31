@@ -3,6 +3,7 @@
 ## 🎯 Architecture
 
 **Simple Hybrid Approach:**
+
 - ✅ **Prisma** - Manages database schema (all migrations)
 - ✅ **Spring Boot** - Provides REST API (read-only database access)
 
@@ -29,6 +30,68 @@ curl http://localhost:8080/api/app-state
 
 ---
 
+## 🧪 Testing
+
+### Integration Tests with Testcontainers
+
+This project uses **Testcontainers** with **PostgreSQL** for integration testing, providing production-like testing
+without in-memory database limitations.
+
+**Prerequisites:**
+
+```bash
+# 1. Docker must be running
+open -a Docker  # macOS
+docker ps       # Verify Docker is running
+
+# 2. Node.js/npm (for Prisma schema application)
+node --version
+npm --version
+```
+
+**Run Tests:**
+
+```bash
+# Run all tests
+./gradlew test
+
+# Run specific test
+./gradlew test --tests CommandInvokerIntegrationTest
+
+# Run with detailed output
+./gradlew test --info
+```
+
+**Benefits over in-memory databases:**
+
+- ✅ Tests against actual PostgreSQL (production parity)
+- ✅ Full database features (triggers, functions, constraints)
+- ✅ Realistic performance characteristics
+- ✅ Can inspect database after tests
+- ✅ Tests your actual SQL queries
+
+**How it works:**
+
+1. Testcontainers spins up PostgreSQL in Docker
+2. Prisma schema is automatically applied
+3. Tests run against real database
+4. Container can be reused for fast subsequent runs
+
+**Configuration:**
+
+- Test config: `src/test/resources/application-test.yml`
+- Container setup: `src/test/kotlin/com/scriptmanager/config/TestcontainersConfiguration.kt`
+- Integration tests: `src/test/kotlin/com/scriptmanager/integration/`
+
+📚 **For complete documentation, see [TESTING_AND_CONTAINERS_COMPLETE.md](TESTING_AND_CONTAINERS_COMPLETE.md)**
+
+- Complete guide for integration testing with Testcontainers + PostgreSQL
+- Setup, configuration, writing tests, database connection
+- Container lifecycle, data injection, troubleshooting
+- All testing and container topics in one comprehensive guide
+
+---
+
 ## 📝 Making Schema Changes
 
 ### 1. Use Prisma (as you always do!)
@@ -43,6 +106,7 @@ npx prisma migrate dev --name add_description
 ### 2. Update JPA Entity
 
 Ask ChatGPT/Claude:
+
 ```
 Convert this Prisma model to Kotlin JPA entity:
 
@@ -87,6 +151,7 @@ spring:
 ## 📁 REST API Endpoints
 
 ### Folders
+
 - `GET /api/folders` - List all folders
 - `GET /api/folders/{id}` - Get folder by ID
 - `POST /api/folders` - Create folder
@@ -94,6 +159,7 @@ spring:
 - `DELETE /api/folders/{id}` - Delete folder
 
 ### Scripts
+
 - `GET /api/scripts` - List all scripts
 - `GET /api/scripts/{id}` - Get script by ID
 - `POST /api/scripts` - Create script
@@ -101,6 +167,7 @@ spring:
 - `DELETE /api/scripts/{id}` - Delete script
 
 ### Application State
+
 - `GET /api/app-state` - Get application state
 - `PUT /api/app-state` - Update application state
 
@@ -153,8 +220,8 @@ backend-spring/
 1. **Simple** - Use Prisma's excellent migration workflow
 2. **Familiar** - You already know Prisma
 3. **Clean** - Each tool does what it's best at:
-   - Prisma → Database schema
-   - Spring Boot → REST API
+    - Prisma → Database schema
+    - Spring Boot → REST API
 4. **LLM-Friendly** - AI helps convert Prisma to JPA
 
 ---
@@ -178,6 +245,7 @@ lsof -ti:8080 | xargs kill -9
 Update JPA entity to match Prisma schema. Use LLM to convert:
 
 **Prompt:**
+
 ```
 Convert this Prisma model to Kotlin JPA entity:
 
@@ -189,6 +257,7 @@ Convert this Prisma model to Kotlin JPA entity:
 ## 📖 Summary
 
 **Simple workflow:**
+
 1. Edit Prisma schema
 2. Run `npx prisma migrate dev`
 3. Update JPA entity (use LLM!)
@@ -199,6 +268,7 @@ Convert this Prisma model to Kotlin JPA entity:
 ---
 
 **Technology Stack:**
+
 - Spring Boot 3.2.0
 - Kotlin 1.9.20
 - SQLite

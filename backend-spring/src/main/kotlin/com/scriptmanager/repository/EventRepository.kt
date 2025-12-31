@@ -8,5 +8,6 @@ import java.util.*
 
 @Repository
 interface EventRepository : JpaRepository<Event, Int> {
+    fun findAllByEventType(eventType: String): List<Event>
     fun findAllByRequestIdAndEventType(requestId: String, eventType: String): List<Event>
 }

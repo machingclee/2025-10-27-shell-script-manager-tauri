@@ -40,6 +40,15 @@ dependencies {
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.junit.platform:junit-platform-suite-api:1.10.1")  // For test suite ordering
+    testRuntimeOnly("org.junit.platform:junit-platform-suite-engine:1.10.1")
+
+    // Testcontainers for real database testing
+    testImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testImplementation("org.testcontainers:testcontainers:1.19.3")
+    testImplementation("org.testcontainers:postgresql:1.19.3")
+    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
+    testImplementation("org.postgresql:postgresql:42.7.1")
 
     // OpenAPI / Swagger UI (springdoc) for Spring Boot 3
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")
@@ -59,6 +68,11 @@ tasks.named<Test>("test") {
     useJUnitPlatform()
 }
 
+// Disable KSP for AOT test processing (it causes issues and isn't needed for tests)
+tasks.matching { it.name == "kspAotTestKotlin" }.configureEach {
+    enabled = false
+}
+
 // Task to create a fat JAR for embedding
 tasks.register<Jar>("fatJar") {
     archiveClassifier.set("fat")
@@ -76,15 +90,15 @@ graalvmNative {
         named("main") {
             imageName.set("backend-native")
             mainClass.set("com.scriptmanager.ApplicationKt")
-            
+
             buildArgs.add("--verbose")
             buildArgs.add("-H:+ReportExceptionStackTraces")
-            
+
             // Initialize Logback at runtime to avoid native image issues
             buildArgs.add("--initialize-at-run-time=ch.qos.logback")
             buildArgs.add("--initialize-at-run-time=org.slf4j.LoggerFactory")
             buildArgs.add("--initialize-at-run-time=io.netty.handler.ssl")
-            
+
             buildArgs.add("-H:+AddAllCharsets")
             buildArgs.add("-H:EnableURLProtocols=http,https")
         }
