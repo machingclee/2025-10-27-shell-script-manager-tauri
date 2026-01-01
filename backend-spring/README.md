@@ -32,22 +32,33 @@ curl http://localhost:8080/api/app-state
 
 ## 🧪 Testing
 
-### Integration Tests with Testcontainers
+### Complete Testing Guide
 
-This project uses **Testcontainers** with **PostgreSQL** for integration testing, providing production-like testing
-without in-memory database limitations.
+**📚 See [TESTING_AND_CONTAINERS_COMPLETE.md](./TESTING_AND_CONTAINERS_COMPLETE.md)** - The complete guide covering:
+
+- Testcontainers setup with PostgreSQL
+- Test queue vs database events strategy
+- BaseIntegrationTest for automatic cleanup
+- Code examples and best practices
+- Troubleshooting and FAQ
+
+### Quick Test Commands
+
+```bash
+# Run all tests
+./gradlew test
+
+# Run tests and view report
+./test-and-view.sh
+
+# View last test report
+./view-test-report.sh
+```
 
 **Prerequisites:**
 
-```bash
-# 1. Docker must be running
-open -a Docker  # macOS
-docker ps       # Verify Docker is running
-
-# 2. Node.js/npm (for Prisma schema application)
-node --version
-npm --version
-```
+- Docker must be running: `open -a Docker` (macOS)
+- That's it! TestContainers handles the rest.
 
 **Run Tests:**
 
