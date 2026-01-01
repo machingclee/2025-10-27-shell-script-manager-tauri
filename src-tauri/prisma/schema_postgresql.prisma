@@ -1,0 +1,220 @@
+// Prisma Schema for Rust + Iced Counter App
+// Supports automatic schema diffing and migration generation!
+
+generator client {
+    provider = "cargo prisma"
+    output   = "../src/prisma.rs"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Models ordered by dependencies (base models first)
+// ============================================================================
+
+model application_state {
+    id                    Int     @id @default(autoincrement())
+    last_opened_folder_id Int?
+    dark_mode             Boolean @default(false)
+    created_at            Float   @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk         String  @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+}
+
+model scripts_folder {
+    id                            Int                             @id @default(autoincrement())
+    name                          String
+    ordering                      Int
+    created_at                    Float                           @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk                 String                          @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
+    rel_parent_folder_folder      rel_folder_folder[]             @relation("ParentFolder")
+    rel_child_folder_folder       rel_folder_folder[]             @relation("ChildFolder")
+    rel_workspace_folder          rel_workspace_folder[]
+
+    @@index([id])
+}
+
+model shell_script {
+    id                            Int                             @id @default(autoincrement())
+    is_markdown                   Boolean                         @default(false)
+    name                          String
+    command                       String
+    ordering                      Int
+    locked                        Boolean                         @default(true)
+    created_at                    Float                           @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk                 String                          @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    show_shell                    Boolean                         @default(false)
+    rel_scriptsfolder_shellscript rel_scriptsfolder_shellscript[]
+    rel_shellscript_aiconfig      rel_shellscript_aiconfig[]
+    ai_scripted_tool              ai_scripted_tool[]
+
+    @@index([id])
+}
+
+model workspace {
+    id                   Int                    @id @default(autoincrement())
+    name                 String
+    ordering             Int
+    created_at           Float                  @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk        String                 @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    rel_workspace_folder rel_workspace_folder[]
+
+    @@index([id])
+}
+
+model historical_shell_script {
+    id              Int    @id @default(autoincrement())
+    shell_script_id Int
+    executed_at     Float  @map("execution_time")
+    created_at      Float  @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk   String @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+
+    @@index([shell_script_id])
+}
+
+model event {
+    id                 Int     @id @unique @default(autoincrement())
+    request_id         String
+    created_at         Float   @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk      String  @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    event_type         String
+    event              String
+    request_user_email String
+    success            Boolean @default(true)
+    failure_reason     String  @default("")
+}
+
+model ai_profile {
+    id                           Int                            @id @default(autoincrement())
+    name                         String
+    description                  String
+    selected_model_config_id     Int?
+    model_config                 model_config?                  @relation(fields: [selected_model_config_id], references: [id])
+    rel_aiprofile_modelconfig    rel_aiprofile_modelconfig[]
+    created_at                   Float                          @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk                String                         @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    rel_aiprofile_aiscriptedtool rel_aiprofile_aiscriptedtool[]
+}
+
+model script_ai_config {
+    id                       Int                        @id @default(autoincrement())
+    enabled_ai_search        Boolean                    @default(false)
+    rel_shellscript_aiconfig rel_shellscript_aiconfig[]
+    created_at               Float                      @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk            String                     @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+}
+
+model model_config {
+    id                        Int                         @id @default(autoincrement())
+    name                      String
+    model_source              String                      @default("AZURE_OPENAI") // Enum values: OPENAI, AZURE_OPENAI
+    rel_aiprofile_modelconfig rel_aiprofile_modelconfig[]
+    azure_model_config        azure_model_config[]
+    openai_model_config       openai_model_config[]
+    created_at                Float                       @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk             String                      @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    ai_profile                ai_profile[]
+}
+
+model rel_folder_folder {
+    id               Int            @id @default(autoincrement())
+    parent_folder_id Int
+    child_folder_id  Int
+    created_at       Float          @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk    String         @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    parent_folder    scripts_folder @relation("ParentFolder", fields: [parent_folder_id], references: [id], onDelete: Cascade)
+    child_folder     scripts_folder @relation("ChildFolder", fields: [child_folder_id], references: [id], onDelete: Cascade)
+
+    @@unique([parent_folder_id, child_folder_id])
+    @@index([parent_folder_id])
+    @@index([child_folder_id])
+}
+
+model rel_scriptsfolder_shellscript {
+    id                Int            @id @default(autoincrement())
+    scripts_folder_id Int
+    shell_script_id   Int
+    created_at        Float          @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk     String         @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    shell_script      shell_script   @relation(fields: [shell_script_id], references: [id], onDelete: Cascade)
+    scripts_folder    scripts_folder @relation(fields: [scripts_folder_id], references: [id], onDelete: Cascade)
+
+    @@unique([shell_script_id, scripts_folder_id])
+    @@index([scripts_folder_id])
+    @@index([shell_script_id])
+}
+
+model ai_scripted_tool {
+    id                           Int                            @id @default(autoincrement())
+    name                         String
+    tool_description             String
+    is_enabled                   Boolean                        @default(true)
+    shell_script_id              Int
+    created_at                   Float                          @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk                String                         @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    shell_script                 shell_script                   @relation(fields: [shell_script_id], references: [id])
+    rel_aiprofile_aiscriptedtool rel_aiprofile_aiscriptedtool[]
+}
+
+model rel_workspace_folder {
+    id            Int            @id @default(autoincrement())
+    workspace_id  Int
+    folder_id     Int
+    created_at    Float          @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk String         @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+    workspace     workspace      @relation(fields: [workspace_id], references: [id])
+    folder        scripts_folder @relation(fields: [folder_id], references: [id])
+
+    @@unique([workspace_id, folder_id])
+    @@index([workspace_id])
+    @@index([folder_id])
+}
+
+model rel_shellscript_aiconfig {
+    id                  Int              @id @default(autoincrement())
+    shell_script        shell_script     @relation(fields: [shell_script_id], references: [id], onDelete: Cascade)
+    shell_script_id     Int
+    script_ai_config    script_ai_config @relation(fields: [script_ai_config_id], references: [id], onDelete: Cascade)
+    script_ai_config_id Int
+}
+
+model rel_aiprofile_modelconfig {
+    id              Int          @id @default(autoincrement())
+    ai_profile      ai_profile   @relation(fields: [ai_profile_id], references: [id], onDelete: Cascade)
+    ai_profile_id   Int
+    model_config    model_config @relation(fields: [model_config_id], references: [id], onDelete: Cascade)
+    model_config_id Int
+}
+
+model azure_model_config {
+    id                       Int          @id @default(autoincrement())
+    model_config_id          Int
+    azure_openai_api_key     String // e.g., "DvvBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    azure_openai_endpoint    String // e.g., https://shellscriptmanager.openai.azure.com
+    azure_openai_api_version String // e.g., 2025-01-01-preview
+    azure_openai_model       String // e.g., gpt-4.1-mini
+    model_config             model_config @relation(fields: [model_config_id], references: [id], onDelete: Cascade)
+    created_at               Float        @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk            String       @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+}
+
+model openai_model_config {
+    id              Int          @id @default(autoincrement())
+    model_config_id Int
+    openai_api_key  String // e.g., "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    openai_model    String // e.g., gpt-4, gpt-3.5-turbo
+    model_config    model_config @relation(fields: [model_config_id], references: [id], onDelete: Cascade)
+    created_at      Float        @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
+    created_at_hk   String       @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
+}
+
+model rel_aiprofile_aiscriptedtool {
+    id                  Int              @id @default(autoincrement())
+    ai_profile          ai_profile       @relation(fields: [ai_profile_id], references: [id], onDelete: Cascade)
+    ai_profile_id       Int
+    ai_scripted_tool    ai_scripted_tool @relation(fields: [ai_scripted_tool_id], references: [id], onDelete: Cascade)
+    ai_scripted_tool_id Int
+}

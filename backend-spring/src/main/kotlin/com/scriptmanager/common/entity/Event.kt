@@ -29,7 +29,7 @@ class Event(
     var eventType: String = "",
 
     @Column(name = "event", nullable = false, columnDefinition = "TEXT")
-    var event: String = "",
+    var payload: String = "",
 
     @Column(name = "request_user_email", nullable = false)
     var requestUserEmail: String = "",

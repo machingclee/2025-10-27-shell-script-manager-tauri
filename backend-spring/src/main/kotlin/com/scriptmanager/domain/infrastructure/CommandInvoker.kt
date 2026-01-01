@@ -353,7 +353,7 @@ class CommandAuditor(
                 createdAt = uniqueTimestamp.toDouble(),  // Convert to Double for database
                 requestId = requestId,
                 eventType = commandEventType,
-                event = eventJsonNode,
+                payload = eventJsonNode,
                 requestUserEmail = userEmail,
                 success = false  // Will be updated to true if command succeeds
             )
@@ -387,7 +387,7 @@ class CommandAuditor(
                 createdAt = uniqueTimestamp.toDouble(),  // Convert to Double for database
                 requestId = requestId,
                 eventType = commandEventType,
-                event = eventJsonNode,
+                payload = eventJsonNode,
                 requestUserEmail = userEmail
             )
 
@@ -417,7 +417,7 @@ class CommandAuditor(
             val eventToSave = Event(
                 requestId = requestId,
                 eventType = commandEventType,
-                event = eventJsonNode,
+                payload = eventJsonNode,
                 requestUserEmail = userEmail
             )
 

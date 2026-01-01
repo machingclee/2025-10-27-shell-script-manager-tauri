@@ -1,7 +1,7 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: create-drop  # Create fresh schema and drop after tests
+      ddl-auto: none # Let the generated SQL do this (from prisma)
     show-sql: true
     properties:
       hibernate:
@@ -20,7 +20,7 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
-      auto-commit: true  # Ensure auto-commit is enabled
+      auto-commit: false  # Ensure auto-commit is enabled
 
 logging:
   level:

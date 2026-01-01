@@ -83,7 +83,7 @@ class DomainEventLogger(
         val eventToSave = Event(
             createdAt = uniqueTimestamp.toDouble(),  // Convert to Double for database
             eventType = commandAwareEventType,
-            event = eventJsonNode.toString(),
+            payload = eventJsonNode.toString(),
             requestUserEmail = userEmail,
             requestId = requestID
         )
@@ -117,7 +117,7 @@ class DomainEventLogger(
         val eventJsonNode = JsonNodeUtil.toJsonNode(event).toString()
         val eventToStore = Event(
             eventType = commandAwareEventType,
-            event = eventJsonNode,
+            payload = eventJsonNode,
             requestUserEmail = userEmail,
             requestId = requestID
         )
