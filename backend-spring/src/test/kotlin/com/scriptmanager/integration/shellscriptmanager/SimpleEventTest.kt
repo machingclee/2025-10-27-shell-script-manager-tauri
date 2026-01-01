@@ -11,17 +11,7 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 
-/**
- * Simplified event testing with automatic event cleanup.
- *
- * Extends BaseIntegrationTest which automatically truncates the events table
- * before each test, providing test isolation without @DirtiesContext overhead.
- *
- * Benefits:
- * ✅ Fast - No Spring context rebuild between tests
- * ✅ Clean - Events automatically cleared before each test
- * ✅ Simple - Just extend BaseIntegrationTest
- */
+
 @SpringBootTest
 class SimpleEventTest(
     private val eventRepository: EventRepository,

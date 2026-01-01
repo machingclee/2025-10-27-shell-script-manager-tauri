@@ -9,21 +9,7 @@ import org.testcontainers.utility.DockerImageName
 import java.sql.DriverManager
 import java.time.Duration
 
-/**
- * Testcontainers configuration for integration tests.
- *
- * This spins up a real PostgreSQL database in Docker for testing,
- * avoiding the limitations of in-memory databases.
- *
- * Benefits over in-memory databases:
- * 1. Tests against the actual production database engine
- * 2. Can test database-specific features (triggers, functions, etc.)
- * 3. More realistic performance characteristics
- * 4. Can inspect the database after tests if needed
- *
- * The @ServiceConnection annotation automatically configures Spring Boot
- * to use this container's connection details.
- */
+
 @TestConfiguration(proxyBeanMethods = false)
 class TestcontainersConfiguration {
 
