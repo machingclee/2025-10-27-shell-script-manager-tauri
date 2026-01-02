@@ -40,6 +40,7 @@ class ScriptTest(
         assertNotNull(created.id!!)
         assertEquals(scriptName, created.name)
         assertEquals(originalContent, created.command)
+        assertEquals(false, created.isMarkdown)
 
         val createEvents = eventRepository.findAll().filter { it.eventType == "ScriptCreatedEvent" }
         assertEquals(1, createEvents.size)
@@ -73,7 +74,6 @@ class ScriptTest(
         // Assert 3: Deletion
         val deleteEvents = eventRepository.findAll().filter { it.eventType == "ScriptDeletedEvent" }
         assertEquals(1, deleteEvents.size)
-
         assertFalse(scriptRepository.findById(created.id!!).isPresent)
     }
 
@@ -91,6 +91,7 @@ class ScriptTest(
         assertNotNull(result.id!!)
         assertEquals(markdownName, result.name)
         assertEquals(markdownContent, result.command)
+        assertEquals(true, result.isMarkdown)
     }
 
     @Test
