@@ -1,13 +1,11 @@
-package com.scriptmanager.integration.folder
+package com.scriptmanager.integration.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.scriptmanager.command.CreateWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.command.CreateFolderCommand
 import com.scriptmanager.domain.scriptmanager.command.CreateFolderInWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.command.AddSubfolderCommand
-import com.scriptmanager.domain.scriptmanager.event.FolderCreatedEvent
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ScriptsFolderRepository
@@ -22,7 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest
  * Domain: com.scriptmanager.domain.scriptmanager
  */
 @SpringBootTest
-class FolderCreationTest(
+class FolderTest(
     private val eventRepository: EventRepository,
     private val folderRepository: ScriptsFolderRepository,
     private val commandInvoker: CommandInvoker,

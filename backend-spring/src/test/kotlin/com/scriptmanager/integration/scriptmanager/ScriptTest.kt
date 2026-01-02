@@ -1,12 +1,8 @@
-package com.scriptmanager.integration.script
+package com.scriptmanager.integration.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.scriptmanager.command.*
-import com.scriptmanager.domain.scriptmanager.event.ScriptCreatedEvent
-import com.scriptmanager.domain.scriptmanager.event.ScriptUpdatedEvent
-import com.scriptmanager.domain.scriptmanager.event.ScriptDeletedEvent
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ShellScriptRepository
@@ -22,7 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest
  * Domain: com.scriptmanager.domain.scriptmanager
  */
 @SpringBootTest
-class ScriptLifecycleTest(
+class ScriptTest(
     private val eventRepository: EventRepository,
     private val scriptRepository: ShellScriptRepository,
     private val commandInvoker: CommandInvoker,
