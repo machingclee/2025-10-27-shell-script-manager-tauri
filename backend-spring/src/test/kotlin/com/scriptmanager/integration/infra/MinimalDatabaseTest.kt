@@ -1,4 +1,4 @@
-package com.scriptmanager.integration.database
+package com.scriptmanager.integration.infra.database
 
 import com.scriptmanager.config.TestcontainersConfiguration
 import com.scriptmanager.integration.BaseTest

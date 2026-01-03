@@ -1,4 +1,4 @@
-package com.scriptmanager.integration.ai
+package com.scriptmanager.integration.domain.ai
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue

@@ -1,7 +1,6 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.ScriptsFolder
-import com.scriptmanager.common.entity.ScriptsFolderDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -13,9 +12,9 @@ import org.springframework.stereotype.Component
 @Component
 class CreateFolderHandler(
     private val folderRepository: ScriptsFolderRepository
-) : CommandHandler<CreateFolderCommand, ScriptsFolderDTO> {
+) : CommandHandler<CreateFolderCommand, ScriptsFolder> {
 
-    override fun handle(eventQueue: EventQueue, command: CreateFolderCommand): ScriptsFolderDTO {
+    override fun handle(eventQueue: EventQueue, command: CreateFolderCommand): ScriptsFolder {
         // Get count of folders to determine ordering
         val count = folderRepository.findAll().size
 
@@ -25,12 +24,11 @@ class CreateFolderHandler(
             ordering = count
         )
 
-        val result = folderRepository.save(newFolder)
-        val dto = result.toDTO()
+        val savedFolder = folderRepository.save(newFolder)
 
-        eventQueue.add(FolderCreatedEvent(dto))
+        eventQueue.add(FolderCreatedEvent(savedFolder.toDTO()))
 
-        return dto
+        return savedFolder
     }
 }
 

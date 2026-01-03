@@ -1,4 +1,4 @@
-package com.scriptmanager.integration.scriptmanager
+package com.scriptmanager.integration.domain.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.scriptmanager.domain.infrastructure.CommandInvoker

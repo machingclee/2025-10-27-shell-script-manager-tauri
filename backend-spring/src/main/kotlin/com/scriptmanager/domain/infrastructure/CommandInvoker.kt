@@ -37,6 +37,10 @@ interface EventQueue {
     fun add(event: Any)
     fun addTransactional(event: Any)
 
+    // Bulk operations
+    fun addAll(events: List<Any>)
+    fun addAllTransactional(events: List<Any>)
+
     val immediateEvents: List<EventWrapper<Any>>
     val postCommitEvents: List<EventWrapper<Any>>
     val allEvents: List<EventWrapper<Any>>
@@ -58,6 +62,20 @@ class SmartEventQueue : EventQueue {
     override fun addTransactional(event: Any) {
         val context = captureCurrentCommandContext()
         _events.add(EventWrapper(event, DispatchTiming.POST_COMMIT, context))
+    }
+
+    override fun addAll(events: List<Any>) {
+        val context = captureCurrentCommandContext()
+        events.forEach { event ->
+            _events.add(EventWrapper(event, DispatchTiming.IMMEDIATE, context))
+        }
+    }
+
+    override fun addAllTransactional(events: List<Any>) {
+        val context = captureCurrentCommandContext()
+        events.forEach { event ->
+            _events.add(EventWrapper(event, DispatchTiming.POST_COMMIT, context))
+        }
     }
 
     private fun captureCurrentCommandContext(): ExecutionContext {

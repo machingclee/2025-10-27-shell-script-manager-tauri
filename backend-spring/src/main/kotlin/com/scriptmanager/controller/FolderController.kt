@@ -2,6 +2,7 @@ package com.scriptmanager.controller
 
 import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.ScriptsFolderDTO
+import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
 import com.scriptmanager.domain.scriptmanager.command.*
@@ -46,7 +47,7 @@ class FolderController(
     ): ApiResponse<ScriptsFolderDTO> {
         val command = CreateFolderCommand(name = request.name)
         val result = commandInvoker.invoke(command)
-        return ApiResponse(result)
+        return ApiResponse(result.toDTO())
     }
 
     @Operation(summary = "Update folder", description = "Updates an existing folder's name and ordering")
@@ -72,7 +73,7 @@ class FolderController(
         @Parameter(description = "Folder ID", required = true)
         @PathVariable id: Int
     ): ApiResponse<Unit> {
-        val command = DeleteFolderCommand(id = id)
+        val command = DeleteFolderCommand(folderId = id)
         commandInvoker.invoke(command)
         return ApiResponse()
     }

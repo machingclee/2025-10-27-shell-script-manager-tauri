@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.ScriptsFolder
+import com.scriptmanager.common.entity.ScriptsFolderDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -13,9 +14,9 @@ import org.springframework.stereotype.Component
 @Component
 class AddSubfolderHandler(
     private val folderRepository: ScriptsFolderRepository
-) : CommandHandler<AddSubfolderCommand, Unit> {
+) : CommandHandler<AddSubfolderCommand, ScriptsFolder> {
 
-    override fun handle(eventQueue: EventQueue, command: AddSubfolderCommand) {
+    override fun handle(eventQueue: EventQueue, command: AddSubfolderCommand): ScriptsFolder {
         val parentFolder = folderRepository.findByIdOrNull(command.parentFolderId)
             ?: throw Exception("Parent folder not found")
 
@@ -33,6 +34,8 @@ class AddSubfolderHandler(
                 subfolder = newSubfolder.toDTO()
             )
         )
+
+        return newSubfolder
     }
 }
 

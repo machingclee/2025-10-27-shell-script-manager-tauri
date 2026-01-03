@@ -102,6 +102,37 @@ class ScriptsFolder(
             f.ordering = idx
         }
     }
+
+    fun getAllSubfolders(): Set<ScriptsFolder> {
+        val allSubfolders = mutableSetOf<ScriptsFolder>()
+        fun collectSubfolders(folder: ScriptsFolder) {
+            folder.subfolders.forEach { subfolder ->
+                allSubfolders.add(subfolder)
+                collectSubfolders(subfolder)
+            }
+        }
+        collectSubfolders(this)
+        return allSubfolders
+    }
+
+    data class ScriptWithFolder(
+        val script: ShellScript,
+        val folder: ScriptsFolder
+    )
+
+    fun getAllShellScripts(): Set<ScriptWithFolder> {
+        val allScripts = mutableSetOf<ScriptWithFolder>()
+        fun collectScripts(folder: ScriptsFolder) {
+            folder.shellScripts.forEach { script ->
+                allScripts.add(ScriptWithFolder(script, folder))
+            }
+            folder.subfolders.forEach { subfolder ->
+                collectScripts(subfolder)
+            }
+        }
+        collectScripts(this)
+        return allScripts
+    }
 }
 
 
