@@ -1,4 +1,4 @@
-package com.scriptmanager.domain.scriptmanager.command
+package com.scriptmanager.domain.scriptmanager.command.script
 
 import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.domain.infrastructure.Command

@@ -6,8 +6,7 @@ import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.CreateFolderInWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.event.FolderAddedToWorkspaceEvent
+import com.scriptmanager.domain.scriptmanager.command.workspace.CreateFolderInWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.event.FolderCreatedEvent
 import com.scriptmanager.domain.scriptmanager.event.FolderCreatedInWorkspaceEvent
 import com.scriptmanager.repository.ScriptsFolderRepository

@@ -4,7 +4,7 @@ import com.scriptmanager.common.dto.WorkspaceWithFoldersDTO
 import com.scriptmanager.common.dto.toWorkspaceWithFoldersDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.RemoveFolderFromWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.event.FolderRemovedFromWorkspaceEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.WorkspaceRepository

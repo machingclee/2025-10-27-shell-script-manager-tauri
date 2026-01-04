@@ -5,7 +5,13 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.scriptmanager.common.dto.ShellScriptResponse
 import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.scriptmanager.command.*
+import com.scriptmanager.domain.scriptmanager.command.folder.DeleteFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.UpdateFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.script.CreateScriptCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.AddSubfolderCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.CreateFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.CreateFolderInWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.CreateWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.event.FolderDeletedEvent
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
@@ -98,6 +104,7 @@ class FolderTest(
         private lateinit var parentFolder: ScriptsFolder
         private lateinit var subfolder: ScriptsFolder
         private lateinit var scriptInSubfolder: ShellScriptResponse
+        private lateinit var scriptInfolder: ShellScriptResponse
 
         @BeforeEach
         @Transactional
@@ -115,10 +122,18 @@ class FolderTest(
 
             this@FolderTest.entityManager.flush()
 
-            scriptInSubfolder = commandInvoker.invoke(
+            scriptInfolder = commandInvoker.invoke(
                 CreateScriptCommand(
                     folderId = subfolder.id!!,
-                    name = "Script_${System.currentTimeMillis()}",
+                    name = "Script_${System.currentTimeMillis()}_in_folder",
+                    content = "echo 'Hello, World!'"
+                )
+            )
+
+            scriptInSubfolder = commandInvoker.invoke(
+                CreateScriptCommand(
+                    folderId = parentFolder.id!!,
+                    name = "Script_${System.currentTimeMillis()}_in_subfolder",
                     content = "echo 'Hello, World!'"
                 )
             )
@@ -141,6 +156,10 @@ class FolderTest(
                 "Subfolder should be deleted"
             )
             assertNull(
+                shellScriptRepository.findByIdOrNull(scriptInfolder.id!!),
+                "Script should be deleted"
+            )
+            assertNull(
                 shellScriptRepository.findByIdOrNull(scriptInSubfolder.id!!),
                 "Script should be deleted"
             )
@@ -155,10 +174,10 @@ class FolderTest(
 
             assertEquals(1, folderCreatedEvents.size, "Should have 1 FolderCreatedEvents from setup")
             assertEquals(1, subfolderCreatedEvents.size, "Should have 1 SubfolderAddedEvent from setup")
-            assertEquals(1, scriptCreatedEvents.size, "Should have 1 ScriptCreatedEvent from setup")
+            assertEquals(2, scriptCreatedEvents.size, "Should have 2 ScriptCreatedEvent from setup")
 
             assertEquals(2, folderDeletedEvents.size, "Should emit 2 FolderDeletedEvents")
-            assertEquals(1, scriptDeletedEvents.size, "Should emit 1 ScriptDeletedEvent")
+            assertEquals(2, scriptDeletedEvents.size, "Should emit 2 ScriptDeletedEvent")
         }
 
         @Test

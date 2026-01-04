@@ -5,7 +5,7 @@ import com.scriptmanager.common.entity.WorkspaceDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.CreateWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.CreateWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.event.WorkspaceCreatedEvent
 import com.scriptmanager.repository.WorkspaceRepository
 import org.springframework.stereotype.Component

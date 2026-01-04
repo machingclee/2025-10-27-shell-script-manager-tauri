@@ -4,7 +4,8 @@ import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.*
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
-import com.scriptmanager.domain.scriptmanager.command.*
+import com.scriptmanager.domain.scriptmanager.command.folder.ReorderScriptsCommand
+import com.scriptmanager.domain.scriptmanager.command.script.*
 import com.scriptmanager.domain.scriptmanager.event.ScriptExecutedEvent
 import com.scriptmanager.domain.scriptmanager.query.GetAllScriptsQuery
 import com.scriptmanager.domain.scriptmanager.query.GetScriptByIdQuery

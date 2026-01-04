@@ -1,7 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.policy
 
 import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.scriptmanager.command.CreateScriptHistoryCommand
+import com.scriptmanager.domain.scriptmanager.command.script.CreateScriptHistoryCommand
 import com.scriptmanager.domain.scriptmanager.event.ScriptExecutedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component

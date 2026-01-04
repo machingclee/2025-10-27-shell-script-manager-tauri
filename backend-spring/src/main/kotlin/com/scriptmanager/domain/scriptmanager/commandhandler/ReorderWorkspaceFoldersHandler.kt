@@ -2,7 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.ReorderWorkspaceFoldersCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.ReorderWorkspaceFoldersCommand
 import com.scriptmanager.domain.scriptmanager.event.WorkspaceFoldersReorderedEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.WorkspaceRepository

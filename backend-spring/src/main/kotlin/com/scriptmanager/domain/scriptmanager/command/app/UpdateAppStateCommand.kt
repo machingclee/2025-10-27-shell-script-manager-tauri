@@ -1,4 +1,4 @@
-package com.scriptmanager.domain.scriptmanager.command
+package com.scriptmanager.domain.scriptmanager.command.app
 
 import com.scriptmanager.common.entity.AppStateDTO
 import com.scriptmanager.domain.infrastructure.Command

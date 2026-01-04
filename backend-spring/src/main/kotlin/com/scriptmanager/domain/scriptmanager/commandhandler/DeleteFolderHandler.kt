@@ -3,7 +3,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.DeleteFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.DeleteFolderCommand
 import com.scriptmanager.domain.scriptmanager.event.FolderDeletedEvent
 import com.scriptmanager.domain.scriptmanager.event.ScriptDeletedEvent
 import com.scriptmanager.repository.ScriptsFolderRepository

@@ -4,7 +4,7 @@ import com.scriptmanager.common.dto.WorkspaceWithFoldersDTO
 import com.scriptmanager.common.dto.toWorkspaceWithFoldersDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.AddFolderToWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.AddFolderToWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.event.FolderAddedToWorkspaceEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.WorkspaceRepository

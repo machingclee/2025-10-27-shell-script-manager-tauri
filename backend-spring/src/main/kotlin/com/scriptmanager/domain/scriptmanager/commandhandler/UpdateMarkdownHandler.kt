@@ -4,7 +4,7 @@ import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.UpdateMarkdownCommand
+import com.scriptmanager.domain.scriptmanager.command.script.UpdateMarkdownCommand
 import com.scriptmanager.domain.scriptmanager.event.MarkdownUpdatedEvent
 import com.scriptmanager.repository.ShellScriptRepository
 import jakarta.persistence.EntityManager

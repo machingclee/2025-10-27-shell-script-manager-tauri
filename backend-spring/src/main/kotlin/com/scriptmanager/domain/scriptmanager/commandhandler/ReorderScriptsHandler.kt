@@ -2,7 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.ReorderScriptsCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.ReorderScriptsCommand
 import com.scriptmanager.domain.scriptmanager.event.ScriptsReorderedEvent
 import com.scriptmanager.repository.ShellScriptRepository
 import org.springframework.stereotype.Component

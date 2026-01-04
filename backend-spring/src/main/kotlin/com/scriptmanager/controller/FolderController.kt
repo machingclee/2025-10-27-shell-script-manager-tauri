@@ -5,7 +5,11 @@ import com.scriptmanager.common.entity.ScriptsFolderDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
-import com.scriptmanager.domain.scriptmanager.command.*
+import com.scriptmanager.domain.scriptmanager.command.folder.DeleteFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.UpdateFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.AddSubfolderCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.CreateFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.ReorderFoldersCommand
 import com.scriptmanager.domain.scriptmanager.query.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter

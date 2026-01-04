@@ -2,7 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.DeleteScriptCommand
+import com.scriptmanager.domain.scriptmanager.command.script.DeleteScriptCommand
 import com.scriptmanager.domain.scriptmanager.event.ScriptDeletedEvent
 import com.scriptmanager.repository.ShellScriptRepository
 import org.springframework.data.repository.findByIdOrNull

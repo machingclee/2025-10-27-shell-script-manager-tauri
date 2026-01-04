@@ -4,7 +4,7 @@ import com.scriptmanager.common.entity.AppState
 import com.scriptmanager.common.entity.AppStateDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.UpdateAppStateCommand
+import com.scriptmanager.domain.scriptmanager.command.app.UpdateAppStateCommand
 import com.scriptmanager.domain.scriptmanager.event.AppStateUpdatedEvent
 import com.scriptmanager.repository.AppStateRepository
 import org.springframework.stereotype.Component

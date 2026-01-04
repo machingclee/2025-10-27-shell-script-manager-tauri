@@ -2,7 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.MoveScriptToFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.script.MoveScriptToFolderCommand
 import com.scriptmanager.domain.scriptmanager.event.ScriptMovedToFolderEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository

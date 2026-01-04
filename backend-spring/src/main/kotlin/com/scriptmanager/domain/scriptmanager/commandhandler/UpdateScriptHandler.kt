@@ -4,7 +4,7 @@ import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.UpdateScriptCommand
+import com.scriptmanager.domain.scriptmanager.command.script.UpdateScriptCommand
 import com.scriptmanager.domain.scriptmanager.event.ScriptUpdatedEvent
 import com.scriptmanager.repository.ShellScriptRepository
 import org.springframework.data.repository.findByIdOrNull

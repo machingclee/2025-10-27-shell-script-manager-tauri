@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.scriptmanager.command.CreateWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.command.UpdateWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.command.DeleteWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.command.ReorderWorkspacesCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.CreateWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.DeleteWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.ReorderWorkspacesCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.UpdateWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.event.WorkspaceCreatedEvent
 import com.scriptmanager.domain.scriptmanager.event.WorkspaceUpdatedEvent
 import com.scriptmanager.domain.scriptmanager.event.WorkspaceDeletedEvent

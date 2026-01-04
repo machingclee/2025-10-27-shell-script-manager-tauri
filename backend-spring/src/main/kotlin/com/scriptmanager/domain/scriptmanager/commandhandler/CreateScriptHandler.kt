@@ -5,7 +5,7 @@ import com.scriptmanager.common.dto.toResponse
 import com.scriptmanager.common.entity.ShellScript
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.domain.scriptmanager.command.CreateScriptCommand
+import com.scriptmanager.domain.scriptmanager.command.script.CreateScriptCommand
 import com.scriptmanager.domain.scriptmanager.event.ScriptCreatedEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository

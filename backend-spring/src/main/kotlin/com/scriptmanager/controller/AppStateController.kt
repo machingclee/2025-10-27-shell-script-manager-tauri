@@ -4,7 +4,7 @@ import com.scriptmanager.common.dto.ApiResponse
 import com.scriptmanager.common.entity.AppStateDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
-import com.scriptmanager.domain.scriptmanager.command.UpdateAppStateCommand
+import com.scriptmanager.domain.scriptmanager.command.app.UpdateAppStateCommand
 import com.scriptmanager.domain.scriptmanager.query.GetAppStateQuery
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag

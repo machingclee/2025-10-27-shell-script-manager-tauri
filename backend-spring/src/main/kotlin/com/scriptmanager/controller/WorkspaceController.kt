@@ -5,6 +5,9 @@ import com.scriptmanager.common.entity.WorkspaceDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
 import com.scriptmanager.domain.scriptmanager.command.*
+import com.scriptmanager.domain.scriptmanager.command.folder.AddFolderToWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.workspace.*
 import com.scriptmanager.domain.scriptmanager.query.GetAllWorkspacesQuery
 import com.scriptmanager.domain.scriptmanager.query.GetWorkspaceByIdQuery
 import io.swagger.v3.oas.annotations.Operation

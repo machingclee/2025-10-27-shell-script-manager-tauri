@@ -2,6 +2,10 @@ package com.scriptmanager.common.config
 
 import com.scriptmanager.common.entity.*
 import com.scriptmanager.domain.scriptmanager.command.*
+import com.scriptmanager.domain.scriptmanager.command.app.UpdateAppStateCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.*
+import com.scriptmanager.domain.scriptmanager.command.script.*
+import com.scriptmanager.domain.scriptmanager.command.workspace.*
 import com.scriptmanager.domain.scriptmanager.event.*
 import org.springframework.aot.hint.MemberCategory
 import org.springframework.aot.hint.RuntimeHints

@@ -1,4 +1,4 @@
-package com.scriptmanager.domain.scriptmanager.command
+package com.scriptmanager.domain.scriptmanager.command.folder
 
 import com.scriptmanager.domain.infrastructure.Command
 
