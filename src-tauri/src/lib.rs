@@ -882,6 +882,7 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
             "--spring.datasource.url=jdbc:sqlite:{}?foreign_keys=true",
             db_path
         ))
+        .env("ENABLE_TRACE", "false")
         .spawn()
         .map_err(|e| format!("Failed to start Spring Boot backend: {}", e))?;
 

@@ -39,10 +39,14 @@ spring:
 server:
   port: 7070
 
+app:
+  tracing:
+    enabled: ${ENABLE_TRACE:false}
 
 logging:
   pattern:
     console: '%d{HH:mm:ss.SSS} %-5level %logger{35} - %msg%n'
   level:
     com.scriptmanager.common.config.BetterTreeSpanExporter: INFO
+    com.scriptmanager.common.config.TracingConfig: INFO
 

@@ -5,6 +5,7 @@ import io.opentelemetry.sdk.common.CompletableResultCode
 import io.opentelemetry.sdk.trace.data.SpanData
 import io.opentelemetry.sdk.trace.export.SpanExporter
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import java.util.concurrent.ConcurrentHashMap
@@ -13,6 +14,11 @@ import javax.sql.DataSource
 
 
 @Configuration
+@ConditionalOnProperty(
+    name = ["app.tracing.enabled"],
+    havingValue = "true",
+    matchIfMissing = false
+)
 class TracingConfig(
     private val dataSource: DataSource
 ) {
