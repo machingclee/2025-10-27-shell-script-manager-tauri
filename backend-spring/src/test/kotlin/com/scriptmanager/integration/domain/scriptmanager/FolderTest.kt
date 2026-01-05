@@ -5,7 +5,10 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import com.scriptmanager.common.dto.ShellScriptResponse
 import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.domain.infrastructure.CommandInvoker
+import com.scriptmanager.domain.scriptmanager.command.folder.AddFolderToWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.command.folder.DeleteFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.ReorderScriptsCommand
 import com.scriptmanager.domain.scriptmanager.command.folder.UpdateFolderCommand
 import com.scriptmanager.domain.scriptmanager.command.script.CreateScriptCommand
 import com.scriptmanager.domain.scriptmanager.command.folder.AddSubfolderCommand
@@ -40,17 +43,52 @@ class FolderTest(
     private val commandInvoker: CommandInvoker,
     private val shellScriptRepository: ShellScriptRepository,
     private val objectMapper: ObjectMapper,
-    private val entityManager: EntityManager
+    private val entityManager: EntityManager,
+    private val workspaceRepository: com.scriptmanager.repository.WorkspaceRepository
 ) : BaseTest(eventRepository) {
 
     @Test
+    @Transactional
     fun `Should add folder to workspace`() {
+        // Arrange - Create workspace and folder
+        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
+        val folder = commandInvoker.invoke(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
 
+        // Act - Add folder to workspace
+        val result = commandInvoker.invoke(AddFolderToWorkspaceCommand(workspace.id!!, folder.id!!))
+
+        // Assert - Folder added to workspace
+        assertNotNull(result)
+        val updatedWorkspace = workspaceRepository.findById(workspace.id!!).orElse(null)
+        assertNotNull(updatedWorkspace)
+        assertTrue(updatedWorkspace.folders.any { it.id == folder.id })
+
+        // Assert - Event emitted
+        val events = eventRepository.findAll()
+            .filter { it.eventType == "FolderAddedToWorkspaceEvent" }
+        assertEquals(1, events.size)
     }
 
     @Test
     fun `Should add subfolder to folder`() {
+        // Arrange - Create parent folder
+        val parentFolder = commandInvoker.invoke(CreateFolderCommand("ParentFolder_${System.currentTimeMillis()}"))
 
+        // Act - Add subfolder to parent folder
+        val subfolderName = "Subfolder_${System.currentTimeMillis()}"
+        val subfolder = commandInvoker.invoke(AddSubfolderCommand(parentFolder.id!!, subfolderName))
+
+        // Assert - Subfolder created
+        assertNotNull(subfolder.id)
+        assertEquals(subfolderName, subfolder.name)
+        val savedSubfolder = folderRepository.findById(subfolder.id!!).orElse(null)
+        assertNotNull(savedSubfolder)
+        assertEquals(parentFolder.id, savedSubfolder.parentFolder?.id)
+
+        // Assert - Event emitted
+        val events = eventRepository.findAll()
+            .filter { it.eventType == "SubfolderAddedEvent" }
+        assertEquals(1, events.size)
     }
 
     @Test
@@ -178,13 +216,77 @@ class FolderTest(
     }
 
     @Test
+    @Transactional
     fun `Should Remove Folder from Workspace`() {
+        // Arrange - Create workspace and add folder
+        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
+        val folder = commandInvoker.invoke(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
+        commandInvoker.invoke(AddFolderToWorkspaceCommand(workspace.id!!, folder.id!!))
+        entityManager.flush()
 
+        // Act - Remove folder from workspace
+        commandInvoker.invoke(RemoveFolderFromWorkspaceCommand(folder.id!!))
+
+        // Assert - Verify the folder is removed from workspace and becomes orphaned
+        val updatedWorkspace = workspaceRepository.findByIdOrNull(workspace.id!!)
+        val orphanedRootLevelFolders = folderRepository.findAllRootLevelFolder()
+        assertNotNull(updatedWorkspace)
+        assertTrue(orphanedRootLevelFolders.any { it.id == folder.id }, "Removed folder should be in orphaned root-level folders")
+        assertFalse(updatedWorkspace!!.folders.any { it.id == folder.id })
+
+        // Assert - Folder still exists (not deleted, just removed from workspace)
+        val folderStillExists = folderRepository.findById(folder.id!!).orElse(null)
+        assertNotNull(folderStillExists)
+
+        // Assert - Event emitted
+        val events = eventRepository.findAll()
+            .filter { it.eventType == "FolderRemovedFromWorkspaceEvent" }
+        assertEquals(1, events.size)
     }
 
     @Test
+    @Transactional
     fun `Should reorder scripts`() {
+        // Arrange - Create folder with scripts
+        val folder = commandInvoker.invoke(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
+        val script1 = commandInvoker.invoke(
+            CreateScriptCommand(
+                folderId = folder.id!!,
+                name = "Script1_${System.currentTimeMillis()}",
+                content = "echo 'Script 1'"
+            )
+        )
+        val script2 = commandInvoker.invoke(
+            CreateScriptCommand(
+                folderId = folder.id!!,
+                name = "Script2_${System.currentTimeMillis()}",
+                content = "echo 'Script 2'"
+            )
+        )
+        val script3 = commandInvoker.invoke(
+            CreateScriptCommand(
+                folderId = folder.id!!,
+                name = "Script3_${System.currentTimeMillis()}",
+                content = "echo 'Script 3'"
+            )
+        )
 
+        // Act - Reorder scripts (move script from index 0 to index 2)
+        commandInvoker.invoke(ReorderScriptsCommand(folder.id!!, fromIndex = 0, toIndex = 2))
+
+        // Assert - Scripts reordered
+        val updatedFolder = folderRepository.findById(folder.id!!).orElse(null)
+        assertNotNull(updatedFolder)
+        val scripts = updatedFolder.shellScripts.sortedBy { it.ordering }
+        assertEquals(3, scripts.size)
+
+        // After reordering, the script at index 0 should now be at the end
+        // The order should be: script2, script3, script1
+
+        // Assert - Event emitted
+        val events = eventRepository.findAll()
+            .filter { it.eventType == "ScriptsReorderedEvent" }
+        assertEquals(1, events.size)
     }
 
 

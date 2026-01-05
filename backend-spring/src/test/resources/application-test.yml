@@ -2,14 +2,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none # Let the generated SQL do this (from prisma)
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           batch_size: 20
-        use_sql_comments: true  # Add comments to show what Hibernate is doing
+        use_sql_comments: false  # Add comments to show what Hibernate is doing
 
   # @ServiceConnection will automatically configure these properties
   # No need to specify datasource properties - they come from TestcontainersConfiguration
