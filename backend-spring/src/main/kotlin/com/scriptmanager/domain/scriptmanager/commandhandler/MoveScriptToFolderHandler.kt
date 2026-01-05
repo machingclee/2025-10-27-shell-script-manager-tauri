@@ -23,12 +23,15 @@ class MoveScriptToFolderHandler(
         val targetFolder = folderRepository.findByIdOrNull(command.targetFolderId)
             ?: throw Exception("Folder not found")
 
-        script.parentFolder = targetFolder
-        script.ordering = -1
+        val originalFolder = script.parentFolder
+        if (originalFolder != null) {
+            originalFolder.removeAndReorderScripts(script)
+            entityManager.flush()
+            entityManager.refresh(originalFolder)
+        }
+        targetFolder.addAndReorderScript(script)
         entityManager.flush()
         entityManager.refresh(targetFolder)
-        targetFolder.resetScriptOrders()
-        folderRepository.save(targetFolder)
 
         eventQueue.add(
             ScriptMovedToFolderEvent(

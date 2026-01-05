@@ -8,15 +8,13 @@ import com.scriptmanager.domain.scriptmanager.command.folder.RemoveFolderFromWor
 import com.scriptmanager.domain.scriptmanager.event.FolderRemovedFromWorkspaceEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.WorkspaceRepository
-import jakarta.persistence.EntityManager
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
 class RemoveFolderFromWorkspaceHandler(
     private val folderRepository: ScriptsFolderRepository,
-    private val workspaceRepository: WorkspaceRepository,
-    private val entityManager: EntityManager
+    private val workspaceRepository: WorkspaceRepository
 ) : CommandHandler<RemoveFolderFromWorkspaceCommand, WorkspaceWithFoldersDTO> {
 
     override fun handle(eventQueue: EventQueue, command: RemoveFolderFromWorkspaceCommand): WorkspaceWithFoldersDTO {
@@ -28,14 +26,14 @@ class RemoveFolderFromWorkspaceHandler(
         val workspace = workspaceRepository.findByIdOrNull(folder.parentWorkspace?.id ?: -1)
             ?: throw Exception("Workspace not found")
 
-        folder.parentWorkspace = null
+        workspace.removeAndReorderFolder(folder)
+
         val reorderedFolders = orphanedRootLevelFolders.toMutableList()
         reorderedFolders.add(0, folder)
         reorderedFolders.forEachIndexed { index, f ->
             f.ordering = index
         }
         folderRepository.saveAll(reorderedFolders)
-        entityManager.refresh(workspace)
 
         val result = workspace.toWorkspaceWithFoldersDTO()
         eventQueue.add(

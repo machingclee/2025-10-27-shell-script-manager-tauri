@@ -38,7 +38,7 @@ class Workspace(
         }
     }
 
-    @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(fetch = FetchType.LAZY)
     @Cascade(CascadeType.ALL)
     @JoinTable(
         name = "rel_workspace_folder",
@@ -53,18 +53,18 @@ class Workspace(
         }
     }
 
-    fun addFolder(folder: ScriptsFolder) {
+    fun addAndReorderFolder(folder: ScriptsFolder) {
+        folder.ordering = -1
         folders.add(folder)
-        folders.forEachIndexed { idx, f ->
+        folders.sortedBy { it.ordering }.forEachIndexed { idx, f ->
             f.ordering = idx
         }
     }
 
-    fun removeFolder(folder: ScriptsFolder) {
+    fun removeAndReorderFolder(folder: ScriptsFolder) {
         folders.remove(folder)
-        folders.forEachIndexed { idx, f ->
+        folders.sortedBy { it.ordering }.forEachIndexed { idx, f ->
             f.ordering = idx
         }
     }
-
 }

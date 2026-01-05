@@ -32,10 +32,7 @@ class CreateScriptHandler(
         )
 
         val savedScript = scriptRepository.save(script)
-        savedScript.ordering = -1
-        folder.addScript(savedScript)
-        folder.resetScriptOrders()
-        folderRepository.save(folder)
+        folder.addAndReorderScript(savedScript)
         entityManager.flush()
         entityManager.refresh(savedScript)
 

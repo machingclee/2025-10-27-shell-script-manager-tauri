@@ -63,7 +63,7 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             ReorderScriptsCommand::class.java,
             ReorderWorkspacesCommand::class.java,
             ReorderWorkspaceFoldersCommand::class.java,
-            AddFolderToWorkspaceCommand::class.java,
+            MoveFolderToWorkspaceCommand::class.java,
             AddSubfolderCommand::class.java,
             RemoveFolderFromWorkspaceCommand::class.java,
             MoveScriptToFolderCommand::class.java

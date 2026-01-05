@@ -32,7 +32,7 @@ class ScriptsFolder(
 ) {
 
 
-    @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(fetch = FetchType.LAZY)
     @Cascade(CascadeType.ALL)
     @JoinTable(
         name = "rel_scriptsfolder_shellscript",
@@ -42,7 +42,7 @@ class ScriptsFolder(
     var shellScripts: MutableSet<ShellScript> = mutableSetOf()
 
 
-    @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(fetch = FetchType.LAZY)
     @Cascade(CascadeType.ALL)
     @JoinTable(
         name = "rel_folder_folder",
@@ -54,8 +54,8 @@ class ScriptsFolder(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_folder_folder",
-        joinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id", insertable = false)],
-        inverseJoinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id", insertable = false)]
+        joinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id", insertable = false, updatable = false)],
+        inverseJoinColumns = [JoinColumn(name = "parent_folder_id", referencedColumnName = "id", insertable = false, updatable = false)]
     )
     var parentFolder: ScriptsFolder? = null
 
@@ -63,21 +63,25 @@ class ScriptsFolder(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_workspace_folder",
-        joinColumns = [JoinColumn(name = "folder_id", referencedColumnName = "id", insertable = false)],
-        inverseJoinColumns = [JoinColumn(name = "workspace_id", referencedColumnName = "id", insertable = false)]
+        joinColumns = [JoinColumn(name = "folder_id", referencedColumnName = "id", insertable = false, updatable = false)],
+        inverseJoinColumns = [JoinColumn(name = "workspace_id", referencedColumnName = "id", insertable = false, updatable = false)]
     )
     var parentWorkspace: Workspace? = null
 
 
-    fun removeScript(script: ShellScript) {
+    fun removeAndReorderScripts(script: ShellScript) {
         shellScripts.removeIf { it.id == script.id }
-        shellScripts.forEachIndexed { idx, s ->
+        shellScripts.sortedBy { it.ordering }.forEachIndexed { idx, s ->
             s.ordering = idx
         }
     }
 
-    fun addScript(script: ShellScript) {
+    fun addAndReorderScript(script: ShellScript) {
+        script.ordering = -1
         shellScripts.add(script)
+        shellScripts.sortedBy { it.ordering }.forEachIndexed { idx, s ->
+            s.ordering = idx
+        }
     }
 
     fun addFolder(newSubfolder: ScriptsFolder) {

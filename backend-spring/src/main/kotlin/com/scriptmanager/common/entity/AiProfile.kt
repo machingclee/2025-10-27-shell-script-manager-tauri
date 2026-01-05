@@ -33,10 +33,7 @@ class AiProfile(
     @Generated
     val createdAtHk: String? = null
 ) {
-    @OneToMany(
-        fetch = FetchType.LAZY,
-        orphanRemoval = true
-    )
+    @OneToMany(fetch = FetchType.LAZY)
     @Cascade(CascadeType.ALL)
     @JoinTable(
         name = "rel_aiprofile_modelconfig",
@@ -45,10 +42,7 @@ class AiProfile(
     )
     var modelConfigs: MutableList<ModelConfig> = mutableListOf()
 
-    @OneToMany(
-        fetch = FetchType.LAZY,
-        orphanRemoval = true
-    )
+    @OneToMany(fetch = FetchType.LAZY)
     @Cascade(CascadeType.ALL)
     @JoinTable(
         name = "rel_aiprofile_aiscriptedtool",

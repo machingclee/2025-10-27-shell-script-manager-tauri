@@ -4,8 +4,7 @@ import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.WorkspaceDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
-import com.scriptmanager.domain.scriptmanager.command.*
-import com.scriptmanager.domain.scriptmanager.command.folder.AddFolderToWorkspaceCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
 import com.scriptmanager.domain.scriptmanager.command.workspace.*
 import com.scriptmanager.domain.scriptmanager.query.GetAllWorkspacesQuery
@@ -88,7 +87,7 @@ class WorkspaceController(
         @PathVariable workspaceId: Int,
         @PathVariable folderId: Int,
     ): ApiResponse<WorkspaceWithFoldersDTO> {
-        val command = AddFolderToWorkspaceCommand(
+        val command = MoveFolderToWorkspaceCommand(
             workspaceId = workspaceId,
             folderId = folderId
         )

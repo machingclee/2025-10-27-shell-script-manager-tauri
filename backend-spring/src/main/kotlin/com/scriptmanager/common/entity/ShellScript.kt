@@ -44,16 +44,16 @@ class ShellScript(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinTable(
         name = "rel_scriptsfolder_shellscript",
-        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", insertable = false)],
-        inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id", insertable = false)]
+        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", insertable = false, updatable = false)],
+        inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id", insertable = false, updatable = false)]
     )
     var parentFolder: ScriptsFolder? = null
 
     @OneToOne
     @JoinTable(
         name = "rel_shellscript_aiconfig",
-        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", insertable = false)],
-        inverseJoinColumns = [JoinColumn(name = "script_ai_config_id", referencedColumnName = "id", insertable = false)]
+        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", insertable = false, updatable = false)],
+        inverseJoinColumns = [JoinColumn(name = "script_ai_config_id", referencedColumnName = "id", insertable = false, updatable = false)]
     )
     var aiConfig: ScriptAiConfig? = null
 }
