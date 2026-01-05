@@ -43,10 +43,16 @@ app:
   tracing:
     enabled: ${ENABLE_TRACE:false}
 
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0  # Sample 100% of requests (1.0 = all, 0.0 = none)
+
 logging:
   pattern:
     console: '%d{HH:mm:ss.SSS} %-5level %logger{35} - %msg%n'
   level:
-    com.scriptmanager.common.config.BetterTreeSpanExporter: INFO
+    com.scriptmanager.common.config.BetterTreeSpanExporter: DEBUG
     com.scriptmanager.common.config.TracingConfig: INFO
 
