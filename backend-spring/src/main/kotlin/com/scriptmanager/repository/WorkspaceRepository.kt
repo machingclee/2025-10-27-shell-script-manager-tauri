@@ -11,8 +11,13 @@ interface WorkspaceRepository : JpaRepository<Workspace, Int> {
         """
         select ws from Workspace ws
         left join fetch ws.folders folder
-        left join fetch folder.shellScripts scripts
-        left join fetch folder.parentFolder
+        left join fetch folder.shellScripts script
+        left join fetch folder.subfolders subfolder
+        left join fetch subfolder.subfolders subsubfolder
+        left join fetch subfolder.shellScripts
+        left join fetch subfolder.parentFolder
+        left join fetch subsubfolder.shellScripts
+        left join fetch subsubfolder.parentFolder
     """
     )
     fun findAllFetchingFoldersAndShellScripts(): List<Workspace>

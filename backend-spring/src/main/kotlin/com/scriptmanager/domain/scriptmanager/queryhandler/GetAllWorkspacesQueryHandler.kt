@@ -13,7 +13,7 @@ class GetAllWorkspacesQueryHandler(
 ) : QueryHandler<GetAllWorkspacesQuery, List<WorkspaceResponse>> {
 
     override fun handle(query: GetAllWorkspacesQuery): List<WorkspaceResponse> {
-        return workspaceRepository.findAll()
+        return workspaceRepository.findAllFetchingFoldersAndShellScripts()
             .sortedBy { it.ordering }
             .map { it.toResponse() }
     }
