@@ -16,7 +16,7 @@ spring:
     database-platform: org.hibernate.community.dialect.SQLiteDialect
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -39,7 +39,10 @@ spring:
 server:
   port: 7070
 
+
 logging:
+  pattern:
+    console: '%d{HH:mm:ss.SSS} %-5level %logger{35} - %msg%n'
   level:
-    com.scriptmanager: DEBUG
-    org.hibernate.SQL: DEBUG
+    com.scriptmanager.common.config.BetterTreeSpanExporter: INFO
+

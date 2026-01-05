@@ -2,9 +2,8 @@ package com.scriptmanager.integration.domain.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.scriptmanager.command.*
 import com.scriptmanager.domain.scriptmanager.command.script.*
-import com.scriptmanager.domain.scriptmanager.command.workspace.CreateFolderCommand
+import com.scriptmanager.domain.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ShellScriptRepository

@@ -1,8 +1,7 @@
 package com.scriptmanager.common.config
 
 import com.scriptmanager.common.entity.*
-import com.scriptmanager.domain.scriptmanager.command.*
-import com.scriptmanager.domain.scriptmanager.command.app.UpdateAppStateCommand
+import com.scriptmanager.domain.scriptmanager.command.appstate.UpdateAppStateCommand
 import com.scriptmanager.domain.scriptmanager.command.folder.*
 import com.scriptmanager.domain.scriptmanager.command.script.*
 import com.scriptmanager.domain.scriptmanager.command.workspace.*

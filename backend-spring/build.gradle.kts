@@ -22,6 +22,18 @@ repositories {
 }
 
 dependencies {
+    // Core Dependency
+    implementation("io.micrometer:micrometer-core")
+
+    // Micrometer Tracing with OpenTelemetry
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
+
+    // For logging traces to console (development)
+    implementation("io.opentelemetry:opentelemetry-sdk:1.33.0")
+    implementation("io.opentelemetry:opentelemetry-exporter-logging:1.33.0")
+
+    // For database query tracing
+    implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:1.0.3")
     // Spring Boot starters
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-web")

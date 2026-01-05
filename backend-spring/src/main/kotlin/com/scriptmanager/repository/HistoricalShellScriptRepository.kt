@@ -17,7 +17,9 @@ interface HistoricalShellScriptRepository : JpaRepository<HistoricalShellScript,
         select history from HistoricalShellScript history
         left join fetch history.shellScript script
         left join fetch script.parentFolder folder1
+        left join fetch folder1.parentWorkspace workspace1
         left join fetch folder1.parentFolder folder2
+        left join fetch folder2.parentWorkspace workspace2
         order by history.executedAt desc
         limit 10
     """
