@@ -2,6 +2,7 @@ package com.scriptmanager.controller
 
 import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.WorkspaceDTO
+import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
 import com.scriptmanager.domain.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
@@ -49,7 +50,7 @@ class WorkspaceController(
     ): ApiResponse<WorkspaceDTO> {
         val command = CreateWorkspaceCommand(name = request.name)
         val result = commandInvoker.invoke(command)
-        return ApiResponse(result)
+        return ApiResponse(result.toDTO())
     }
 
     @Operation(summary = "Update workspace", description = "Updates an existing workspace's name and ordering")
@@ -151,6 +152,6 @@ class WorkspaceController(
             name = request.name
         )
         val result = commandInvoker.invoke(command)
-        return ApiResponse(result)
+        return ApiResponse(result.toResponse())
     }
 }

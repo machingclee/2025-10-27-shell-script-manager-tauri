@@ -13,9 +13,9 @@ import org.springframework.stereotype.Component
 @Component
 class CreateWorkspaceHandler(
     private val workspaceRepository: WorkspaceRepository
-) : CommandHandler<CreateWorkspaceCommand, WorkspaceDTO> {
+) : CommandHandler<CreateWorkspaceCommand, Workspace> {
 
-    override fun handle(eventQueue: EventQueue, command: CreateWorkspaceCommand): WorkspaceDTO {
+    override fun handle(eventQueue: EventQueue, command: CreateWorkspaceCommand): Workspace {
         // Validate workspace name
         require(command.name.isNotBlank()) { "Workspace name cannot be blank" }
 
@@ -28,11 +28,9 @@ class CreateWorkspaceHandler(
             ordering = count
         )
 
-        val result = workspaceRepository.save(newWorkspace)
-        val dto = result.toDTO()
+        val persistedWorkspace = workspaceRepository.save(newWorkspace)
+        eventQueue.add(WorkspaceCreatedEvent(persistedWorkspace.toDTO()))
 
-        eventQueue.add(WorkspaceCreatedEvent(dto))
-
-        return dto
+        return persistedWorkspace
     }
 }

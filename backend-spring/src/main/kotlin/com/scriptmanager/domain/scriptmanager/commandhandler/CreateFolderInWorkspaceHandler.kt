@@ -20,9 +20,9 @@ class CreateFolderInWorkspaceHandler(
     private val folderRepository: ScriptsFolderRepository,
     private val workspaceRepository: WorkspaceRepository,
     private val entityManager: EntityManager
-) : CommandHandler<CreateFolderInWorkspaceCommand, ScriptsFolderResponse> {
+) : CommandHandler<CreateFolderInWorkspaceCommand, ScriptsFolder> {
 
-    override fun handle(eventQueue: EventQueue, command: CreateFolderInWorkspaceCommand): ScriptsFolderResponse {
+    override fun handle(eventQueue: EventQueue, command: CreateFolderInWorkspaceCommand): ScriptsFolder {
         val workspace = workspaceRepository.findByIdOrNull(command.workspaceId)
             ?: throw Exception("Workspace not found")
 
@@ -38,11 +38,10 @@ class CreateFolderInWorkspaceHandler(
         entityManager.flush()
         entityManager.refresh(newFolder)
 
-        val response = newFolder.toResponse()
         eventQueue.add(
             FolderCreatedInWorkspaceEvent(
                 workspaceId = command.workspaceId,
-                folder = response
+                folder = newFolder.toResponse()
             )
         )
         eventQueue.add(
@@ -50,7 +49,7 @@ class CreateFolderInWorkspaceHandler(
                 folder = newFolder.toDTO()
             )
         )
-        return response
+        return newFolder
     }
 }
 

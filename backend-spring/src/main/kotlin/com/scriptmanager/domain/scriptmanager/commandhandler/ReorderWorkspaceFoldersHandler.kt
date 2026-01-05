@@ -1,5 +1,6 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
+import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.workspace.ReorderWorkspaceFoldersCommand
@@ -42,6 +43,7 @@ class ReorderWorkspaceFoldersHandler(
         eventQueue.add(
             WorkspaceFoldersReorderedEvent(
                 workspaceId = command.workspaceId,
+                movedFolder = movedFolder.toDTO(),
                 fromIndex = command.fromIndex,
                 toIndex = command.toIndex
             )
