@@ -256,7 +256,11 @@ export default function ScriptItem({
             </AlertDialog>
 
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
+                <DialogContent
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl"
+                >
                     <DialogHeader>
                         <DialogTitle>Edit Script</DialogTitle>
                         <DialogDescription>

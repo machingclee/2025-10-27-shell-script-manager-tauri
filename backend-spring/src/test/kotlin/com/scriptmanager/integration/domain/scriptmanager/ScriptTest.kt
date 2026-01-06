@@ -196,7 +196,7 @@ class ScriptTest(
         )
 
         // Act - Delete script
-        commandInvoker.invoke(DeleteScriptCommand(id = script.id!!, folderId = folder.id!!))
+        commandInvoker.invoke(DeleteScriptCommand(scriptId = script.id!!, folderId = folder.id!!))
         //entityManager.flush()
         // Assert - Script deleted
         val sriptShouldHaveBeenDeleted = scriptRepository.findByIdOrNull(script.id!!)

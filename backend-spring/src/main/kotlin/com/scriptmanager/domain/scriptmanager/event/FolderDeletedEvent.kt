@@ -1,7 +1,9 @@
 package com.scriptmanager.domain.scriptmanager.event
 
+import com.scriptmanager.common.entity.ScriptsFolderDTO
+
 
 data class FolderDeletedEvent(
-    val folderId: Int,
+    val folder: ScriptsFolderDTO
 )
 

@@ -18,6 +18,7 @@ class DeleteFolderHandler(
     override fun handle(eventQueue: EventQueue, command: DeleteFolderCommand) {
         val folder = folderRepository.findByIdOrNull(command.folderId)
             ?: throw Exception("Folder not found")
+        val folderDTOToDelete = folder.toDTO()
 
         val parentFolder = folder.parentFolder
         val subfolderDTOs = folder.getAllSubfolders().map { it.toDTO() }
@@ -39,12 +40,12 @@ class DeleteFolderHandler(
             folderRepository.deleteById(folder.id!!)
         }
 
-        val events = listOf(FolderDeletedEvent(command.folderId)) +
-                subfolderDTOs.map { FolderDeletedEvent(it.id!!) } +
+        val events = listOf(FolderDeletedEvent(folderDTOToDelete)) +
+                subfolderDTOs.map { FolderDeletedEvent(it) } +
                 scriptsWithFolder.map {
                     ScriptDeletedEvent(
                         folderId = it.first.id!!,
-                        scriptId = it.second.id!!
+                        script = it.second.toDTO()
                     )
                 }
 

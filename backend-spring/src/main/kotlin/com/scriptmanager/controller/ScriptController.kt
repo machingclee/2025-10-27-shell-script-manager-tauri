@@ -110,7 +110,7 @@ class ScriptController(
         @RequestParam folderId: Int
     ): ApiResponse<Unit> {
         val command = DeleteScriptCommand(
-            id = id,
+            scriptId = id,
             folderId = folderId
         )
         commandInvoker.invoke(command)
