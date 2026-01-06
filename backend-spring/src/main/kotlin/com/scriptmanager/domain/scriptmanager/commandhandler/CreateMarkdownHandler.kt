@@ -35,7 +35,6 @@ class CreateMarkdownHandler(
         val savedScript = scriptRepository.save(script)
         savedScript.ordering = -1
         folder.addAndReorderScript(savedScript)
-        folder.resetScriptOrders()
         folderRepository.save(folder)
         entityManager.flush()
         entityManager.refresh(savedScript)

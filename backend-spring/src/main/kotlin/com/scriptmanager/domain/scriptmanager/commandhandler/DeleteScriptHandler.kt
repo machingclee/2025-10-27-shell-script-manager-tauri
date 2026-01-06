@@ -16,16 +16,16 @@ class DeleteScriptHandler(
     override fun handle(eventQueue: EventQueue, command: DeleteScriptCommand) {
         val script = scriptRepository.findByIdOrNull(command.id)
             ?: throw Exception("Script not found")
+        val parentFolder = script.parentFolder
 
         // Delete the script (cascade will handle relationship)
-        scriptRepository.deleteById(command.id)
-
-        // Reorder remaining scripts in the folder
-        val remainingScripts = scriptRepository.findByFolderId(command.folderId)
-        remainingScripts.forEachIndexed { index, s ->
-            s.ordering = index
+        if (parentFolder == null) {
+            // this case is not possible, but just place a logic here
+            scriptRepository.deleteById(command.id)
+        } else {
+            parentFolder.removeAndReorderScripts(script)
+            scriptRepository.deleteById(command.id)
         }
-        scriptRepository.saveAll(remainingScripts)
 
         eventQueue.add(ScriptDeletedEvent(command.id, command.folderId))
     }

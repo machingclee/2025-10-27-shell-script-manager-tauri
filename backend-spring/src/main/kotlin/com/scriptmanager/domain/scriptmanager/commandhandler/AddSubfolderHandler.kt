@@ -7,12 +7,14 @@ import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.folder.AddSubfolderCommand
 import com.scriptmanager.domain.scriptmanager.event.SubfolderAddedEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
+import jakarta.persistence.EntityManager
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
 
 @Component
 class AddSubfolderHandler(
-    private val folderRepository: ScriptsFolderRepository
+    private val folderRepository: ScriptsFolderRepository,
+    private val entityManager: EntityManager
 ) : CommandHandler<AddSubfolderCommand, ScriptsFolder> {
 
     override fun handle(eventQueue: EventQueue, command: AddSubfolderCommand): ScriptsFolder {
@@ -24,8 +26,11 @@ class AddSubfolderHandler(
             ordering = -1
         )
 
-        parentFolder.addFolder(newSubfolder)
-        parentFolder.resetFolderOrders()
+        folderRepository.save(newSubfolder)
+
+        parentFolder.addAndReorderFolders(newSubfolder)
+        entityManager.flush()
+        entityManager.refresh(newSubfolder)
 
         eventQueue.add(
             SubfolderAddedEvent(

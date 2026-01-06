@@ -84,24 +84,16 @@ class ScriptsFolder(
         }
     }
 
-    fun addFolder(newSubfolder: ScriptsFolder) {
+    fun addAndReorderFolders(newSubfolder: ScriptsFolder) {
+        newSubfolder.ordering = -1
         subfolders.add(newSubfolder)
-    }
-
-    fun removeFolder(folder: ScriptsFolder) {
-        subfolders.remove(folder)
-        subfolders.forEachIndexed { idx, f ->
+        subfolders.sortedBy { it.ordering }.forEachIndexed { idx, f ->
             f.ordering = idx
         }
     }
 
-    fun resetScriptOrders() {
-        shellScripts.sortedBy { it.ordering }.forEachIndexed { idx, s ->
-            s.ordering = idx
-        }
-    }
-
-    fun resetFolderOrders() {
+    fun removeAndReorderFolders(folder: ScriptsFolder) {
+        subfolders.remove(folder)
         subfolders.sortedBy { it.ordering }.forEachIndexed { idx, f ->
             f.ordering = idx
         }

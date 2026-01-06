@@ -35,7 +35,8 @@ class DeleteFolderHandler(
             folderRepository.saveAll(remainingFolders)
         } else {
             // Subfolder - remove from parent
-            parentFolder.removeFolder(folder)
+            parentFolder.removeAndReorderFolders(folder)
+            folderRepository.deleteById(folder.id!!)
         }
 
         val events = listOf(FolderDeletedEvent(command.folderId)) +

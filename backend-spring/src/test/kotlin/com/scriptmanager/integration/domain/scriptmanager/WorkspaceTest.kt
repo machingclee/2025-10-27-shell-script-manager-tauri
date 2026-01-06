@@ -228,6 +228,7 @@ class WorkspaceTest(
         val folder = commandInvoker.invoke(
             CreateFolderCommand("FolderToMove_${System.currentTimeMillis()}")
         )
+        val originalFolderId = folder.id!!
 
         // idempotent test
         commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace1.id!!, folder.id!!))
@@ -259,6 +260,9 @@ class WorkspaceTest(
         assertNotNull(targetWorkspace)
         assertEquals(0, sourceWorkspace!!.folders.size, "Source workspace should have 0 folders after move")
         assertEquals(1, targetWorkspace!!.folders.size, "Target workspace should have 1 folder after move")
+
+        val folderInTargetWorkspace = targetWorkspace.folders.first()
+        assertEquals(originalFolderId, folderInTargetWorkspace.id, "Moved folder ID should match original folder ID")
     }
 
     @Test

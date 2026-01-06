@@ -8,9 +8,11 @@ import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository
+import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.transaction.annotation.Transactional
 
 
@@ -26,7 +28,8 @@ class ScriptTest(
     private val scriptRepository: ShellScriptRepository,
     private val folderRepository: ScriptsFolderRepository,
     private val commandInvoker: CommandInvoker,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val entityManager: EntityManager
 ) : BaseTest(eventRepository) {
 
     @Test
@@ -100,7 +103,7 @@ class ScriptTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "ScriptCreatedEvent" }
+            .filter { it.eventType == "MarkdownCreatedEvent" }
         assertEquals(1, events.size)
     }
 
@@ -175,7 +178,7 @@ class ScriptTest(
 
         // Assert - Update event emitted
         val updateEvents = eventRepository.findAll()
-            .filter { it.eventType == "ScriptUpdatedEvent" }
+            .filter { it.eventType == "MarkdownUpdatedEvent" }
         assertEquals(1, updateEvents.size)
     }
 
@@ -194,9 +197,10 @@ class ScriptTest(
 
         // Act - Delete script
         commandInvoker.invoke(DeleteScriptCommand(id = script.id!!, folderId = folder.id!!))
-
+        //entityManager.flush()
         // Assert - Script deleted
-        assertFalse(scriptRepository.findById(script.id!!).isPresent)
+        val sriptShouldHaveBeenDeleted = scriptRepository.findByIdOrNull(script.id!!)
+        assertNull(sriptShouldHaveBeenDeleted)
 
         // Assert - Delete event emitted
         val deleteEvents = eventRepository.findAll()

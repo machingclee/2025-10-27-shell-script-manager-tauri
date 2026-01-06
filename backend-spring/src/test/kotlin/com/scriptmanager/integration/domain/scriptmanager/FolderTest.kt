@@ -23,7 +23,6 @@ import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository
 import com.scriptmanager.repository.WorkspaceRepository
 import jakarta.persistence.EntityManager
-import org.junit.Before
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -142,8 +141,6 @@ class FolderTest(
                 )
             )
 
-            this@FolderTest.entityManager.flush()
-
             scriptInfolder = commandInvoker.invoke(
                 CreateScriptCommand(
                     folderId = subfolder.id!!,
@@ -164,25 +161,28 @@ class FolderTest(
         @Test
         @Transactional
         open fun `should delete folder, subfolders and all scripts inside`() {
+            val deleteParentFolderId = parentFolder.id!!
+            val subfolderId = subfolder.id!!
+            val scriptIdInFolder = scriptInfolder.id!!
+            val scriptIdInSubfolderId = scriptInSubfolder.id!!
             // Act
-            commandInvoker.invoke(DeleteFolderCommand(parentFolder.id!!))
-            this@FolderTest.entityManager.flush()
+            commandInvoker.invoke(DeleteFolderCommand(deleteParentFolderId))
 
             // Assert - All entities deleted
             assertNull(
-                folderRepository.findByIdOrNull(parentFolder.id!!),
+                folderRepository.findByIdOrNull(deleteParentFolderId),
                 "Parent folder should be deleted"
             )
             assertNull(
-                folderRepository.findByIdOrNull(subfolder.id!!),
+                folderRepository.findByIdOrNull(subfolderId),
                 "Subfolder should be deleted"
             )
             assertNull(
-                shellScriptRepository.findByIdOrNull(scriptInfolder.id!!),
+                shellScriptRepository.findByIdOrNull(scriptIdInFolder),
                 "Script should be deleted"
             )
             assertNull(
-                shellScriptRepository.findByIdOrNull(scriptInSubfolder.id!!),
+                shellScriptRepository.findByIdOrNull(scriptIdInSubfolderId),
                 "Script should be deleted"
             )
 
