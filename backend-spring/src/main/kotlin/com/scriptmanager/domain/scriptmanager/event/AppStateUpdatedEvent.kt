@@ -1,7 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.event
 
-import com.scriptmanager.common.entity.AppStateDTO
+import com.scriptmanager.common.entity.ApplicationStateDTO
 
 data class AppStateUpdatedEvent(
-    val appState: AppStateDTO
+    val appState: ApplicationStateDTO
 )

@@ -1,7 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.queryhandler
 
-import com.scriptmanager.common.entity.AppState
-import com.scriptmanager.common.entity.AppStateDTO
+import com.scriptmanager.common.entity.ApplicationState
+import com.scriptmanager.common.entity.ApplicationStateDTO
 import com.scriptmanager.domain.infrastructure.QueryHandler
 import com.scriptmanager.domain.scriptmanager.query.GetAppStateQuery
 import com.scriptmanager.repository.AppStateRepository
@@ -10,20 +10,21 @@ import org.springframework.stereotype.Component
 @Component
 class GetAppStateQueryHandler(
     private val appStateRepository: AppStateRepository
-) : QueryHandler<GetAppStateQuery, AppStateDTO> {
+) : QueryHandler<GetAppStateQuery, ApplicationStateDTO> {
 
-    override fun handle(query: GetAppStateQuery): AppStateDTO {
+    override fun handle(query: GetAppStateQuery): ApplicationStateDTO {
         val state = appStateRepository.findFirstByOrderByIdAsc() ?: run {
-            val created = AppState(
+            val created = ApplicationState(
                 lastOpenedFolderId = null,
                 darkMode = false
             )
             appStateRepository.save(created)
         }
 
-        return AppStateDTO(
+        return ApplicationStateDTO(
             id = state.id!!,
             lastOpenedFolderId = state.lastOpenedFolderId,
+            selectedAiprofileId = state.selectedAiProfileId,
             darkMode = state.darkMode,
             createdAt = state.createdAt ?: 0.0,
             createdAtHk = state.createdAtHk ?: ""

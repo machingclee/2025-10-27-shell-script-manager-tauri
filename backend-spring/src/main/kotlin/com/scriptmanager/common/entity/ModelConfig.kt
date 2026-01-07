@@ -28,31 +28,22 @@ class ModelConfig(
     @Generated
     val createdAtHk: String? = null
 ) {
-    @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
+
+    @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL])
     var openAiModelConfig: OpenAiModelConfig? = null
 
-    @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    var azureModelConfigs: AzureModelConfig? = null
+    @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL])
+    var azureModelConfig: AzureModelConfig? = null
 
+    enum class ModelSourceType {
+        OPENAI,
+        AZURE_OPENAI
+    }
 
     @Embeddable
     class ModelSource(
+        @Enumerated(EnumType.STRING)
         @Column(name = "model_source", nullable = false)
-        var modelSource: String = "AZURE_OPENAI", // Enum values: OPENAI, AZURE_OPENAI
-    ) {
-        init {
-            val allowedValues = listOf(
-                Companion.OPENAI,
-                Companion.AZURE_OPENAI
-            )
-            require(allowedValues.contains(modelSource)) { "Model source must be one of: ${allowedValues.joinToString(", ")}" }
-        }
-
-        companion object {
-            val OPENAI = "OPENAI"
-            val AZURE_OPENAI = "AZURE_OPENAI"
-        }
-    }
-
-
+        var modelSource: ModelSourceType = ModelSourceType.AZURE_OPENAI
+    )
 }

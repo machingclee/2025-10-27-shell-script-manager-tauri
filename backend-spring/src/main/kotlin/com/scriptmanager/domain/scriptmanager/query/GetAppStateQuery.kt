@@ -1,6 +1,6 @@
 package com.scriptmanager.domain.scriptmanager.query
 
-import com.scriptmanager.common.entity.AppStateDTO
+import com.scriptmanager.common.entity.ApplicationStateDTO
 import com.scriptmanager.domain.infrastructure.Query
 
 /**
@@ -8,5 +8,5 @@ import com.scriptmanager.domain.infrastructure.Query
  */
 data class GetAppStateQuery(
     val dummy: Boolean = true
-) : Query<AppStateDTO>
+) : Query<ApplicationStateDTO>
 

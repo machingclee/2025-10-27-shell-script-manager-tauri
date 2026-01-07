@@ -10,34 +10,18 @@ import {
 } from "@/components/ui/context-menu";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-    AlertDialog,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogCancel,
-    AlertDialogAction,
-} from "@/components/ui/alert-dialog";
 import { Pencil, Trash2, FolderPlus, Folder, Plus } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { CollisionType, ScriptsFolderResponse } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
-import { Textarea } from "@/components/ui/textarea";
 
 import clsx from "clsx";
+import { AddScriptDialog } from "./Dialog/AddScriptDialog";
+import { AddMarkdownDialog } from "./Dialog/AddMarkdownDialog";
+import { CreateSubfolderDialog } from "./Dialog/CreateSubfolderDialog";
+import { DeleteFolderDialog } from "./Dialog/DeleteFolderDialog";
+import { RenameFolderDialog } from "./Dialog/RenameFolderDialog";
+import { AIProfilesDialog } from "../AIProfile/Dialog/AIProfilesDialog";
 
 export default React.memo(
     function SortableFolderItem({
@@ -242,191 +226,58 @@ export default React.memo(
                 </div>
 
                 {/* Rename Dialog */}
-                <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
-                    <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
-                        <DialogHeader>
-                            <DialogTitle>Rename Folder</DialogTitle>
-                            <DialogDescription>
-                                Enter a new name for "{folder.name}".
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="folder-name">Folder Name</Label>
-                                <Input
-                                    id="folder-name"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    placeholder="Folder name"
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsRenameOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button onClick={handleRename} disabled={!newName}>
-                                Rename
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <RenameFolderDialog
+                    isRenameOpen={isRenameOpen}
+                    setIsRenameOpen={setIsRenameOpen}
+                    folder={folder}
+                    newName={newName}
+                    setNewName={setNewName}
+                    handleRename={handleRename}
+                />
 
                 {/* Delete Confirmation Dialog */}
-                <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-                    <AlertDialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
-                        <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Folder?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                Are you sure you want to delete "{folder.name}"? This will also
-                                delete all scripts in this folder. This action cannot be undone.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                                onClick={handleDelete}
-                                className="bg-red-600 hover:bg-red-700"
-                            >
-                                Delete
-                            </AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                <DeleteFolderDialog
+                    isDeleteOpen={isDeleteOpen}
+                    setIsDeleteOpen={setIsDeleteOpen}
+                    folder={folder}
+                    handleDelete={handleDelete}
+                />
 
                 {/* Create Subfolder Dialog */}
-                <Dialog open={isCreateSubfolderOpen} onOpenChange={setIsCreateSubfolderOpen}>
-                    <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
-                        <DialogHeader>
-                            <DialogTitle>Create Subfolder</DialogTitle>
-                            <DialogDescription>
-                                Create a new subfolder inside "{folder.name}".
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="subfolder-name">Subfolder Name</Label>
-                                <Input
-                                    id="subfolder-name"
-                                    value={subfolderName}
-                                    onChange={(e) => setSubfolderName(e.target.value)}
-                                    placeholder="Subfolder name"
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" && subfolderName.trim()) {
-                                            handleCreateSubfolder();
-                                        }
-                                    }}
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                variant="outline"
-                                onClick={() => setIsCreateSubfolderOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleCreateSubfolder}
-                                disabled={!subfolderName.trim()}
-                            >
-                                Create
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <CreateSubfolderDialog
+                    isCreateSubfolderOpen={isCreateSubfolderOpen}
+                    setIsCreateSubfolderOpen={setIsCreateSubfolderOpen}
+                    folder={folder}
+                    subfolderName={subfolderName}
+                    setSubfolderName={setSubfolderName}
+                    handleCreateSubfolder={handleCreateSubfolder}
+                />
 
                 {/* Add Script Dialog */}
-                <Dialog open={isAddScriptOpen} onOpenChange={setIsAddScriptOpen}>
-                    <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
-                        <DialogHeader>
-                            <DialogTitle>Add Script to "{folder.name}"</DialogTitle>
-                            <DialogDescription>
-                                Create a new script inside this folder.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="script-name">Name</Label>
-                                <Input
-                                    className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
-                                    id="script-name"
-                                    value={scriptName}
-                                    onChange={(e) => setScriptName(e.target.value)}
-                                    placeholder="Script name"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="script-command">Command</Label>
-                                <Textarea
-                                    id="script-command"
-                                    value={scriptCommand}
-                                    onChange={(e) => setScriptCommand(e.target.value)}
-                                    placeholder="Command to execute"
-                                    rows={18}
-                                    className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsAddScriptOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleAddScript}
-                                disabled={!scriptName.trim() || !scriptCommand.trim()}
-                            >
-                                Create Script
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <AddScriptDialog
+                    isAddScriptOpen={isAddScriptOpen}
+                    setIsAddScriptOpen={setIsAddScriptOpen}
+                    folder={folder}
+                    scriptName={scriptName}
+                    setScriptName={setScriptName}
+                    scriptCommand={scriptCommand}
+                    setScriptCommand={setScriptCommand}
+                    handleAddScript={handleAddScript}
+                />
 
                 {/* Add Markdown Dialog */}
-                <Dialog open={isAddMarkdownOpen} onOpenChange={setIsAddMarkdownOpen}>
-                    <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
-                        <DialogHeader>
-                            <DialogTitle>Add Markdown to "{folder.name}"</DialogTitle>
-                            <DialogDescription>
-                                Create a new markdown document inside this folder.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="markdown-name">Name</Label>
-                                <Input
-                                    className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
-                                    id="markdown-name"
-                                    value={markdownName}
-                                    onChange={(e) => setMarkdownName(e.target.value)}
-                                    placeholder="Markdown name"
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="markdown-content">Content</Label>
-                                <Textarea
-                                    id="markdown-content"
-                                    value={markdownContent}
-                                    onChange={(e) => setMarkdownContent(e.target.value)}
-                                    placeholder="Markdown content"
-                                    rows={18}
-                                    className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsAddMarkdownOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button
-                                onClick={handleAddMarkdown}
-                                disabled={!markdownName.trim() || !markdownContent.trim()}
-                            >
-                                Create Markdown
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                <AddMarkdownDialog
+                    isAddMarkdownOpen={isAddMarkdownOpen}
+                    setIsAddMarkdownOpen={setIsAddMarkdownOpen}
+                    folder={folder}
+                    markdownName={markdownName}
+                    setMarkdownName={setMarkdownName}
+                    markdownContent={markdownContent}
+                    setMarkdownContent={setMarkdownContent}
+                    handleAddMarkdown={handleAddMarkdown}
+                />
+                {/* AiProfilesDialog */}
+                <AIProfilesDialog />
             </>
         );
     },

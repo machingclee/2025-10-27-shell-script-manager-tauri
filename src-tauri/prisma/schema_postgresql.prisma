@@ -155,7 +155,7 @@ model ai_scripted_tool {
     shell_script_id              Int
     created_at                   Float                          @default(dbgenerated("ROUND(extract(epoch from NOW()::TIMESTAMPTZ) * 1000, 0)::float"))
     created_at_hk                String                         @default(dbgenerated("TO_CHAR((NOW()::TIMESTAMPTZ AT TIME ZONE 'UTC' AT TIME ZONE 'GMT+8'), 'YYYY-MM-DD HH24:MI:SS')"))
-    shell_script                 shell_script                   @relation(fields: [shell_script_id], references: [id])
+    shell_script                 shell_script                   @relation(fields: [shell_script_id], references: [id], onDelete: Cascade)
     rel_aiprofile_aiscriptedtool rel_aiprofile_aiscriptedtool[]
 }
 

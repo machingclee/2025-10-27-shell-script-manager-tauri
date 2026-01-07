@@ -72,7 +72,7 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
         // Register Entity/DTO classes
         registerForReflection(
             hints,
-            AppStateDTO::class.java,
+            ApplicationState::class.java,
             EventDTO::class.java,
             HistoricalShellScriptDTO::class.java,
             ScriptsFolderDTO::class.java,

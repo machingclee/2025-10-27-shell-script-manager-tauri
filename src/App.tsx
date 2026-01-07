@@ -16,6 +16,7 @@ import HistoryButton from "./app-component/History/HistoryButton";
 import HistoryPanel from "./app-component/History/HistoryPanel";
 import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
+import AIProfileButton from "./app-component/AIProfile/AIProfileButton";
 
 function App() {
     const dispatch = useAppDispatch();
@@ -213,7 +214,8 @@ function App() {
                 </div>
 
                 {/* History button (right side) */}
-                <div className="absolute right-4 z-10">
+                <div className="absolute right-4 z-10 flex items-center gap-2">
+                    <AIProfileButton />
                     <HistoryButton />
                 </div>
 

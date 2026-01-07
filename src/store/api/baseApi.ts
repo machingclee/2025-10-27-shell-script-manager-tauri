@@ -14,6 +14,9 @@ export const baseApi = createApi({
         "Workspace",
         "WorkspaceDetail",
         "ScriptHistory",
+        "AIProfileList",
+        "ModelConfigList",
+        "AIProfileDetail",
     ],
     endpoints: (_builder) => ({}),
 });

@@ -33,4 +33,8 @@ class AiScriptedTool(
     @Column(name = "created_at_hk")
     @Generated
     val createdAtHk: String? = null
-)
+) {
+    @ManyToOne
+    @JoinColumn(name = "shell_script_id", insertable = false, updatable = false)
+    var shellScript: ShellScript? = null
+}

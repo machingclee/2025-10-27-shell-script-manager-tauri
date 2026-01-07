@@ -205,10 +205,15 @@ data class CreateAIProfileRequest(
 
 data class CreateModelConfigRequest(
     val name: String,
-    val modelSource: String,
+    val modelSource: ModelConfig.ModelSourceType,
     val aiprofileId: Int
 )
 
+data class CreateAIScripToolRequest(
+    val name: String,
+    val isEnabled: Boolean,
+    val toolDescription: String,
+)
 
 
 

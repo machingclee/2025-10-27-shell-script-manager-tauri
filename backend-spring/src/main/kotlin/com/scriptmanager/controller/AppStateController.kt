@@ -1,7 +1,7 @@
 package com.scriptmanager.controller
 
 import com.scriptmanager.common.dto.ApiResponse
-import com.scriptmanager.common.entity.AppStateDTO
+import com.scriptmanager.common.entity.ApplicationStateDTO
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
 import com.scriptmanager.domain.scriptmanager.command.appstate.UpdateAppStateCommand
@@ -22,7 +22,7 @@ class AppStateController(
 
     @Operation(summary = "Get application state", description = "Retrieves the current application state including dark mode and last opened folder")
     @GetMapping("/app-state")
-    fun getAppState(): ApiResponse<AppStateDTO> {
+    fun getAppState(): ApiResponse<ApplicationStateDTO> {
         val query = GetAppStateQuery()
         val state = queryInvoker.invoke(query)
         return ApiResponse(result = state)
@@ -31,14 +31,15 @@ class AppStateController(
     @Operation(summary = "Update application state", description = "Updates the application state including dark mode and last opened folder")
     @PutMapping("/app-state")
     @Transactional
-    fun updateAppState(@RequestBody input: AppStateDTO): ApiResponse<AppStateDTO> {
+    fun updateAppState(@RequestBody input: ApplicationStateDTO): ApiResponse<ApplicationStateDTO> {
 
         val command = UpdateAppStateCommand(
             id = input.id,
             lastOpenedFolderId = input.lastOpenedFolderId,
             darkMode = input.darkMode,
             createdAt = input.createdAt,
-            createdAtHk = input.createdAtHk
+            createdAtHk = input.createdAtHk,
+            selectedAiProfileId = input.selectedAiprofileId
         )
 
         val dto = commandInvoker.invoke(command)

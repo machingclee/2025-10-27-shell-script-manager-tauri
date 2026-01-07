@@ -51,8 +51,14 @@ class AiProfile(
     )
     var aiScriptedTools: MutableList<AiScriptedTool> = mutableListOf()
 
-
     @OneToOne
     @JoinColumn(name = "selected_model_config_id", insertable = false, updatable = false)
     var selectedModelConfig: ModelConfig? = null
+
+    fun addTool(tool: AiScriptedTool) {
+        aiScriptedTools.find { it.shellScriptId == tool.shellScriptId }?.let {
+            throw IllegalArgumentException("Tool already added")
+        }
+        aiScriptedTools.add(tool)
+    }
 }

@@ -262,7 +262,7 @@ ALTER TABLE "rel_scriptsfolder_shellscript" ADD CONSTRAINT "rel_scriptsfolder_sh
 ALTER TABLE "rel_scriptsfolder_shellscript" ADD CONSTRAINT "rel_scriptsfolder_shellscript_scripts_folder_id_fkey" FOREIGN KEY ("scripts_folder_id") REFERENCES "scripts_folder"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ai_scripted_tool" ADD CONSTRAINT "ai_scripted_tool_shell_script_id_fkey" FOREIGN KEY ("shell_script_id") REFERENCES "shell_script"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ai_scripted_tool" ADD CONSTRAINT "ai_scripted_tool_shell_script_id_fkey" FOREIGN KEY ("shell_script_id") REFERENCES "shell_script"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "rel_workspace_folder" ADD CONSTRAINT "rel_workspace_folder_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspace"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
