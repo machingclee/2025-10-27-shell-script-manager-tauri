@@ -29,8 +29,8 @@ class HistoricalShellScript(
     val createdAtHk: String? = null
 
 ) {
-    @JoinColumn(name = "shell_script_id", insertable = false, updatable = false)
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shell_script_id", insertable = false, updatable = false)
     var shellScript: ShellScript? = null
 }
 

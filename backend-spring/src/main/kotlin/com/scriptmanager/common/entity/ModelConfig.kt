@@ -47,3 +47,4 @@ class ModelConfig(
         var modelSource: ModelSourceType = ModelSourceType.AZURE_OPENAI
     )
 }
+

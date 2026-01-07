@@ -29,7 +29,7 @@ class ApplicationState(
     @Column(name = "selected_aiprofile_id")
     var selectedAiProfileId: Int? = null
 ) {
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "selected_aiprofile_id", updatable = false, insertable = false)
     var selectedAiProfile: AiProfile? = null
 }

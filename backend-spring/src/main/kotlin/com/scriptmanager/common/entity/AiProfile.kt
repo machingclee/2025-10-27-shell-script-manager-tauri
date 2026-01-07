@@ -51,7 +51,7 @@ class AiProfile(
     )
     var aiScriptedTools: MutableList<AiScriptedTool> = mutableListOf()
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "selected_model_config_id", insertable = false, updatable = false)
     var selectedModelConfig: ModelConfig? = null
 
