@@ -47,11 +47,12 @@ export const EditScriptedToolDialog = (props: {
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={setIsOpen} key={isOpen ? "open" : "closed"}>
             <DialogContent
+                overlayClassName="bg-black/50 z-[9999]"
                 onClick={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
-                className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-2xl"
+                className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-2xl z-[10000]"
             >
                 <DialogHeader>
                     <DialogTitle>Edit AI Scripted Tool</DialogTitle>

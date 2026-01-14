@@ -1,4 +1,10 @@
-import { AIProfileDTO, AiScriptedToolDTO, ModelConfigDTO } from "@/types/dto";
+import {
+    AIProfileDTO,
+    AiScriptedToolDTO,
+    ModelConfigDTO,
+    ModelConfigResponse,
+    UpdateModelConfigRequest,
+} from "@/types/dto";
 import { baseApi } from "./baseApi";
 
 export const aiApi = baseApi.injectEndpoints({
@@ -48,7 +54,7 @@ export const aiApi = baseApi.injectEndpoints({
                 { type: "AIProfileDetail", id: aiprofileId },
             ],
         }),
-        getModelConfigs: builder.query<ModelConfigDTO[], { aiProfileId: number }>({
+        getModelConfigs: builder.query<ModelConfigResponse[], { aiProfileId: number }>({
             query: (args) => ({
                 url: `/ai/ai-profiles/${args.aiProfileId}/model-configs`,
                 method: "GET",
@@ -66,29 +72,30 @@ export const aiApi = baseApi.injectEndpoints({
                 { type: "AIProfileDetail", id: args.aiProfileId },
             ],
         }),
-        updateAIProfile: builder.mutation<AIProfileDTO, AIProfileDTO>({
-            query: (profile) => ({
-                url: `/ai/ai-profile/${profile.id}`,
+        updateAIProfile: builder.mutation<AIProfileDTO, { aiProfileDTO: AIProfileDTO }>({
+            query: (request) => ({
+                url: "/ai/ai-profile",
                 method: "PUT",
-                body: profile,
+                body: request,
             }),
             invalidatesTags: ["AIProfileList"],
         }),
-        updateModelConfig: builder.mutation<ModelConfigDTO, ModelConfigDTO>({
-            query: (config) => ({
-                url: `/ai/model-config/${config.id}`,
+        updateModelConfig: builder.mutation<ModelConfigDTO, UpdateModelConfigRequest>({
+            query: (request) => ({
+                url: "/ai/model-config",
                 method: "PUT",
-                body: config,
+                body: request,
             }),
-            invalidatesTags: (_result, _error, config) => [
-                { type: "ModelConfigList", id: config.id },
-            ],
+            invalidatesTags: ["ModelConfigList"],
         }),
-        updateAiScriptedTool: builder.mutation<AiScriptedToolDTO, AiScriptedToolDTO>({
-            query: (tool) => ({
-                url: `/ai/ai-scripted-tool/${tool.id}`,
+        updateAiScriptedTool: builder.mutation<
+            AiScriptedToolDTO,
+            { aiScriptedToolDTO: AiScriptedToolDTO }
+        >({
+            query: (request) => ({
+                url: "/ai/ai-scripted-tool",
                 method: "PUT",
-                body: tool,
+                body: request,
             }),
             invalidatesTags: ["AIProfileDetail"],
         }),

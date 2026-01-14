@@ -1,13 +1,13 @@
 package com.scriptmanager.controller
 
-import com.scriptmanager.common.dto.ApiResponse
-import com.scriptmanager.common.dto.CreateAIProfileRequest
-import com.scriptmanager.common.dto.CreateAIScripToolRequest
-import com.scriptmanager.common.dto.CreateModelConfigRequest
+import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.*
 import com.scriptmanager.domain.ai.command.CreateAIScriptedToolCommand
 import com.scriptmanager.domain.ai.command.CreateAiProfileCommand
 import com.scriptmanager.domain.ai.command.CreateModelConfigCommand
+import com.scriptmanager.domain.ai.command.UpdateAiProfileCommand
+import com.scriptmanager.domain.ai.command.UpdateAiScriptedToolCommand
+import com.scriptmanager.domain.ai.command.UpdateModelConfigCommand
 import com.scriptmanager.domain.ai.query.GetAIProfilesQuery
 import com.scriptmanager.domain.ai.query.GetAIScriptedToolsQuery
 import com.scriptmanager.domain.ai.query.GetModelConfigsQuery
@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -30,15 +31,25 @@ class AIController(
     private val commandInvoker: CommandInvoker
 ) {
     @PostMapping("/ai-profile")
-    fun createApiProfile(@RequestBody request: CreateAIProfileRequest): ApiResponse<AiProfile> {
+    fun createAIProfile(@RequestBody request: CreateAIProfileRequest): ApiResponse<AiProfileDTO> {
         val (name, description) = request
         val createAiProfielCommand = CreateAiProfileCommand(
             name = name,
             description = description
         )
         val aiprofile = commandInvoker.invoke(createAiProfielCommand)
-        return ApiResponse(aiprofile)
+        return ApiResponse(aiprofile.toDTO())
     }
+
+    @PutMapping("/ai-profile")
+    fun updateAIProfile(@RequestBody request: UpdateAIProfileRequest): ApiResponse<AiProfileDTO> {
+        val command = UpdateAiProfileCommand(
+            aiProfileDTO = request.aiProfileDTO
+        )
+        val aiProfile = commandInvoker.invoke(command)
+        return ApiResponse(aiProfile.toDTO())
+    }
+
 
     // create modelconfig
     @PostMapping("/model-config")
@@ -50,6 +61,17 @@ class AIController(
             aiprofileId = aiprofileId
         )
         val modelConfig = commandInvoker.invoke(createModelConfigCommand)
+        return ApiResponse(modelConfig.toDTO())
+    }
+
+    @PutMapping("/model-config")
+    fun updateModelConfig(@RequestBody request: UpdateModelConfigRequest): ApiResponse<ModelConfigDTO> {
+        val command = UpdateModelConfigCommand(
+            modelConfigDTO = request.modelConfigDTO,
+            openAiModelConfigDTO = request.openAiModelConfigDTO,
+            azureModelConfigDTO = request.azureModelConfigDTO
+        )
+        val modelConfig = commandInvoker.invoke(command)
         return ApiResponse(modelConfig.toDTO())
     }
 
@@ -72,6 +94,15 @@ class AIController(
         return ApiResponse(scirptedTool.toDTO())
     }
 
+    @PutMapping("/ai-scripted-tool")
+    fun updateAiScriptedTool(@RequestBody request: UpdateAIScriptedToolRequest): ApiResponse<AiScriptedToolDTO> {
+        val command = UpdateAiScriptedToolCommand(
+            aiScriptedToolDTO = request.aiScriptedToolDTO
+        )
+        val aiScriptedTool = commandInvoker.invoke(command)
+        return ApiResponse(aiScriptedTool.toDTO())
+    }
+
     @GetMapping("/ai-profiles")
     fun getAIProfiles(): ApiResponse<List<AiProfileDTO>> {
         val query = GetAIProfilesQuery()
@@ -80,10 +111,11 @@ class AIController(
     }
 
     @GetMapping("/ai-profiles/{aiProfileId}/model-configs")
-    fun getModelConfigs(@PathVariable("aiProfileId") aiProfileId: Int): ApiResponse<List<ModelConfigDTO>> {
+    fun getModelConfigs(@PathVariable("aiProfileId") aiProfileId: Int): ApiResponse<List<ModelConfigResponse>> {
         val query = GetModelConfigsQuery(aiProfileId = aiProfileId)
         val modelConfigs = queryInvoker.invoke(query)
-        return ApiResponse(modelConfigs)
+        val modelConfigResponses = modelConfigs.map { it.toResponse() }
+        return ApiResponse(modelConfigResponses)
     }
 
     @GetMapping("/ai-profiles/{aiProfileId}/ai-scripted-tools")

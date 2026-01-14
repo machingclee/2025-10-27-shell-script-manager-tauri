@@ -215,5 +215,18 @@ data class CreateAIScripToolRequest(
     val toolDescription: String,
 )
 
+data class UpdateAIProfileRequest(
+    val aiProfileDTO: AiProfileDTO
+)
 
+data class UpdateModelConfigRequest(
+    val modelConfigDTO: ModelConfigDTO,
+    val openAiModelConfigDTO: OpenAiModelConfigDTO? = null,
+    val azureModelConfigDTO: AzureModelConfigDTO? = null
+)
 
+typealias ModelConfigResponse = UpdateModelConfigRequest
+
+data class UpdateAIScriptedToolRequest(
+    val aiScriptedToolDTO: AiScriptedToolDTO
+)

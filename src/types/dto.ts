@@ -53,7 +53,7 @@ export type ShellScriptResponse = {
 export type AppStateDTO = {
     id: number;
     lastOpenedFolderId: number;
-
+    selectedAiprofileId: number;
     darkMode: boolean;
     createdAt: number;
     createdAtHk: string;
@@ -153,6 +153,14 @@ export type ModelConfigDTO = {
     createdAt?: number;
     createdAtHk?: string;
 };
+
+export type UpdateModelConfigRequest = {
+    modelConfigDTO: ModelConfigDTO;
+    openAiModelConfigDTO?: OpenAiModelConfigDTO;
+    azureModelConfigDTO?: AzureModelConfigDTO;
+};
+
+export type ModelConfigResponse = UpdateModelConfigRequest;
 
 export type OpenAiModelConfigDTO = {
     id?: number;

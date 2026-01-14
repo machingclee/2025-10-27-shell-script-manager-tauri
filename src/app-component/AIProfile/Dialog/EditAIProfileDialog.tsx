@@ -45,9 +45,10 @@ export const EditAIProfileDialog = (props: {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent
+                overlayClassName="bg-black/50 z-[9999]"
                 onClick={(e) => e.stopPropagation()}
                 onDoubleClick={(e) => e.stopPropagation()}
-                className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700"
+                className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 z-[10000]"
             >
                 <DialogHeader>
                     <DialogTitle>Edit AI Profile</DialogTitle>

@@ -1,5 +1,6 @@
 package com.scriptmanager.common.entity
 
+import com.scriptmanager.common.dto.ModelConfigResponse
 import dev.james.processor.GenerateDTO
 import jakarta.persistence.*
 import org.hibernate.annotations.DynamicInsert
@@ -29,10 +30,10 @@ class ModelConfig(
     val createdAtHk: String? = null
 ) {
 
-    @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL])
+    @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL], orphanRemoval = true)
     var openAiModelConfig: OpenAiModelConfig? = null
 
-    @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL])
+    @OneToOne(mappedBy = "modelConfig", cascade = [CascadeType.ALL], orphanRemoval = true)
     var azureModelConfig: AzureModelConfig? = null
 
     enum class ModelSourceType {
@@ -48,3 +49,11 @@ class ModelConfig(
     )
 }
 
+fun ModelConfig.toResponse(): ModelConfigResponse {
+    this.openAiModelConfig
+    return ModelConfigResponse(
+        modelConfigDTO = this.toDTO(),
+        openAiModelConfigDTO = this.openAiModelConfig?.toDTO(),
+        azureModelConfigDTO = this.azureModelConfig?.toDTO()
+    )
+}

@@ -1,0 +1,82 @@
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import { AIProfileDTO, ModelConfigResponse } from "@/types/dto";
+import dayjs from "dayjs";
+import { Edit } from "lucide-react";
+
+interface ModelConfigsColumnProps {
+    selectedProfile: AIProfileDTO | null;
+    modelConfigs: ModelConfigResponse[] | undefined;
+    onStartEditConfig: (config: ModelConfigResponse) => void;
+}
+
+export const ModelConfigsColumn = ({
+    selectedProfile,
+    modelConfigs,
+    onStartEditConfig,
+}: ModelConfigsColumnProps) => {
+    return (
+        <div className="border-r border-gray-200 dark:border-neutral-600 pr-4 overflow-y-auto">
+            <h3 className="font-semibold mb-3 text-sm text-gray-600 dark:text-gray-400">
+                MODEL CONFIGS
+            </h3>
+            {selectedProfile ? (
+                modelConfigs && modelConfigs.length > 0 ? (
+                    <div className="space-y-2">
+                        {modelConfigs.map((config) => {
+                            return (
+                                <ContextMenu key={config.modelConfigDTO.id}>
+                                    <ContextMenuTrigger asChild>
+                                        <div
+                                            className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+                                                config.modelConfigDTO.id ===
+                                                selectedProfile.selectedModelConfigId
+                                                    ? "bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700"
+                                                    : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-neutral-700/50 dark:border-neutral-600 dark:hover:bg-neutral-700"
+                                            }`}
+                                        >
+                                            <div className="font-medium text-sm truncate">
+                                                {config.modelConfigDTO.name}
+                                            </div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                {config.modelConfigDTO.modelSource}
+                                            </div>
+                                            {config.modelConfigDTO.createdAt && (
+                                                <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                                    {dayjs(config.modelConfigDTO.createdAt).format(
+                                                        "YYYY-MM-DD"
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </ContextMenuTrigger>
+                                    <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700 z-[9999]">
+                                        <ContextMenuItem
+                                            onClick={() => onStartEditConfig(config)}
+                                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                                        >
+                                            <Edit className="w-4 h-4 mr-2" />
+                                            Edit Config
+                                        </ContextMenuItem>
+                                    </ContextMenuContent>
+                                </ContextMenu>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                        No model configs found
+                    </div>
+                )
+            ) : (
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Select a profile first
+                </div>
+            )}
+        </div>
+    );
+};
