@@ -3,6 +3,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 import com.scriptmanager.common.dto.ShellScriptResponse
 import com.scriptmanager.common.dto.toResponse
 import com.scriptmanager.common.entity.ShellScript
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.script.CreateScriptCommand
@@ -23,7 +24,7 @@ class CreateScriptHandler(
     override fun handle(eventQueue: EventQueue, command: CreateScriptCommand): ShellScriptResponse {
 
         val folder = folderRepository.findByIdOrNull(command.folderId)
-            ?: throw Exception("Folder not found")
+            ?: throw ScriptManagerException("Folder not found")
 
         val script = ShellScript(
             name = command.name,

@@ -2,7 +2,8 @@ package com.scriptmanager.domain.ai.commandhandler
 
 import com.scriptmanager.common.entity.AiScriptedTool
 import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.domain.ai.command.UpdateAiScriptedToolCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.domain.ai.command.scriptedtool.UpdateAiScriptedToolCommand
 import com.scriptmanager.domain.ai.event.AiScriptedToolUpdatedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -18,7 +19,7 @@ class UpdateAiScriptedToolHandler(
     override fun handle(eventQueue: EventQueue, command: UpdateAiScriptedToolCommand): AiScriptedTool {
         val dto = command.aiScriptedToolDTO
         val aiScriptedTool = aiScriptedToolRepository.findByIdOrNull(dto.id)
-            ?: throw Exception("AI Scripted Tool with id ${dto.id} not found")
+            ?: throw AIException("AI Scripted Tool with id ${dto.id} not found")
 
         aiScriptedTool.name = dto.name
         aiScriptedTool.toolDescription = dto.toolDescription

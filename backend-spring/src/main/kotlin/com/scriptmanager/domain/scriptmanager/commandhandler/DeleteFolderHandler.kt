@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.folder.DeleteFolderCommand
@@ -17,7 +18,7 @@ class DeleteFolderHandler(
 
     override fun handle(eventQueue: EventQueue, command: DeleteFolderCommand) {
         val folder = folderRepository.findByIdOrNull(command.folderId)
-            ?: throw Exception("Folder not found")
+            ?: throw ScriptManagerException("Folder not found")
         val folderDTOToDelete = folder.toDTO()
 
         val parentFolder = folder.parentFolder

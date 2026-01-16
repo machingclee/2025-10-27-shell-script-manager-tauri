@@ -1,5 +1,6 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.folder.ReorderScriptsCommand
@@ -19,7 +20,7 @@ class ReorderScriptsHandler(
         if (command.fromIndex < 0 || command.fromIndex >= scripts.size ||
             command.toIndex < 0 || command.toIndex >= scripts.size
         ) {
-            throw Exception("Invalid indices")
+            throw ScriptManagerException("Invalid indices")
         }
 
         // Reorder in memory

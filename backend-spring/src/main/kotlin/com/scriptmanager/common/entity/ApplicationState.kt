@@ -32,5 +32,13 @@ class ApplicationState(
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "selected_aiprofile_id", updatable = false, insertable = false)
     var selectedAiProfile: AiProfile? = null
+
+    fun selectAIProfile(aiProfileId: Int) {
+        this.selectedAiProfileId = aiProfileId
+    }
+
+    fun clearSelectedAIProfile() {
+        this.selectedAiProfileId = null
+    }
 }
 

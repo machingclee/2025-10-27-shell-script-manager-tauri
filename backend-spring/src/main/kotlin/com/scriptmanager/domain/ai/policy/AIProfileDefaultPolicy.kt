@@ -1,7 +1,8 @@
 package com.scriptmanager.domain.ai.policy
 
-import com.scriptmanager.domain.ai.command.SelectAiProfileDefaultModelConfigCommand
-import com.scriptmanager.domain.ai.command.SelectDefaultAiProfileCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.domain.ai.command.aiprofile.SelectAiProfileDefaultModelConfigCommand
+import com.scriptmanager.domain.ai.command.aiprofile.SelectDefaultAiProfileCommand
 import com.scriptmanager.domain.ai.event.AiProfileCreatedEvent
 import com.scriptmanager.domain.ai.event.ModelConfigCreatedEvent
 import com.scriptmanager.domain.ai.event.ModelConfigDeletedEvent
@@ -31,12 +32,33 @@ class AIProfileDefaultPolicy(
         }
     }
 
+    @EventListener
+    fun aiprofileDefaultModelConfigShouldBeSelectedOnModelConfigDeletion(event: ModelConfigDeletedEvent) {
+        // since multiple config can be assigned to a profile, and only one can be active
+        val (deleteBaseModelConfigId, aiProfileId) = event
+        val aiProfile = aiProfileRepository.findByIdOrNull(aiProfileId)
+            ?: throw AIException("AI Profile with id $aiProfileId not found")
+        if (aiProfile.selectedModelConfigId == deleteBaseModelConfigId) {
+            val nextModelConfig = aiProfile.modelConfigs
+                .filter { it.id != deleteBaseModelConfigId }
+                .sortedBy { it.createdAt }
+                .firstOrNull()
+            if (nextModelConfig != null) {
+                val command = SelectAiProfileDefaultModelConfigCommand(
+                    aiProfileId = aiProfileId,
+                    modelConfigId = nextModelConfig.id!!
+                )
+                commandInvoker.invoke(command)
+            }
+        }
+    }
+
 
     @EventListener
     fun profileShouldSelectNewlyCreatedModelConfig(event: ModelConfigCreatedEvent) {
         val (parentAIProfileId, modelConfigDTO) = event
         val aiProfile = aiProfileRepository.findByIdOrNull(parentAIProfileId)
-            ?: throw Exception("AI Profile with id $parentAIProfileId not found")
+            ?: throw AIException("AI Profile with id $parentAIProfileId not found")
         // only assign a new default model config (openai, azure openai, etc) when there is none in the profile
         if (aiProfile.selectedModelConfig == null) {
             val command = SelectAiProfileDefaultModelConfigCommand(
@@ -51,7 +73,7 @@ class AIProfileDefaultPolicy(
     fun profileShouldSelectNextModelConfigWhenDeleted(event: ModelConfigDeletedEvent) {
         val (deletedModelConfigId, aiProfileId) = event
         val aiProfile = aiProfileRepository.findByIdOrNull(aiProfileId)
-            ?: throw Exception("AI Profile with id $aiProfileId not found")
+            ?: throw AIException("AI Profile with id $aiProfileId not found")
 
         // If the deleted model config was the selected one, select the next available one
         if (aiProfile.selectedModelConfigId == deletedModelConfigId) {

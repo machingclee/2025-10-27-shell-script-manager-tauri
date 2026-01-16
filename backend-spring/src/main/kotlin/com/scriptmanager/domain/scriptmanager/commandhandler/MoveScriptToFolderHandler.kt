@@ -1,5 +1,6 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.script.MoveScriptToFolderCommand
@@ -19,9 +20,9 @@ class MoveScriptToFolderHandler(
 
     override fun handle(eventQueue: EventQueue, command: MoveScriptToFolderCommand) {
         val script = scriptRepository.findByIdOrNull(command.scriptId)
-            ?: throw Exception("Script not found")
+            ?: throw ScriptManagerException("Script not found")
         val targetFolder = folderRepository.findByIdOrNull(command.targetFolderId)
-            ?: throw Exception("Folder not found")
+            ?: throw ScriptManagerException("Folder not found")
 
         val originalFolder = script.parentFolder
         if (originalFolder != null) {

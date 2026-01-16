@@ -2,15 +2,16 @@ package com.scriptmanager.controller
 
 import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.*
-import com.scriptmanager.domain.ai.command.CreateAIScriptedToolCommand
-import com.scriptmanager.domain.ai.command.CreateAiProfileCommand
-import com.scriptmanager.domain.ai.command.CreateModelConfigCommand
-import com.scriptmanager.domain.ai.command.DeleteAiProfileCommand
-import com.scriptmanager.domain.ai.command.DeleteAiScriptedToolCommand
-import com.scriptmanager.domain.ai.command.DeleteModelConfigCommand
-import com.scriptmanager.domain.ai.command.UpdateAiProfileCommand
-import com.scriptmanager.domain.ai.command.UpdateAiScriptedToolCommand
-import com.scriptmanager.domain.ai.command.UpdateModelConfigCommand
+import com.scriptmanager.domain.ai.command.scriptedtool.CreateAIScriptedToolCommand
+import com.scriptmanager.domain.ai.command.aiprofile.CreateAiProfileCommand
+import com.scriptmanager.domain.ai.command.modelconfig.CreateModelConfigCommand
+import com.scriptmanager.domain.ai.command.aiprofile.DeleteAiProfileCommand
+import com.scriptmanager.domain.ai.command.scriptedtool.DeleteAiScriptedToolCommand
+import com.scriptmanager.domain.ai.command.modelconfig.DeleteModelConfigCommand
+import com.scriptmanager.domain.ai.command.aiprofile.SelectDefaultAiProfileCommand
+import com.scriptmanager.domain.ai.command.aiprofile.UpdateAiProfileCommand
+import com.scriptmanager.domain.ai.command.scriptedtool.UpdateAiScriptedToolCommand
+import com.scriptmanager.domain.ai.command.modelconfig.UpdateModelConfigCommand
 import com.scriptmanager.domain.ai.query.GetAIProfilesQuery
 import com.scriptmanager.domain.ai.query.GetAIScriptedToolsQuery
 import com.scriptmanager.domain.ai.query.GetModelConfigsQuery
@@ -159,6 +160,13 @@ class AIController(
             aiScriptedToolId = id,
             aiProfileId = aiProfileId
         )
+        commandInvoker.invoke(command)
+        return ApiResponse(Unit)
+    }
+
+    @PutMapping("/select-default-ai-profile/{aiProfileId}")
+    fun selectDefaultAiProfile(@PathVariable aiProfileId: Int): ApiResponse<Unit> {
+        val command = SelectDefaultAiProfileCommand(aiProfileId = aiProfileId)
         commandInvoker.invoke(command)
         return ApiResponse(Unit)
     }

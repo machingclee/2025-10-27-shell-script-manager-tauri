@@ -4,6 +4,7 @@ import com.scriptmanager.common.dto.ScriptsFolderResponse
 import com.scriptmanager.common.dto.toResponse
 import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.workspace.CreateFolderInWorkspaceCommand
@@ -24,7 +25,7 @@ class CreateFolderInWorkspaceHandler(
 
     override fun handle(eventQueue: EventQueue, command: CreateFolderInWorkspaceCommand): ScriptsFolder {
         val workspace = workspaceRepository.findByIdOrNull(command.workspaceId)
-            ?: throw Exception("Workspace not found")
+            ?: throw ScriptManagerException("Workspace not found")
 
         val newFolder = folderRepository.save(
             ScriptsFolder(

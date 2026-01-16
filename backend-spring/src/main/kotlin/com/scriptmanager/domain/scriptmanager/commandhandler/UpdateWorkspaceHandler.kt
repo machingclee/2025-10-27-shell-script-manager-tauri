@@ -3,6 +3,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 import com.scriptmanager.common.entity.Workspace
 import com.scriptmanager.common.entity.WorkspaceDTO
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.workspace.UpdateWorkspaceCommand
@@ -18,7 +19,7 @@ class UpdateWorkspaceHandler(
 
     override fun handle(eventQueue: EventQueue, command: UpdateWorkspaceCommand): WorkspaceDTO {
         val workspace = workspaceRepository.findByIdOrNull(command.id)
-            ?: throw Exception("Workspace not found")
+            ?: throw ScriptManagerException("Workspace not found")
 
         workspace.name = Workspace.Name(command.name)
         workspace.ordering = command.ordering

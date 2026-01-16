@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.ai.commandhandler
 
-import com.scriptmanager.domain.ai.command.DeleteAiProfileCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.domain.ai.command.aiprofile.DeleteAiProfileCommand
 import com.scriptmanager.domain.ai.event.AiProfileDeletedEvent
 import com.scriptmanager.domain.ai.event.AiScriptedToolDeletedEvent
 import com.scriptmanager.domain.ai.event.ModelConfigDeletedEvent
@@ -17,7 +18,7 @@ class DeleteAiProfileHandler(
 
     override fun handle(eventQueue: EventQueue, command: DeleteAiProfileCommand) {
         val aiProfile = aiProfileRepository.findByIdOrNull(command.aiProfileId)
-            ?: throw Exception("AI Profile with id ${command.aiProfileId} not found")
+            ?: throw AIException("AI Profile with id ${command.aiProfileId} not found")
 
         // Collect IDs before deletion for events
         val modelConfigIds = aiProfile.modelConfigs.map { it.id!! }

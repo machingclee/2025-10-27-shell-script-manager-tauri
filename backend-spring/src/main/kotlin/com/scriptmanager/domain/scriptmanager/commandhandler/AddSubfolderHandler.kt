@@ -2,6 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.folder.AddSubfolderCommand
@@ -19,7 +20,7 @@ class AddSubfolderHandler(
 
     override fun handle(eventQueue: EventQueue, command: AddSubfolderCommand): ScriptsFolder {
         val parentFolder = folderRepository.findByIdOrNull(command.parentFolderId)
-            ?: throw Exception("Parent folder not found")
+            ?: throw ScriptManagerException("Parent folder not found")
 
         val newSubfolder = ScriptsFolder(
             name = command.name,

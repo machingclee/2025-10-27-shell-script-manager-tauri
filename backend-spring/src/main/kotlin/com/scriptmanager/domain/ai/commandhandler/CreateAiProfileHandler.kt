@@ -2,7 +2,7 @@ package com.scriptmanager.domain.ai.commandhandler
 
 import com.scriptmanager.common.entity.AiProfile
 import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.domain.ai.command.CreateAiProfileCommand
+import com.scriptmanager.domain.ai.command.aiprofile.CreateAiProfileCommand
 import com.scriptmanager.domain.ai.event.AiProfileCreatedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue

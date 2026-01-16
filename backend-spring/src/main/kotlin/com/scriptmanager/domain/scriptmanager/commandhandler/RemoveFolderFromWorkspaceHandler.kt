@@ -2,6 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.dto.WorkspaceWithFoldersDTO
 import com.scriptmanager.common.dto.toWorkspaceWithFoldersDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
@@ -21,10 +22,10 @@ class RemoveFolderFromWorkspaceHandler(
         val orphanedRootLevelFolders = folderRepository.findAllRootLevelFolder()
 
         val folder = folderRepository.findByIdOrNull(command.folderId)
-            ?: throw Exception("Folder not found")
+            ?: throw ScriptManagerException("Folder not found")
 
         val workspace = workspaceRepository.findByIdOrNull(folder.parentWorkspace?.id ?: -1)
-            ?: throw Exception("Workspace not found")
+            ?: throw ScriptManagerException("Workspace not found")
 
         workspace.removeAndReorderFolder(folder)
 

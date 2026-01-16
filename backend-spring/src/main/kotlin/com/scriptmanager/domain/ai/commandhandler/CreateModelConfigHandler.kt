@@ -1,7 +1,8 @@
 package com.scriptmanager.domain.ai.commandhandler
 
 import com.scriptmanager.common.entity.*
-import com.scriptmanager.domain.ai.command.CreateModelConfigCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.domain.ai.command.modelconfig.CreateModelConfigCommand
 import com.scriptmanager.domain.ai.event.ModelConfigCreatedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -25,7 +26,7 @@ class CreateModelConfigHandler(
     override fun handle(eventQueue: EventQueue, command: CreateModelConfigCommand): ModelConfig {
         val (name, modelSourceType, aiprofileId) = command
         val aiProfile = aiProfileRepository.findByIdOrNull(aiprofileId)
-            ?: throw Exception("AI Profile with id $aiprofileId not found")
+            ?: throw AIException("AI Profile with id $aiprofileId not found")
 
         val modelConfig = ModelConfig(
             name = name,
@@ -58,7 +59,7 @@ class CreateModelConfigHandler(
                 modelConfigDTO = modelConfig.toDTO()
             )
         )
-        
+
         return modelConfig
     }
 }

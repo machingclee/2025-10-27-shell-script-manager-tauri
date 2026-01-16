@@ -1,9 +1,10 @@
 package com.scriptmanager.domain.ai.commandhandler
 
-import com.scriptmanager.common.entity.AiProfile
 import com.scriptmanager.common.entity.AiScriptedTool
 import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.domain.ai.command.CreateAIScriptedToolCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.common.exception.ScriptManagerException
+import com.scriptmanager.domain.ai.command.scriptedtool.CreateAIScriptedToolCommand
 import com.scriptmanager.domain.ai.event.AIScriptedToolCreatedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -25,9 +26,9 @@ class CreateAIScriptedToolHandler(
     override fun handle(eventQueue: EventQueue, command: CreateAIScriptedToolCommand): AiScriptedTool {
         val (name, toolDescription, scriptId, isEnabled, aiProfileId) = command
         shellScriptRepository.findByIdOrNull(scriptId)
-            ?: throw Exception("Shell Script with id ${command.scriptId} not found")
+            ?: throw ScriptManagerException("Shell Script with id ${command.scriptId} not found")
         val airProifle = aiProfileRepository.findByIdOrNull(aiProfileId)
-            ?: throw Exception("AI Profile with id ${command.aiProfileId} not found")
+            ?: throw AIException("AI Profile with id ${command.aiProfileId} not found")
 
         val aiScriptedTool = AiScriptedTool(
             name = name,

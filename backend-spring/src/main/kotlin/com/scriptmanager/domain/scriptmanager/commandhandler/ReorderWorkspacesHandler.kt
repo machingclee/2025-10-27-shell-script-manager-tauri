@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.workspace.ReorderWorkspacesCommand
@@ -20,7 +21,7 @@ class ReorderWorkspacesHandler(
         if (command.fromIndex < 0 || command.fromIndex >= workspaces.size ||
             command.toIndex < 0 || command.toIndex >= workspaces.size
         ) {
-            throw Exception("Invalid indices")
+            throw ScriptManagerException("Invalid indices")
         }
 
         // Reorder the workspaces

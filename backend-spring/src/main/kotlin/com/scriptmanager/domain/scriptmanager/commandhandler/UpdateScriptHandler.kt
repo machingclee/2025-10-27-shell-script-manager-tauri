@@ -2,6 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.script.UpdateScriptCommand
@@ -17,7 +18,7 @@ class UpdateScriptHandler(
 
     override fun handle(eventQueue: EventQueue, command: UpdateScriptCommand): ShellScriptDTO {
         val script = scriptRepository.findByIdOrNull(command.id)
-            ?: throw Exception("Script not found")
+            ?: throw ScriptManagerException("Script not found")
 
         script.apply {
             name = command.name

@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.ScriptsFolder
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.workspace.ReorderFoldersCommand
@@ -28,7 +29,7 @@ class ReorderFoldersHandler(
             if (command.fromIndex < 0 || command.fromIndex >= folders.size ||
                 command.toIndex < 0 || command.toIndex >= folders.size
             ) {
-                throw Exception("Invalid indices")
+                throw ScriptManagerException("Invalid indices")
             }
 
             val movedFolder = folders[command.fromIndex]
@@ -43,7 +44,7 @@ class ReorderFoldersHandler(
             folderRepository.saveAll(reordered)
         } else if (parentWorkspaceId != null && parentWorkspaceId != 0) {
             val workspace = workspaceRepository.findByIdOrNull(parentWorkspaceId)
-                ?: throw Exception("Workspace not found")
+                ?: throw ScriptManagerException("Workspace not found")
             val folders = workspace.folders.sortedBy { it.ordering }.toMutableList()
 
             // Validate indices for subfolders
@@ -58,7 +59,7 @@ class ReorderFoldersHandler(
         } else {
             // Reorder subfolders within the specified parent folder
             val parentFolder = folderRepository.findByIdOrNull(parentFolderId)
-                ?: throw Exception("Parent folder not found")
+                ?: throw ScriptManagerException("Parent folder not found")
             val subfolders = parentFolder.subfolders.sortedBy { it.ordering }.toMutableList()
 
             // Validate indices for subfolders
@@ -80,7 +81,7 @@ class ReorderFoldersHandler(
         if (command.fromIndex < 0 || command.fromIndex >= subfolders.size ||
             command.toIndex < 0 || command.toIndex >= subfolders.size
         ) {
-            throw Exception("Invalid indices for subfolders")
+            throw ScriptManagerException("Invalid indices for subfolders")
         }
 
         val movedSubfolder = subfolders[command.fromIndex]

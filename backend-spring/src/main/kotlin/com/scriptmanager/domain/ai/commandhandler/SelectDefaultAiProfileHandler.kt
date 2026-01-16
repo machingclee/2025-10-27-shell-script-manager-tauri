@@ -1,30 +1,19 @@
 package com.scriptmanager.domain.ai.commandhandler
 
-import com.scriptmanager.domain.ai.command.SelectDefaultAiProfileCommand
+import com.scriptmanager.domain.ai.command.aiprofile.SelectDefaultAiProfileCommand
 import com.scriptmanager.domain.ai.event.DefaultAiProfileSelectedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
-import com.scriptmanager.repository.AIProfileRepository
-import com.scriptmanager.repository.ApplicationStateRepository
-import org.springframework.data.repository.findByIdOrNull
+import com.scriptmanager.domain.service.ApplicationStateAIService
 import org.springframework.stereotype.Component
 
 @Component
 class SelectDefaultAiProfileHandler(
-    private val applicationStateRepository: ApplicationStateRepository,
-    private val aiProfileRepository: AIProfileRepository
+    private val applicationStateAIService: ApplicationStateAIService
 ) : CommandHandler<SelectDefaultAiProfileCommand, Unit> {
 
     override fun handle(eventQueue: EventQueue, command: SelectDefaultAiProfileCommand) {
-        val aiProfile = aiProfileRepository.findByIdOrNull(command.aiProfileId)
-            ?: throw Exception("AI Profile with id ${command.aiProfileId} not found")
-
-        val applicationState = applicationStateRepository.findAll().firstOrNull()
-            ?: throw Exception("Application state not found")
-
-        applicationState.selectedAiProfileId = command.aiProfileId
-        applicationStateRepository.save(applicationState)
-
+        applicationStateAIService.updateSelectedAiProfile(command.aiProfileId)
         eventQueue.add(DefaultAiProfileSelectedEvent(aiProfileId = command.aiProfileId))
     }
 }

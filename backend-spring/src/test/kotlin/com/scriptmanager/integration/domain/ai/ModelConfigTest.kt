@@ -2,8 +2,8 @@ package com.scriptmanager.integration.domain.ai
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.scriptmanager.domain.ai.command.CreateAiProfileCommand
-import com.scriptmanager.domain.ai.command.CreateModelConfigCommand
+import com.scriptmanager.domain.ai.command.aiprofile.CreateAiProfileCommand
+import com.scriptmanager.domain.ai.command.modelconfig.CreateModelConfigCommand
 import com.scriptmanager.domain.ai.event.ModelConfigCreatedEvent
 import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.integration.BaseTest

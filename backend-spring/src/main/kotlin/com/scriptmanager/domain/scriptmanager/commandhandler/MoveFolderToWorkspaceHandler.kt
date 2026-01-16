@@ -2,6 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.dto.WorkspaceWithFoldersDTO
 import com.scriptmanager.common.dto.toWorkspaceWithFoldersDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
@@ -21,9 +22,9 @@ class MoveFolderToWorkspaceHandler(
 
     override fun handle(eventQueue: EventQueue, command: MoveFolderToWorkspaceCommand): WorkspaceWithFoldersDTO {
         val folder = folderRepository.findByIdOrNull(command.folderId)
-            ?: throw Exception("Folder not found")
+            ?: throw ScriptManagerException("Folder not found")
         val newWorkspace = workspaceRepository.findByIdOrNull(command.workspaceId)
-            ?: throw Exception("Workspace not found")
+            ?: throw ScriptManagerException("Workspace not found")
 
         val originalParentWorkspace = workspaceRepository.findByIdOrNull(folder.parentWorkspace?.id ?: -1)
         if (originalParentWorkspace != null) {

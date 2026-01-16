@@ -124,5 +124,12 @@ export const aiApi = baseApi.injectEndpoints({
                 { type: "AIProfileDetail", id: aiProfileId },
             ],
         }),
+        selectDefaultAiProfile: builder.mutation<void, { aiProfileId: number }>({
+            query: ({ aiProfileId }) => ({
+                url: `/ai/select-default-ai-profile/${aiProfileId}`,
+                method: "PUT",
+            }),
+            invalidatesTags: ["AIProfileList", "AppState"],
+        }),
     }),
 });

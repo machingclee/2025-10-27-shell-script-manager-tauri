@@ -2,6 +2,7 @@ package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.script.UpdateMarkdownCommand
@@ -19,7 +20,7 @@ class UpdateMarkdownHandler(
     override fun handle(eventQueue: EventQueue, command: UpdateMarkdownCommand): ShellScriptDTO {
         // No operation performed
         val markdownScript = shellScriptRepository.findByIdOrNull(command.scriptId)
-            ?: throw Exception("Script not found")
+            ?: throw ScriptManagerException("Script not found")
 
         markdownScript.name = command.name
         markdownScript.command = command.content

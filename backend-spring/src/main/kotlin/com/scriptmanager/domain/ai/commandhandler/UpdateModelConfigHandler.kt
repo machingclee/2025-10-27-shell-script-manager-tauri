@@ -3,7 +3,8 @@ package com.scriptmanager.domain.ai.commandhandler
 import com.scriptmanager.common.entity.ModelConfig
 import com.scriptmanager.common.entity.OpenAiModelConfig
 import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.domain.ai.command.UpdateModelConfigCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.domain.ai.command.modelconfig.UpdateModelConfigCommand
 import com.scriptmanager.domain.ai.event.ModelConfigUpdatedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -25,7 +26,7 @@ class UpdateModelConfigHandler(
     override fun handle(eventQueue: EventQueue, command: UpdateModelConfigCommand): ModelConfig {
         val modelConfigDto = command.modelConfigDTO
         val modelConfig = modelConfigRepository.findByIdOrNull(modelConfigDto.id)
-            ?: throw Exception("Model Config with id ${modelConfigDto.id} not found")
+            ?: throw AIException("Model Config with id ${modelConfigDto.id} not found")
 
         // Update ModelConfig
         modelConfig.name = modelConfigDto.name

@@ -2,6 +2,7 @@ package com.scriptmanager.domain.scriptmanager.queryhandler
 
 import com.scriptmanager.common.dto.ScriptsFolderResponse
 import com.scriptmanager.common.dto.toResponse
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.QueryHandler
 import com.scriptmanager.domain.scriptmanager.query.GetFolderByIdQuery
 import com.scriptmanager.repository.ScriptsFolderRepository
@@ -15,7 +16,7 @@ class GetFolderByIdQueryHandler(
 
     override fun handle(query: GetFolderByIdQuery): ScriptsFolderResponse {
         val folder = folderRepository.findByIdOrNull(query.folderId)
-            ?: throw Exception("Folder not found with id: ${query.folderId}")
+            ?: throw ScriptManagerException("Folder not found with id: ${query.folderId}")
         return folder.toResponse()
     }
 }

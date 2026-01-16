@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.ai.commandhandler
 
-import com.scriptmanager.domain.ai.command.DeleteAiScriptedToolCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.domain.ai.command.scriptedtool.DeleteAiScriptedToolCommand
 import com.scriptmanager.domain.ai.event.AiScriptedToolDeletedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -17,10 +18,10 @@ class DeleteAiScriptedToolHandler(
 
     override fun handle(eventQueue: EventQueue, command: DeleteAiScriptedToolCommand) {
         val aiScriptedTool = aiScriptedToolRepository.findByIdOrNull(command.aiScriptedToolId)
-            ?: throw Exception("AI Scripted Tool with id ${command.aiScriptedToolId} not found")
+            ?: throw AIException("AI Scripted Tool with id ${command.aiScriptedToolId} not found")
 
         val aiProfile = aiProfileRepository.findByIdOrNull(command.aiProfileId)
-            ?: throw Exception("AI Profile with id ${command.aiProfileId} not found")
+            ?: throw AIException("AI Profile with id ${command.aiProfileId} not found")
 
         // Remove from AI Profile's collection
         aiProfile.aiScriptedTools.removeIf { it.id == command.aiScriptedToolId }

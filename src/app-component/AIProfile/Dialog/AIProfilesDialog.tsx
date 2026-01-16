@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { UpsertAIProfileDialog } from "./UpsertAIProfileDialog";
 import { UpsertModelConfigDialog } from "./UpsertModelConfigDialog";
 import { UpsertScriptedToolDialog } from "./UpsertScriptedToolDialog";
-import { ProfilesColumn } from "./ProfilesColumn";
+import { AIProfilesColumn } from "./AIProfilesColumn";
 import { ModelConfigsColumn } from "./ModelConfigsColumn";
 import { AIScriptedToolsColumn } from "./AIScriptedToolsColumn";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
@@ -31,6 +31,7 @@ export const AIProfilesDialog = () => {
     const [createAIProfile] = aiApi.endpoints.createAIProfile.useMutation();
     const [updateAIProfile] = aiApi.endpoints.updateAIProfile.useMutation();
     const [deleteAIProfile] = aiApi.endpoints.deleteAIProfile.useMutation();
+    const [selectDefaultAiProfile] = aiApi.endpoints.selectDefaultAiProfile.useMutation();
     const [createModelConfig] = aiApi.endpoints.createModelConfig.useMutation();
     const [updateModelConfig] = aiApi.endpoints.updateModelConfig.useMutation();
     const [deleteModelConfig] = aiApi.endpoints.deleteModelConfig.useMutation();
@@ -156,7 +157,7 @@ export const AIProfilesDialog = () => {
     const handleDeleteProfile = (profile: AIProfileDTO) => {
         setDeletingItem({
             type: "profile",
-            id: profile.id,
+            id: profile.id!!,
             name: profile.name,
         });
         setDeleteConfirmOpen(true);
@@ -165,7 +166,7 @@ export const AIProfilesDialog = () => {
     const handleDeleteConfig = (config: ModelConfigResponse) => {
         setDeletingItem({
             type: "config",
-            id: config.modelConfigDTO.id,
+            id: config.modelConfigDTO.id!!,
             name: config.modelConfigDTO.name,
             aiProfileId: selectedProfile?.id,
         });
@@ -175,7 +176,7 @@ export const AIProfilesDialog = () => {
     const handleDeleteTool = (tool: AiScriptedToolDTO) => {
         setDeletingItem({
             type: "tool",
-            id: tool.id,
+            id: tool.id!!,
             name: tool.name,
             aiProfileId: selectedProfile?.id,
         });
@@ -262,7 +263,7 @@ export const AIProfilesDialog = () => {
 
                         {!isLoading && !error && aiProfiles && aiProfiles.length > 0 && (
                             <div className="grid grid-cols-3 gap-4 h-[60vh]">
-                                <ProfilesColumn
+                                <AIProfilesColumn
                                     profiles={aiProfiles}
                                     selectedProfile={selectedProfile}
                                     onSelectProfile={setSelectedProfile}

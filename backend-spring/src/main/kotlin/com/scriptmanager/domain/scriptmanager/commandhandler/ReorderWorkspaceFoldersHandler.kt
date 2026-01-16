@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.workspace.ReorderWorkspaceFoldersCommand
@@ -18,7 +19,7 @@ class ReorderWorkspaceFoldersHandler(
 
     override fun handle(eventQueue: EventQueue, command: ReorderWorkspaceFoldersCommand) {
         val workspace = workspaceRepository.findByIdOrNull(command.workspaceId)
-            ?: throw Exception("Workspace not found")
+            ?: throw ScriptManagerException("Workspace not found")
 
         val folders = workspace.folders.sortedBy { it.ordering }.toMutableList()
 
@@ -26,7 +27,7 @@ class ReorderWorkspaceFoldersHandler(
         if (command.fromIndex < 0 || command.fromIndex >= folders.size ||
             command.toIndex < 0 || command.toIndex >= folders.size
         ) {
-            throw Exception("Invalid indices")
+            throw ScriptManagerException("Invalid indices")
         }
 
         // Reorder the folders

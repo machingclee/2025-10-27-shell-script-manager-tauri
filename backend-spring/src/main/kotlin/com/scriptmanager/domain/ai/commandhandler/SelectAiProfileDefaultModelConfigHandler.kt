@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.ai.commandhandler
 
-import com.scriptmanager.domain.ai.command.SelectAiProfileDefaultModelConfigCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.domain.ai.command.aiprofile.SelectAiProfileDefaultModelConfigCommand
 import com.scriptmanager.domain.ai.event.AiProfileDefaultModelConfigSelectedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -17,10 +18,10 @@ class SelectAiProfileDefaultModelConfigHandler(
 
     override fun handle(eventQueue: EventQueue, command: SelectAiProfileDefaultModelConfigCommand) {
         val aiProfile = aiProfileRepository.findByIdOrNull(command.aiProfileId)
-            ?: throw Exception("AI Profile with id ${command.aiProfileId} not found")
+            ?: throw AIException("AI Profile with id ${command.aiProfileId} not found")
 
         val modelConfig = modelConfigRepository.findByIdOrNull(command.modelConfigId)
-            ?: throw Exception("Model Config with id ${command.modelConfigId} not found")
+            ?: throw AIException("Model Config with id ${command.modelConfigId} not found")
 
         // Verify the model config belongs to this AI profile
         if (!aiProfile.modelConfigs.any { it.id == command.modelConfigId }) {

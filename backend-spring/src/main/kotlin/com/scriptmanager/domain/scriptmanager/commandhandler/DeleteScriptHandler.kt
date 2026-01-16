@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.scriptmanager.commandhandler
 
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.domain.scriptmanager.command.script.DeleteScriptCommand
@@ -16,7 +17,7 @@ class DeleteScriptHandler(
 
     override fun handle(eventQueue: EventQueue, command: DeleteScriptCommand) {
         val script = scriptRepository.findByIdOrNull(command.scriptId)
-            ?: throw Exception("Script not found")
+            ?: throw ScriptManagerException("Script not found")
         val scriptToDeleteDTO = script.toDTO()
         val parentFolder = script.parentFolder
 

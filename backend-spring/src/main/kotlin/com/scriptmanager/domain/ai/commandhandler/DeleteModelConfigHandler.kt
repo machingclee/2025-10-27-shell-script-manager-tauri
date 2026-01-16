@@ -1,6 +1,7 @@
 package com.scriptmanager.domain.ai.commandhandler
 
-import com.scriptmanager.domain.ai.command.DeleteModelConfigCommand
+import com.scriptmanager.common.exception.AIException
+import com.scriptmanager.domain.ai.command.modelconfig.DeleteModelConfigCommand
 import com.scriptmanager.domain.ai.event.ModelConfigDeletedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
@@ -17,18 +18,13 @@ class DeleteModelConfigHandler(
 
     override fun handle(eventQueue: EventQueue, command: DeleteModelConfigCommand) {
         val modelConfig = modelConfigRepository.findByIdOrNull(command.modelConfigId)
-            ?: throw Exception("Model Config with id ${command.modelConfigId} not found")
+            ?: throw AIException("Model Config with id ${command.modelConfigId} not found")
 
         val aiProfile = aiProfileRepository.findByIdOrNull(command.aiProfileId)
-            ?: throw Exception("AI Profile with id ${command.aiProfileId} not found")
+            ?: throw AIException("AI Profile with id ${command.aiProfileId} not found")
 
-        // Remove from AI Profile's collection
+        // Delete the relation only
         aiProfile.modelConfigs.removeIf { it.id == command.modelConfigId }
-
-        // If this was the selected model config, clear the selection
-        if (aiProfile.selectedModelConfigId == command.modelConfigId) {
-            aiProfile.selectedModelConfigId = null
-        }
 
         aiProfileRepository.save(aiProfile)
 
