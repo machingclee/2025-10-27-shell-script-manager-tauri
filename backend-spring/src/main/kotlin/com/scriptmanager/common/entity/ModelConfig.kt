@@ -45,7 +45,7 @@ class ModelConfig(
     class ModelSource(
         @Enumerated(EnumType.STRING)
         @Column(name = "model_source", nullable = false)
-        var modelSource: ModelSourceType = ModelSourceType.AZURE_OPENAI
+        var type: ModelSourceType = ModelSourceType.AZURE_OPENAI
     )
 }
 

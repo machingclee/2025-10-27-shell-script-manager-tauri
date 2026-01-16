@@ -313,6 +313,7 @@ export const AIProfilesDialog = () => {
                 setIsOpen={setEditToolOpen}
                 scriptedTool={editingTool}
                 onSave={handleSaveTool}
+                existingTools={correspondingAiScriptedTools || []}
             />
 
             <DeleteConfirmationDialog

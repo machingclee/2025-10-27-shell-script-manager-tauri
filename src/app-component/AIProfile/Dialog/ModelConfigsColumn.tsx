@@ -64,7 +64,7 @@ export const ModelConfigsColumn = ({
                                             {config.modelConfigDTO.createdAt && (
                                                 <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                                                     {dayjs(config.modelConfigDTO.createdAt).format(
-                                                        "YYYY-MM-DD"
+                                                        "YYYY-MM-DD h:mm A"
                                                     )}
                                                 </div>
                                             )}

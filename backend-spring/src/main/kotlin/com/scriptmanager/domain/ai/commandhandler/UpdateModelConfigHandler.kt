@@ -30,7 +30,7 @@ class UpdateModelConfigHandler(
 
         // Update ModelConfig
         modelConfig.name = modelConfigDto.name
-        modelConfig.modelSource.modelSource = when (modelConfigDto.modelSource) {
+        modelConfig.modelSource.type = when (modelConfigDto.modelSource) {
             ModelConfig.ModelSourceType.OPENAI -> ModelConfig.ModelSourceType.OPENAI
             ModelConfig.ModelSourceType.AZURE_OPENAI -> ModelConfig.ModelSourceType.AZURE_OPENAI
         }

@@ -214,11 +214,11 @@ class FolderTest(
                 .map { objectMapper.readValue<FolderDeletedEvent>(it.payload) }
 
             assertTrue(
-                folderDeleteEvents.any { it.folderId == parentFolder.id!! },
+                folderDeleteEvents.any { it.folder.id == parentFolder.id!! },
                 "Should emit event for parent folder"
             )
             assertTrue(
-                folderDeleteEvents.any { it.folderId == subfolder.id!! },
+                folderDeleteEvents.any { it.folder.id == subfolder.id!! },
                 "Should emit event for subfolder"
             )
         }
