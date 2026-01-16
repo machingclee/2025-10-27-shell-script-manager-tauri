@@ -4,26 +4,42 @@ import {
     ContextMenuItem,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Button } from "@/components/ui/button";
 import { AIProfileDTO, ModelConfigResponse } from "@/types/dto";
 import dayjs from "dayjs";
-import { Edit } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
 
 interface ModelConfigsColumnProps {
     selectedProfile: AIProfileDTO | null;
     modelConfigs: ModelConfigResponse[] | undefined;
     onStartEditConfig: (config: ModelConfigResponse) => void;
+    onCreateConfig: () => void;
+    onDeleteConfig: (config: ModelConfigResponse) => void;
 }
 
 export const ModelConfigsColumn = ({
     selectedProfile,
     modelConfigs,
     onStartEditConfig,
+    onCreateConfig,
+    onDeleteConfig,
 }: ModelConfigsColumnProps) => {
     return (
         <div className="border-r border-gray-200 dark:border-neutral-600 pr-4 overflow-y-auto">
-            <h3 className="font-semibold mb-3 text-sm text-gray-600 dark:text-gray-400">
-                MODEL CONFIGS
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm text-gray-600 dark:text-gray-400">
+                    MODEL CONFIGS
+                </h3>
+                <Button
+                    size="sm"
+                    onClick={onCreateConfig}
+                    disabled={!selectedProfile}
+                    className="h-7 px-2 bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Plus className="w-4 h-4 mr-1" />
+                    New
+                </Button>
+            </div>
             {selectedProfile ? (
                 modelConfigs && modelConfigs.length > 0 ? (
                     <div className="space-y-2">
@@ -61,6 +77,13 @@ export const ModelConfigsColumn = ({
                                         >
                                             <Edit className="w-4 h-4 mr-2" />
                                             Edit Config
+                                        </ContextMenuItem>
+                                        <ContextMenuItem
+                                            onClick={() => onDeleteConfig(config)}
+                                            className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete Config
                                         </ContextMenuItem>
                                     </ContextMenuContent>
                                 </ContextMenu>

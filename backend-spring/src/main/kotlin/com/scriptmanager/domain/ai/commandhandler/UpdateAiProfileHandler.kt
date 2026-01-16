@@ -1,7 +1,9 @@
 package com.scriptmanager.domain.ai.commandhandler
 
 import com.scriptmanager.common.entity.AiProfile
+import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.ai.command.UpdateAiProfileCommand
+import com.scriptmanager.domain.ai.event.AiProfileUpdatedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.repository.AIProfileRepository
@@ -13,15 +15,18 @@ class UpdateAiProfileHandler(
     private val aiProfileRepository: AIProfileRepository
 ) : CommandHandler<UpdateAiProfileCommand, AiProfile> {
     override fun handle(eventQueue: EventQueue, command: UpdateAiProfileCommand): AiProfile {
-        val dto = command.aiProfileDTO
-        val aiProfile = aiProfileRepository.findByIdOrNull(dto.id)
-            ?: throw Exception("AI Profile with id ${dto.id} not found")
+        val aiprofileDTO = command.aiProfileDTO
+        val aiProfile = aiProfileRepository.findByIdOrNull(aiprofileDTO.id)
+            ?: throw Exception("AI Profile with id ${aiprofileDTO.id} not found")
 
-        aiProfile.name = dto.name
-        aiProfile.description = dto.description
-        aiProfile.selectedModelConfigId = dto.selectedModelConfigId
+        aiProfile.name = aiprofileDTO.name
+        aiProfile.description = aiprofileDTO.description
+        aiProfile.selectedModelConfigId = aiprofileDTO.selectedModelConfigId
 
         aiProfileRepository.save(aiProfile)
+
+        eventQueue.add(AiProfileUpdatedEvent(aiProfile = aiProfile.toDTO()))
+
         return aiProfile
     }
 }

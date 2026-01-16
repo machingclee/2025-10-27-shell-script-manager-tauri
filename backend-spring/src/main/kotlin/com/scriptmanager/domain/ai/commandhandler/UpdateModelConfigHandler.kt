@@ -2,7 +2,9 @@ package com.scriptmanager.domain.ai.commandhandler
 
 import com.scriptmanager.common.entity.ModelConfig
 import com.scriptmanager.common.entity.OpenAiModelConfig
+import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.ai.command.UpdateModelConfigCommand
+import com.scriptmanager.domain.ai.event.ModelConfigUpdatedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.repository.AzureOpenAIModelConfigRepository
@@ -81,6 +83,8 @@ class UpdateModelConfigHandler(
 
         entityManager.flush()
         entityManager.refresh(modelConfig)
+
+        eventQueue.add(ModelConfigUpdatedEvent(modelConfigDTO = modelConfig.toDTO()))
 
         return modelConfig
     }

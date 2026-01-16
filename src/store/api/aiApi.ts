@@ -26,7 +26,7 @@ export const aiApi = baseApi.injectEndpoints({
         }),
         createModelConfig: builder.mutation<
             ModelConfigDTO,
-            { name: string; modelSourceType: string; aiprofileId: number }
+            { name: string; modelSource: string; aiprofileId: number }
         >({
             query: (request) => ({
                 url: "/ai/model-config",
@@ -98,6 +98,31 @@ export const aiApi = baseApi.injectEndpoints({
                 body: request,
             }),
             invalidatesTags: ["AIProfileDetail"],
+        }),
+        deleteAIProfile: builder.mutation<void, { id: number }>({
+            query: ({ id }) => ({
+                url: `/ai/ai-profile/${id}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: ["AIProfileList"],
+        }),
+        deleteModelConfig: builder.mutation<void, { id: number; aiProfileId: number }>({
+            query: ({ id, aiProfileId }) => ({
+                url: `/ai/model-config/${id}?aiProfileId=${aiProfileId}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: (_result, _error, { aiProfileId }) => [
+                { type: "ModelConfigList", id: aiProfileId },
+            ],
+        }),
+        deleteAiScriptedTool: builder.mutation<void, { id: number; aiProfileId: number }>({
+            query: ({ id, aiProfileId }) => ({
+                url: `/ai/ai-scripted-tool/${id}?aiProfileId=${aiProfileId}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: (_result, _error, { aiProfileId }) => [
+                { type: "AIProfileDetail", id: aiProfileId },
+            ],
         }),
     }),
 });

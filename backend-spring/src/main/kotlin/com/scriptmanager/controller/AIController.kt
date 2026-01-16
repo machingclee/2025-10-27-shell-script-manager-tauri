@@ -5,6 +5,9 @@ import com.scriptmanager.common.entity.*
 import com.scriptmanager.domain.ai.command.CreateAIScriptedToolCommand
 import com.scriptmanager.domain.ai.command.CreateAiProfileCommand
 import com.scriptmanager.domain.ai.command.CreateModelConfigCommand
+import com.scriptmanager.domain.ai.command.DeleteAiProfileCommand
+import com.scriptmanager.domain.ai.command.DeleteAiScriptedToolCommand
+import com.scriptmanager.domain.ai.command.DeleteModelConfigCommand
 import com.scriptmanager.domain.ai.command.UpdateAiProfileCommand
 import com.scriptmanager.domain.ai.command.UpdateAiScriptedToolCommand
 import com.scriptmanager.domain.ai.command.UpdateModelConfigCommand
@@ -15,12 +18,14 @@ import com.scriptmanager.domain.infrastructure.CommandInvoker
 import com.scriptmanager.domain.infrastructure.QueryInvoker
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -123,6 +128,39 @@ class AIController(
         val query = GetAIScriptedToolsQuery(aiProfileId = aiProfileId)
         val scriptedTools = queryInvoker.invoke(query)
         return ApiResponse(scriptedTools)
+    }
+
+    @DeleteMapping("/ai-profile/{id}")
+    fun deleteAIProfile(@PathVariable id: Int): ApiResponse<Unit> {
+        val command = DeleteAiProfileCommand(aiProfileId = id)
+        commandInvoker.invoke(command)
+        return ApiResponse(Unit)
+    }
+
+    @DeleteMapping("/model-config/{id}")
+    fun deleteModelConfig(
+        @PathVariable id: Int,
+        @RequestParam aiProfileId: Int
+    ): ApiResponse<Unit> {
+        val command = DeleteModelConfigCommand(
+            modelConfigId = id,
+            aiProfileId = aiProfileId
+        )
+        commandInvoker.invoke(command)
+        return ApiResponse(Unit)
+    }
+
+    @DeleteMapping("/ai-scripted-tool/{id}")
+    fun deleteAiScriptedTool(
+        @PathVariable id: Int,
+        @RequestParam aiProfileId: Int
+    ): ApiResponse<Unit> {
+        val command = DeleteAiScriptedToolCommand(
+            aiScriptedToolId = id,
+            aiProfileId = aiProfileId
+        )
+        commandInvoker.invoke(command)
+        return ApiResponse(Unit)
     }
 }
 

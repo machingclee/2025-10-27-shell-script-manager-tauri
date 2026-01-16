@@ -4,17 +4,20 @@ import {
     ContextMenuItem,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Button } from "@/components/ui/button";
 import { appStateApi } from "@/store/api/appStateApi";
 import { useAppSelector } from "@/store/hooks";
 import { AIProfileDTO } from "@/types/dto";
 import dayjs from "dayjs";
-import { Edit } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
 
 interface ProfilesColumnProps {
     profiles: AIProfileDTO[];
     selectedProfile: AIProfileDTO | null;
     onSelectProfile: (profile: AIProfileDTO) => void;
     onEditProfile: (profile: AIProfileDTO) => void;
+    onCreateProfile: () => void;
+    onDeleteProfile: (profile: AIProfileDTO) => void;
 }
 
 export const ProfilesColumn = ({
@@ -22,12 +25,22 @@ export const ProfilesColumn = ({
     selectedProfile,
     onSelectProfile,
     onEditProfile,
+    onCreateProfile,
+    onDeleteProfile,
 }: ProfilesColumnProps) => {
     return (
         <div className="border-r border-gray-200 dark:border-neutral-600 pr-4 overflow-y-auto">
-            <h3 className="font-semibold mb-3 text-sm text-gray-600 dark:text-gray-400">
-                PROFILES
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm text-gray-600 dark:text-gray-400">PROFILES</h3>
+                <Button
+                    size="sm"
+                    onClick={onCreateProfile}
+                    className="h-7 px-2 bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
+                >
+                    <Plus className="w-4 h-4 mr-1" />
+                    New
+                </Button>
+            </div>
             <div className="space-y-2">
                 {profiles.map((profile: AIProfileDTO) => (
                     <ContextMenu key={profile.id}>
@@ -72,6 +85,13 @@ export const ProfilesColumn = ({
                             >
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit Profile
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                                onClick={() => onDeleteProfile(profile)}
+                                className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete Profile
                             </ContextMenuItem>
                         </ContextMenuContent>
                     </ContextMenu>

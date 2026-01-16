@@ -4,26 +4,42 @@ import {
     ContextMenuItem,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Button } from "@/components/ui/button";
 import { AiScriptedToolDTO, AIProfileDTO } from "@/types/dto";
 import dayjs from "dayjs";
-import { Edit } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
 
 interface AIScriptedToolsColumnProps {
     selectedProfile: AIProfileDTO | null;
     scriptedTools: AiScriptedToolDTO[] | undefined;
     onEditTool: (tool: AiScriptedToolDTO) => void;
+    onCreateTool: () => void;
+    onDeleteTool: (tool: AiScriptedToolDTO) => void;
 }
 
 export const AIScriptedToolsColumn = ({
     selectedProfile,
     scriptedTools,
     onEditTool,
+    onCreateTool,
+    onDeleteTool,
 }: AIScriptedToolsColumnProps) => {
     return (
         <div className="overflow-y-auto">
-            <h3 className="font-semibold mb-3 text-sm text-gray-600 dark:text-gray-400">
-                AI SCRIPTED TOOLS
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-sm text-gray-600 dark:text-gray-400">
+                    AI SCRIPTED TOOLS
+                </h3>
+                <Button
+                    size="sm"
+                    onClick={onCreateTool}
+                    disabled={!selectedProfile}
+                    className="h-7 px-2 bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Plus className="w-4 h-4 mr-1" />
+                    New
+                </Button>
+            </div>
             {selectedProfile ? (
                 scriptedTools && scriptedTools.length > 0 ? (
                     <div className="space-y-2">
@@ -64,6 +80,13 @@ export const AIScriptedToolsColumn = ({
                                     >
                                         <Edit className="w-4 h-4 mr-2" />
                                         Edit Tool
+                                    </ContextMenuItem>
+                                    <ContextMenuItem
+                                        onClick={() => onDeleteTool(tool)}
+                                        className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+                                    >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Delete Tool
                                     </ContextMenuItem>
                                 </ContextMenuContent>
                             </ContextMenu>

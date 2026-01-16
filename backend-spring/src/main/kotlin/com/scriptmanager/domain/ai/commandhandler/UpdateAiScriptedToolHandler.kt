@@ -1,7 +1,9 @@
 package com.scriptmanager.domain.ai.commandhandler
 
 import com.scriptmanager.common.entity.AiScriptedTool
+import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.domain.ai.command.UpdateAiScriptedToolCommand
+import com.scriptmanager.domain.ai.event.AiScriptedToolUpdatedEvent
 import com.scriptmanager.domain.infrastructure.CommandHandler
 import com.scriptmanager.domain.infrastructure.EventQueue
 import com.scriptmanager.repository.AIScriptedToolRepository
@@ -24,6 +26,9 @@ class UpdateAiScriptedToolHandler(
         aiScriptedTool.shellScriptId = dto.shellScriptId
 
         aiScriptedToolRepository.save(aiScriptedTool)
+
+        eventQueue.add(AiScriptedToolUpdatedEvent(aiScriptedToolDTO = aiScriptedTool.toDTO()))
+
         return aiScriptedTool
     }
 }
