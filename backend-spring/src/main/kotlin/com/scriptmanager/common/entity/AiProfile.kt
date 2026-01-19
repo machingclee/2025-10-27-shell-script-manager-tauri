@@ -61,4 +61,23 @@ class AiProfile(
         }
         aiScriptedTools.add(tool)
     }
+
+    fun selectDefaultModelConfig(modelConfig: ModelConfig) {
+        if (!modelConfigs.contains(modelConfig)) {
+            throw IllegalArgumentException("ModelConfig not found in AiProfile")
+        }
+        selectedModelConfigId = modelConfig.id
+        selectedModelConfig = modelConfig
+    }
+
+    fun resetSelectedModelConfig() {
+        if (modelConfigs.isNotEmpty()) {
+            val sortedModelConfigsByCreatedAt = modelConfigs.sortedBy { it.createdAt }
+            selectedModelConfigId = sortedModelConfigsByCreatedAt[0].id
+            selectedModelConfig = sortedModelConfigsByCreatedAt[0]
+        } else {
+            selectedModelConfigId = null
+            selectedModelConfig = null
+        }
+    }
 }
