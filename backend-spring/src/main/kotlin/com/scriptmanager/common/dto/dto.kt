@@ -230,3 +230,9 @@ typealias ModelConfigResponse = UpdateModelConfigRequest
 data class UpdateAIScriptedToolRequest(
     val aiScriptedToolDTO: AiScriptedToolDTO
 )
+
+data class SelectDefaultModelConfigRequest(
+    val aiProfileId: Int,
+    val modelConfigId: Int
+)
+

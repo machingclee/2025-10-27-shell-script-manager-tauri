@@ -38,6 +38,7 @@ export const AIProfilesDialog = () => {
     const [createAiScriptedTool] = aiApi.endpoints.createAiScriptedTool.useMutation();
     const [updateAiScriptedTool] = aiApi.endpoints.updateAiScriptedTool.useMutation();
     const [deleteAiScriptedTool] = aiApi.endpoints.deleteAiScriptedTool.useMutation();
+    const [selectDefaultModelConfig] = aiApi.endpoints.selectDefaultModelConfig.useMutation();
 
     const dispatch = useAppDispatch();
     const open = useAppSelector((s) => s.ai.aiProfile.dialogOpen);
@@ -183,6 +184,14 @@ export const AIProfilesDialog = () => {
         setDeleteConfirmOpen(true);
     };
 
+    const handleSelectDefaultModelConfig = async (config: ModelConfigResponse) => {
+        if (!selectedProfile?.id || !config.modelConfigDTO.id) return;
+        await selectDefaultModelConfig({
+            aiProfileId: selectedProfile.id,
+            modelConfigId: config.modelConfigDTO.id,
+        });
+    };
+
     const confirmDelete = async () => {
         if (!deletingItem) return;
 
@@ -225,7 +234,20 @@ export const AIProfilesDialog = () => {
                 // setSelectedProfile(aiProfiles[0]);
             }
         }
-    }, [defaultSelectedProfileId, open]);
+    }, [defaultSelectedProfileId, open, aiProfiles]);
+
+    // Update selectedProfile when aiProfiles changes (after mutation invalidation)
+    useEffect(() => {
+        if (selectedProfile && aiProfiles) {
+            const updatedProfile = aiProfiles.find((p) => p.id === selectedProfile.id);
+            if (
+                updatedProfile &&
+                updatedProfile.selectedModelConfigId !== selectedProfile.selectedModelConfigId
+            ) {
+                setSelectedProfile(updatedProfile);
+            }
+        }
+    }, [aiProfiles, selectedProfile]);
 
     return (
         <>
@@ -278,6 +300,7 @@ export const AIProfilesDialog = () => {
                                     onStartEditConfig={onStartEditConfig}
                                     onCreateConfig={handleCreateConfig}
                                     onDeleteConfig={handleDeleteConfig}
+                                    onSelectAsDefault={handleSelectDefaultModelConfig}
                                 />
 
                                 <AIScriptedToolsColumn

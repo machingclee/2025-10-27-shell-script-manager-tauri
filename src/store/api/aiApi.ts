@@ -131,5 +131,16 @@ export const aiApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ["AIProfileList", "AppState"],
         }),
+        selectDefaultModelConfig: builder.mutation<
+            void,
+            { aiProfileId: number; modelConfigId: number }
+        >({
+            query: (request) => ({
+                url: "/ai/default-model-config",
+                method: "PUT",
+                body: request,
+            }),
+            invalidatesTags: ["ModelConfigList", "AIProfileList"],
+        }),
     }),
 });

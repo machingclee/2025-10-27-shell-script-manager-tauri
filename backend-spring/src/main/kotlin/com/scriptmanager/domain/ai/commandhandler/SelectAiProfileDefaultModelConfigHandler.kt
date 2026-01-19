@@ -23,12 +23,8 @@ class SelectAiProfileDefaultModelConfigHandler(
         val modelConfig = modelConfigRepository.findByIdOrNull(command.modelConfigId)
             ?: throw AIException("Model Config with id ${command.modelConfigId} not found")
 
-        // Verify the model config belongs to this AI profile
-        if (!aiProfile.modelConfigs.any { it.id == command.modelConfigId }) {
-            throw Exception("Model Config with id ${command.modelConfigId} does not belong to AI Profile ${command.aiProfileId}")
-        }
-
-        aiProfile.selectedModelConfigId = command.modelConfigId
+        // Use domain behavior to select the model config (it will validate ownership)
+        aiProfile.selectDefaultModelConfig(modelConfig)
         aiProfileRepository.save(aiProfile)
 
         eventQueue.add(

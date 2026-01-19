@@ -84,7 +84,7 @@ export const AIProfilesColumn = ({
                                 </div>
                             </div>
                         </ContextMenuTrigger>
-                        <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700 z-[9999]">
+                        <ContextMenuContent className="bg-gray-100 border-gray-300 dark:bg-neutral-700 dark:text-white dark:border-neutral-500 z-[9999]">
                             <ContextMenuItem
                                 onClick={() => onEditProfile(profile)}
                                 className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"

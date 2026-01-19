@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AIProfileDTO, ModelConfigResponse } from "@/types/dto";
 import dayjs from "dayjs";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Check, Edit, Plus, Trash2 } from "lucide-react";
 
 interface ModelConfigsColumnProps {
     selectedProfile: AIProfileDTO | null;
@@ -15,6 +15,7 @@ interface ModelConfigsColumnProps {
     onStartEditConfig: (config: ModelConfigResponse) => void;
     onCreateConfig: () => void;
     onDeleteConfig: (config: ModelConfigResponse) => void;
+    onSelectAsDefault: (config: ModelConfigResponse) => void;
 }
 
 export const ModelConfigsColumn = ({
@@ -23,6 +24,7 @@ export const ModelConfigsColumn = ({
     onStartEditConfig,
     onCreateConfig,
     onDeleteConfig,
+    onSelectAsDefault,
 }: ModelConfigsColumnProps) => {
     return (
         <div className="border-r border-gray-200 dark:border-neutral-600 pr-4 overflow-y-auto">
@@ -51,7 +53,7 @@ export const ModelConfigsColumn = ({
                                             className={`p-3 rounded-lg border transition-colors cursor-pointer ${
                                                 config.modelConfigDTO.id ===
                                                 selectedProfile.selectedModelConfigId
-                                                    ? "bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700"
+                                                    ? "bg-blue-100 border-blue-300 dark:bg-neutral-600 dark:border-neutral-500"
                                                     : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-neutral-700/50 dark:border-neutral-600 dark:hover:bg-neutral-700"
                                             }`}
                                         >
@@ -70,13 +72,34 @@ export const ModelConfigsColumn = ({
                                             )}
                                         </div>
                                     </ContextMenuTrigger>
-                                    <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700 z-[9999]">
+                                    <ContextMenuContent className="bg-gray-100 border-gray-300 dark:bg-neutral-700 dark:text-white dark:border-neutral-500 z-[9999]">
                                         <ContextMenuItem
                                             onClick={() => onStartEditConfig(config)}
                                             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
                                         >
                                             <Edit className="w-4 h-4 mr-2" />
                                             Edit Config
+                                        </ContextMenuItem>
+                                        <ContextMenuItem
+                                            onClick={() => {
+                                                console.log("Config ID:", config.modelConfigDTO.id);
+                                                console.log(
+                                                    "Selected ID:",
+                                                    selectedProfile.selectedModelConfigId
+                                                );
+                                                onSelectAsDefault(config);
+                                            }}
+                                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                                            disabled={
+                                                config.modelConfigDTO.id ===
+                                                selectedProfile.selectedModelConfigId
+                                            }
+                                        >
+                                            <Check className="w-4 h-4 mr-2" />
+                                            {config.modelConfigDTO.id ===
+                                            selectedProfile.selectedModelConfigId
+                                                ? "Default Config"
+                                                : "Select as Default"}
                                         </ContextMenuItem>
                                         <ContextMenuItem
                                             onClick={() => onDeleteConfig(config)}

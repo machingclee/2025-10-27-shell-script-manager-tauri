@@ -8,6 +8,7 @@ import com.scriptmanager.domain.ai.command.modelconfig.CreateModelConfigCommand
 import com.scriptmanager.domain.ai.command.aiprofile.DeleteAiProfileCommand
 import com.scriptmanager.domain.ai.command.scriptedtool.DeleteAiScriptedToolCommand
 import com.scriptmanager.domain.ai.command.modelconfig.DeleteModelConfigCommand
+import com.scriptmanager.domain.ai.command.aiprofile.SelectAiProfileDefaultModelConfigCommand
 import com.scriptmanager.domain.ai.command.aiprofile.SelectDefaultAiProfileCommand
 import com.scriptmanager.domain.ai.command.aiprofile.UpdateAiProfileCommand
 import com.scriptmanager.domain.ai.command.scriptedtool.UpdateAiScriptedToolCommand
@@ -167,6 +168,19 @@ class AIController(
     @PutMapping("/select-default-ai-profile/{aiProfileId}")
     fun selectDefaultAiProfile(@PathVariable aiProfileId: Int): ApiResponse<Unit> {
         val command = SelectDefaultAiProfileCommand(aiProfileId = aiProfileId)
+        commandInvoker.invoke(command)
+        return ApiResponse(Unit)
+    }
+
+
+    @PutMapping("/default-model-config")
+    fun selectDefaultModelConfigByRequest(
+        @RequestBody request: SelectDefaultModelConfigRequest
+    ): ApiResponse<Unit> {
+        val command = SelectAiProfileDefaultModelConfigCommand(
+            aiProfileId = request.aiProfileId,
+            modelConfigId = request.modelConfigId
+        )
         commandInvoker.invoke(command)
         return ApiResponse(Unit)
     }
