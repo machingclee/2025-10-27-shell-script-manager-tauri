@@ -1,12 +1,12 @@
-package com.scriptmanager.integration.domain.scriptmanager
+package com.scriptmanager.integration.boundedcontext.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.scriptmanager.command.folder.CreateFolderCommand
-import com.scriptmanager.domain.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.command.workspace.*
-import com.scriptmanager.domain.scriptmanager.event.WorkspaceCreatedEvent
-import com.scriptmanager.domain.scriptmanager.event.WorkspaceDeletedEvent
+import com.scriptmanager.common.domainutils.CommandInvoker
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.*
+import com.scriptmanager.boundedcontext.scriptmanager.event.WorkspaceCreatedEvent
+import com.scriptmanager.boundedcontext.scriptmanager.event.WorkspaceDeletedEvent
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.WorkspaceRepository
@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional
 /**
  * Tests for Workspace Lifecycle APIs
  * Maps to: POST /workspace, PUT /workspace/{id}, DELETE /workspace/{id}, PUT /workspace/reorder
- * Domain: com.scriptmanager.domain.scriptmanager
+ * Domain: com.scriptmanager.boundedcontext.scriptmanager
  *
  * This test class combines both creation and management operations for consistency
  * with the script lifecycle pattern.

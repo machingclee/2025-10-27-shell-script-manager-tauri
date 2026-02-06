@@ -70,14 +70,18 @@ class AiProfile(
         selectedModelConfig = modelConfig
     }
 
-    fun resetSelectedModelConfig() {
+    fun resetSelectedModelConfig(): ModelConfig? {
+        // get deleted,
         if (modelConfigs.isNotEmpty()) {
             val sortedModelConfigsByCreatedAt = modelConfigs.sortedBy { it.createdAt }
             selectedModelConfigId = sortedModelConfigsByCreatedAt[0].id
             selectedModelConfig = sortedModelConfigsByCreatedAt[0]
+            return selectedModelConfig
         } else {
             selectedModelConfigId = null
             selectedModelConfig = null
+            return null
         }
+
     }
 }

@@ -1,8 +1,8 @@
 package com.scriptmanager.controller
 
-import com.scriptmanager.domain.infrastructure.QueryInvoker
-import com.scriptmanager.domain.scriptmanager.query.GetHealthQuery
-import com.scriptmanager.domain.scriptmanager.query.HealthResponse
+import com.scriptmanager.common.domainutils.QueryInvoker
+import com.scriptmanager.boundedcontext.scriptmanager.query.GetHealthQuery
+import com.scriptmanager.boundedcontext.scriptmanager.query.HealthResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping

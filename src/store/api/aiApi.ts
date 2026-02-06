@@ -33,7 +33,7 @@ export const aiApi = baseApi.injectEndpoints({
                 method: "POST",
                 body: request,
             }),
-            invalidatesTags: ["ModelConfigList"],
+            invalidatesTags: ["ModelConfigList", "AIProfileList"],
         }),
         createAiScriptedTool: builder.mutation<
             AiScriptedToolDTO,
@@ -86,7 +86,7 @@ export const aiApi = baseApi.injectEndpoints({
                 method: "PUT",
                 body: request,
             }),
-            invalidatesTags: ["ModelConfigList"],
+            invalidatesTags: ["ModelConfigList", "AIProfileList"],
         }),
         updateAiScriptedTool: builder.mutation<
             AiScriptedToolDTO,
@@ -113,6 +113,7 @@ export const aiApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: (_result, _error, { aiProfileId }) => [
                 { type: "ModelConfigList", id: aiProfileId },
+                { type: "AIProfileList" },
             ],
         }),
         deleteAiScriptedTool: builder.mutation<void, { id: number; aiProfileId: number }>({

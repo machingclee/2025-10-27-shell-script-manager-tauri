@@ -1,22 +1,22 @@
-package com.scriptmanager.integration.domain.scriptmanager
+package com.scriptmanager.integration.boundedcontext.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.scriptmanager.common.dto.ShellScriptResponse
 import com.scriptmanager.common.entity.ScriptsFolder
-import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.command.folder.DeleteFolderCommand
-import com.scriptmanager.domain.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.command.folder.ReorderScriptsCommand
-import com.scriptmanager.domain.scriptmanager.command.folder.UpdateFolderCommand
-import com.scriptmanager.domain.scriptmanager.command.script.CreateScriptCommand
-import com.scriptmanager.domain.scriptmanager.command.folder.AddSubfolderCommand
-import com.scriptmanager.domain.scriptmanager.command.folder.CreateFolderCommand
-import com.scriptmanager.domain.scriptmanager.command.script.MoveScriptToFolderCommand
-import com.scriptmanager.domain.scriptmanager.command.workspace.CreateFolderInWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.command.workspace.CreateWorkspaceCommand
-import com.scriptmanager.domain.scriptmanager.event.FolderDeletedEvent
+import com.scriptmanager.common.domainutils.CommandInvoker
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.DeleteFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.ReorderScriptsCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.UpdateFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.script.CreateScriptCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.AddSubfolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.script.MoveScriptToFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.CreateFolderInWorkspaceCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.CreateWorkspaceCommand
+import com.scriptmanager.boundedcontext.scriptmanager.event.FolderDeletedEvent
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ScriptsFolderRepository
@@ -36,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional
 /**
  * Tests for Folder Creation APIs
  * Maps to: POST /folder, POST /workspace/{id}/folder, POST /folder/{id}/subfolder
- * Domain: com.scriptmanager.domain.scriptmanager
+ * Domain: com.scriptmanager.boundedcontext.scriptmanager
  */
 @SpringBootTest
 class FolderTest(

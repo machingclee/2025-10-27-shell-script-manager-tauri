@@ -135,16 +135,20 @@ export const UpsertScriptedToolDialog = (props: {
         }
     }, [scriptedTool, isOpen, workspaces]);
 
-    // Reset folder selection when workspace changes
+    // Reset folder selection when workspace changes (only in create mode)
     useEffect(() => {
-        setSelectedFolderId(null);
-        setSelectedScriptId(null);
-    }, [selectedWorkspaceId]);
+        if (!scriptedTool) {
+            setSelectedFolderId(null);
+            setSelectedScriptId(null);
+        }
+    }, [selectedWorkspaceId, scriptedTool]);
 
-    // Reset script selection when folder changes
+    // Reset script selection when folder changes (only in create mode)
     useEffect(() => {
-        setSelectedScriptId(null);
-    }, [selectedFolderId]);
+        if (!scriptedTool) {
+            setSelectedScriptId(null);
+        }
+    }, [selectedFolderId, scriptedTool]);
 
     const handleSave = () => {
         if (scriptedTool) {
@@ -204,7 +208,7 @@ export const UpsertScriptedToolDialog = (props: {
                                 >
                                     <SelectValue placeholder="Select workspace" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-neutral-800 dark:text-white border-2 border-gray-300 dark:border-gray-600 shadow-lg max-h-[300px] z-[10001]">
+                                <SelectContent className="bg-gray-100 dark:bg-neutral-700 dark:text-white border-2 border-gray-300 dark:border-gray-600 shadow-lg max-h-[300px] z-[10001]">
                                     {workspaces?.map((workspace) => (
                                         <SelectItem
                                             key={workspace.id}
@@ -230,7 +234,7 @@ export const UpsertScriptedToolDialog = (props: {
                                 >
                                     <SelectValue placeholder="Select folder" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-neutral-800 dark:text-white border-2 border-gray-300 dark:border-gray-600 shadow-lg max-h-[300px] z-[10001]">
+                                <SelectContent className="bg-gray-100 dark:bg-neutral-700 dark:text-white border-2 border-gray-300 dark:border-gray-600 shadow-lg max-h-[300px] z-[10001]">
                                     {allFolders.map(({ folder, displayName }) => (
                                         <SelectItem key={folder.id} value={folder.id.toString()}>
                                             {displayName}
@@ -253,7 +257,7 @@ export const UpsertScriptedToolDialog = (props: {
                                 >
                                     <SelectValue placeholder="Select script" />
                                 </SelectTrigger>
-                                <SelectContent className="bg-white dark:bg-neutral-800 dark:text-white border-2 border-gray-300 dark:border-gray-600 shadow-lg max-h-[300px] z-[10001]">
+                                <SelectContent className="bg-gray-100 dark:bg-neutral-700 dark:text-white border-2 border-gray-300 dark:border-gray-600 shadow-lg max-h-[300px] z-[10001]">
                                     {scripts.map((script) => {
                                         const isUsed = usedScriptIds.has(script.id);
                                         return (
@@ -293,7 +297,7 @@ export const UpsertScriptedToolDialog = (props: {
                             className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
                         />
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
                         <Label htmlFor="tool-enabled">Enabled</Label>
                         <Switch
                             id="tool-enabled"

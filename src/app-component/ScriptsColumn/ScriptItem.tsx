@@ -33,7 +33,7 @@ import { useState, useEffect } from "react";
 import { ScriptsFolderDTO, ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { folderSlice } from "@/store/slices/folderSlice";
+import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 
 export default function ScriptItem({
     script,
@@ -77,7 +77,10 @@ export default function ScriptItem({
         try {
             console.log("Running script:", script.command);
             dispatch(
-                folderSlice.actions.setExecutingScript({ script_id: script.id ?? 0, loading: true })
+                rootFolderSlice.actions.setExecutingScript({
+                    script_id: script.id ?? 0,
+                    loading: true,
+                })
             );
 
             if (script.showShell) {
@@ -90,7 +93,7 @@ export default function ScriptItem({
             console.error("Failed to run script:", error);
         } finally {
             dispatch(
-                folderSlice.actions.setExecutingScript({
+                rootFolderSlice.actions.setExecutingScript({
                     script_id: script.id ?? 0,
                     loading: false,
                 })

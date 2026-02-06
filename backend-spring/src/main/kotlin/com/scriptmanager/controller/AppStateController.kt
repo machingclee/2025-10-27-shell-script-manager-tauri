@@ -2,10 +2,10 @@ package com.scriptmanager.controller
 
 import com.scriptmanager.common.dto.ApiResponse
 import com.scriptmanager.common.entity.ApplicationStateDTO
-import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.infrastructure.QueryInvoker
-import com.scriptmanager.domain.scriptmanager.command.appstate.UpdateAppStateCommand
-import com.scriptmanager.domain.scriptmanager.query.GetAppStateQuery
+import com.scriptmanager.common.domainutils.CommandInvoker
+import com.scriptmanager.common.domainutils.QueryInvoker
+import com.scriptmanager.boundedcontext.scriptmanager.command.appstate.UpdateAppStateCommand
+import com.scriptmanager.boundedcontext.scriptmanager.query.GetAppStateQuery
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.transaction.Transactional

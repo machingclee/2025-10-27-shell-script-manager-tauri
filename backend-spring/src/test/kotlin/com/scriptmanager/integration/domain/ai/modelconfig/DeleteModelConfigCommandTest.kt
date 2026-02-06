@@ -1,14 +1,14 @@
-package com.scriptmanager.integration.domain.ai.modelconfig
+package com.scriptmanager.integration.boundedcontext.ai.modelconfig
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.scriptmanager.common.entity.ModelConfig
 import com.scriptmanager.common.exception.AIException
-import com.scriptmanager.domain.ai.command.aiprofile.CreateAiProfileCommand
-import com.scriptmanager.domain.ai.command.modelconfig.CreateModelConfigCommand
-import com.scriptmanager.domain.ai.command.modelconfig.DeleteModelConfigCommand
-import com.scriptmanager.domain.ai.event.ModelConfigDeletedEvent
-import com.scriptmanager.domain.infrastructure.CommandInvoker
+import com.scriptmanager.boundedcontext.ai.command.aiprofile.CreateAiProfileCommand
+import com.scriptmanager.boundedcontext.ai.command.modelconfig.CreateModelConfigCommand
+import com.scriptmanager.boundedcontext.ai.command.modelconfig.DeleteModelConfigCommand
+import com.scriptmanager.boundedcontext.ai.event.ModelConfigDeletedEvent
+import com.scriptmanager.common.domainutils.CommandInvoker
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.AIProfileRepository
 import com.scriptmanager.repository.EventRepository

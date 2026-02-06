@@ -141,7 +141,7 @@ export const UpsertModelConfigDialog = (props: {
                             <SelectTrigger className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white">
                                 <SelectValue placeholder="Select model source" />
                             </SelectTrigger>
-                            <SelectContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700 z-[10000]">
+                            <SelectContent className="bg-gray-100 border-gray-300 dark:bg-neutral-700 dark:text-white dark:border-neutral-500 z-[10000]">
                                 <SelectItem value="OPENAI">OpenAI</SelectItem>
                                 <SelectItem value="AZURE_OPENAI">Azure OpenAI</SelectItem>
                             </SelectContent>

@@ -1,12 +1,12 @@
-package com.scriptmanager.integration.domain.ai.modelconfig
+package com.scriptmanager.integration.boundedcontext.ai.modelconfig
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.scriptmanager.common.entity.ModelConfig
-import com.scriptmanager.domain.ai.command.aiprofile.CreateAiProfileCommand
-import com.scriptmanager.domain.ai.command.modelconfig.CreateModelConfigCommand
-import com.scriptmanager.domain.ai.event.ModelConfigCreatedEvent
-import com.scriptmanager.domain.infrastructure.CommandInvoker
+import com.scriptmanager.boundedcontext.ai.command.aiprofile.CreateAiProfileCommand
+import com.scriptmanager.boundedcontext.ai.command.modelconfig.CreateModelConfigCommand
+import com.scriptmanager.boundedcontext.ai.event.ModelConfigCreatedEvent
+import com.scriptmanager.common.domainutils.CommandInvoker
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ModelConfigRepository
@@ -18,7 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest
 /**
  * Tests for Model Configuration API endpoints
  * Maps to: POST /ai/model-config
- * Domain: com.scriptmanager.domain.ai
+ * Domain: com.scriptmanager.boundedcontext.ai
  */
 @SpringBootTest
 class ModelConfigTest(

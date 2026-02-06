@@ -1,11 +1,11 @@
 package com.scriptmanager.common.config
 
 import com.scriptmanager.common.entity.*
-import com.scriptmanager.domain.scriptmanager.command.appstate.UpdateAppStateCommand
-import com.scriptmanager.domain.scriptmanager.command.folder.*
-import com.scriptmanager.domain.scriptmanager.command.script.*
-import com.scriptmanager.domain.scriptmanager.command.workspace.*
-import com.scriptmanager.domain.scriptmanager.event.*
+import com.scriptmanager.boundedcontext.scriptmanager.command.appstate.UpdateAppStateCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.*
+import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
+import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.*
+import com.scriptmanager.boundedcontext.scriptmanager.event.*
 import org.springframework.aot.hint.MemberCategory
 import org.springframework.aot.hint.RuntimeHints
 import org.springframework.aot.hint.RuntimeHintsRegistrar

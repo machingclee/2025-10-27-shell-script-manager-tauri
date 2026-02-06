@@ -1,5 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
-import folderSlice from "./slices/folderSlice";
+import rootFolderSlice from "./slices/rootFolderSlice";
 import configSlice from "./slices/configSlice";
 import historySlice from "./slices/historySlice";
 import aiSlice from "./slices/aiSlice";
@@ -7,7 +7,7 @@ import { baseApi } from "./api/baseApi";
 
 export const store = configureStore({
     reducer: {
-        folder: folderSlice.reducer,
+        folder: rootFolderSlice.reducer,
         config: configSlice.reducer,
         history: historySlice.reducer,
         ai: aiSlice.reducer,

@@ -1,4 +1,4 @@
-package com.scriptmanager.integration.domain.ai.modelconfig
+package com.scriptmanager.integration.boundedcontext.ai.modelconfig
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -6,11 +6,11 @@ import com.scriptmanager.common.entity.AzureModelConfigDTO
 import com.scriptmanager.common.entity.ModelConfig
 import com.scriptmanager.common.entity.ModelConfigDTO
 import com.scriptmanager.common.entity.OpenAiModelConfigDTO
-import com.scriptmanager.domain.ai.command.aiprofile.CreateAiProfileCommand
-import com.scriptmanager.domain.ai.command.modelconfig.CreateModelConfigCommand
-import com.scriptmanager.domain.ai.command.modelconfig.UpdateModelConfigCommand
-import com.scriptmanager.domain.ai.event.ModelConfigUpdatedEvent
-import com.scriptmanager.domain.infrastructure.CommandInvoker
+import com.scriptmanager.boundedcontext.ai.command.aiprofile.CreateAiProfileCommand
+import com.scriptmanager.boundedcontext.ai.command.modelconfig.CreateModelConfigCommand
+import com.scriptmanager.boundedcontext.ai.command.modelconfig.UpdateModelConfigCommand
+import com.scriptmanager.boundedcontext.ai.event.ModelConfigUpdatedEvent
+import com.scriptmanager.common.domainutils.CommandInvoker
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ModelConfigRepository

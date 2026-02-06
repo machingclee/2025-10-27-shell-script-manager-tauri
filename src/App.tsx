@@ -9,7 +9,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "./componen
 import { appStateApi } from "./store/api/appStateApi";
 import { scriptApi } from "./store/api/scriptApi";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
-import folderSlice from "./store/slices/folderSlice";
+import rootFolderSlice from "./store/slices/rootFolderSlice";
 import configSlice from "./store/slices/configSlice";
 import { folderApi } from "./store/api/folderApi";
 import HistoryButton from "./app-component/History/HistoryButton";
@@ -68,7 +68,7 @@ function App() {
     // Load the last opened folder on app start
     useEffect(() => {
         if (appState?.lastOpenedFolderId) {
-            dispatch(folderSlice.actions.setSelectedFolderId(appState.lastOpenedFolderId));
+            dispatch(rootFolderSlice.actions.setSelectedRootFolderId(appState.lastOpenedFolderId));
         }
     }, [appState, dispatch]);
 

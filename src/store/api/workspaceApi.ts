@@ -8,7 +8,7 @@ import {
     ScriptsFolderResponse,
 } from "@/types/dto";
 import { baseApi } from "./baseApi";
-import folderSlice from "../slices/folderSlice";
+import rootFolderSlice from "../slices/rootFolderSlice";
 
 export const workspaceApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
@@ -93,7 +93,7 @@ export const workspaceApi = baseApi.injectEndpoints({
                 try {
                     const res = await queryFulfilled;
                     if (res.data?.id) {
-                        dispatch(folderSlice.actions.setSelectedFolderId(res.data.id));
+                        dispatch(rootFolderSlice.actions.setSelectedRootFolderId(res.data.id));
                     }
                 } catch {}
             },

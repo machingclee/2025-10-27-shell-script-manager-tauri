@@ -1,11 +1,11 @@
-package com.scriptmanager.integration.domain.ai.aiprofile
+package com.scriptmanager.integration.boundedcontext.ai.aiprofile
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.scriptmanager.domain.ai.command.aiprofile.CreateAiProfileCommand
-import com.scriptmanager.domain.ai.command.aiprofile.SelectDefaultAiProfileCommand
-import com.scriptmanager.domain.ai.event.DefaultAiProfileSelectedEvent
-import com.scriptmanager.domain.infrastructure.CommandInvoker
+import com.scriptmanager.boundedcontext.ai.command.aiprofile.CreateAiProfileCommand
+import com.scriptmanager.boundedcontext.ai.command.aiprofile.SelectDefaultAiProfileCommand
+import com.scriptmanager.boundedcontext.ai.event.DefaultAiProfileSelectedEvent
+import com.scriptmanager.common.domainutils.CommandInvoker
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.ApplicationStateRepository
 import com.scriptmanager.repository.EventRepository

@@ -1,13 +1,13 @@
-package com.scriptmanager.integration.domain.ai.aiscriptedtool
+package com.scriptmanager.integration.boundedcontext.ai.aiscriptedtool
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.scriptmanager.domain.ai.command.aiprofile.CreateAiProfileCommand
-import com.scriptmanager.domain.ai.command.scriptedtool.CreateAIScriptedToolCommand
-import com.scriptmanager.domain.ai.event.AIScriptedToolCreatedEvent
-import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.scriptmanager.command.folder.CreateFolderCommand
-import com.scriptmanager.domain.scriptmanager.command.script.CreateScriptCommand
+import com.scriptmanager.boundedcontext.ai.command.aiprofile.CreateAiProfileCommand
+import com.scriptmanager.boundedcontext.ai.command.scriptedtool.CreateAIScriptedToolCommand
+import com.scriptmanager.boundedcontext.ai.event.AIScriptedToolCreatedEvent
+import com.scriptmanager.common.domainutils.CommandInvoker
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.script.CreateScriptCommand
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.AIScriptedToolRepository
 import com.scriptmanager.repository.EventRepository

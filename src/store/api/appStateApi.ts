@@ -1,5 +1,5 @@
 import { AppStateDTO } from "@/types/dto";
-import { setSelectedFolderId } from "../slices/folderSlice";
+import rootFolderSlice from "../slices/rootFolderSlice";
 import { baseApi } from "./baseApi";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -21,7 +21,9 @@ export const appStateApi = baseApi.injectEndpoints({
 
                 // Apply last opened folder
                 if (data?.lastOpenedFolderId) {
-                    dispatch(setSelectedFolderId(data.lastOpenedFolderId));
+                    dispatch(
+                        rootFolderSlice.actions.setSelectedRootFolderId(data.lastOpenedFolderId)
+                    );
                 }
 
                 // Apply dark mode on app startup

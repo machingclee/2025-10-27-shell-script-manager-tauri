@@ -33,3 +33,5 @@ src-tauri/target/
 *.db-wal
 
 aarch64/
+
+dist/

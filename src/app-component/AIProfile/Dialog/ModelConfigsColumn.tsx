@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AIProfileDTO, ModelConfigResponse } from "@/types/dto";
 import dayjs from "dayjs";
-import { Check, Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Trash2 } from "lucide-react";
 
 interface ModelConfigsColumnProps {
     selectedProfile: AIProfileDTO | null;
@@ -50,6 +50,7 @@ export const ModelConfigsColumn = ({
                                 <ContextMenu key={config.modelConfigDTO.id}>
                                     <ContextMenuTrigger asChild>
                                         <div
+                                            onClick={() => onSelectAsDefault(config)}
                                             className={`p-3 rounded-lg border transition-colors cursor-pointer ${
                                                 config.modelConfigDTO.id ===
                                                 selectedProfile.selectedModelConfigId
@@ -79,27 +80,6 @@ export const ModelConfigsColumn = ({
                                         >
                                             <Edit className="w-4 h-4 mr-2" />
                                             Edit Config
-                                        </ContextMenuItem>
-                                        <ContextMenuItem
-                                            onClick={() => {
-                                                console.log("Config ID:", config.modelConfigDTO.id);
-                                                console.log(
-                                                    "Selected ID:",
-                                                    selectedProfile.selectedModelConfigId
-                                                );
-                                                onSelectAsDefault(config);
-                                            }}
-                                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
-                                            disabled={
-                                                config.modelConfigDTO.id ===
-                                                selectedProfile.selectedModelConfigId
-                                            }
-                                        >
-                                            <Check className="w-4 h-4 mr-2" />
-                                            {config.modelConfigDTO.id ===
-                                            selectedProfile.selectedModelConfigId
-                                                ? "Default Config"
-                                                : "Select as Default"}
                                         </ContextMenuItem>
                                         <ContextMenuItem
                                             onClick={() => onDeleteConfig(config)}

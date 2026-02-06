@@ -1,12 +1,12 @@
-package com.scriptmanager.integration.domain.testsuite
+package com.scriptmanager.integration.boundedcontext.testsuite
 
-import com.scriptmanager.integration.domain.ai.aiprofile.*
-import com.scriptmanager.integration.domain.ai.aiscriptedtool.CreateAIScriptedToolCommandTest
-import com.scriptmanager.integration.domain.ai.aiscriptedtool.DeleteAiScriptedToolCommandTest
-import com.scriptmanager.integration.domain.ai.aiscriptedtool.UpdateAiScriptedToolCommandTest
-import com.scriptmanager.integration.domain.ai.modelconfig.DeleteModelConfigCommandTest
-import com.scriptmanager.integration.domain.ai.modelconfig.ModelConfigTest
-import com.scriptmanager.integration.domain.ai.modelconfig.UpdateModelConfigCommandTest
+import com.scriptmanager.integration.boundedcontext.ai.aiprofile.*
+import com.scriptmanager.integration.boundedcontext.ai.aiscriptedtool.CreateAIScriptedToolCommandTest
+import com.scriptmanager.integration.boundedcontext.ai.aiscriptedtool.DeleteAiScriptedToolCommandTest
+import com.scriptmanager.integration.boundedcontext.ai.aiscriptedtool.UpdateAiScriptedToolCommandTest
+import com.scriptmanager.integration.boundedcontext.ai.modelconfig.DeleteModelConfigCommandTest
+import com.scriptmanager.integration.boundedcontext.ai.modelconfig.ModelConfigTest
+import com.scriptmanager.integration.boundedcontext.ai.modelconfig.UpdateModelConfigCommandTest
 import org.junit.platform.suite.api.SelectClasses
 import org.junit.platform.suite.api.Suite
 import org.junit.platform.suite.api.SuiteDisplayName

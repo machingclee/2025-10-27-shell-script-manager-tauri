@@ -1,9 +1,9 @@
-package com.scriptmanager.integration.domain.scriptmanager
+package com.scriptmanager.integration.boundedcontext.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.scriptmanager.domain.infrastructure.CommandInvoker
-import com.scriptmanager.domain.scriptmanager.command.script.*
-import com.scriptmanager.domain.scriptmanager.command.folder.CreateFolderCommand
+import com.scriptmanager.common.domainutils.CommandInvoker
+import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ScriptsFolderRepository
@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional
  * Tests for Script Lifecycle APIs
  * Maps to: POST /script, PUT /script/{id}, DELETE /script/{id}
  * Also covers: POST /script/markdown, POST /script/{id}/history
- * Domain: com.scriptmanager.domain.scriptmanager
+ * Domain: com.scriptmanager.boundedcontext.scriptmanager
  */
 @SpringBootTest
 class ScriptTest(

@@ -20,7 +20,7 @@ import { useState } from "react";
 import { scriptApi } from "@/store/api/scriptApi";
 import { folderApi } from "@/store/api/folderApi";
 import { ShellScriptDTO, ScriptsFolderResponse, ShellScriptResponse } from "@/types/dto";
-import folderSlice from "@/store/slices/folderSlice";
+import rootFolderSlice from "@/store/slices/rootFolderSlice";
 import SortableSubfoldersContext from "./SortableSubfoldersContext";
 import SortableScriptsContext from "./SortableScriptsContext";
 import GenericScriptItem from "./GenericScriptItem";
@@ -176,7 +176,7 @@ export default function ScriptsColumn() {
 
         // Only set reordering state when dragging a folder, not a script
         if (active.data.current?.type === "folder") {
-            dispatch(folderSlice.actions.setIsReorderingFolder(true));
+            dispatch(rootFolderSlice.actions.setIsReorderingFolder(true));
         }
     };
 
@@ -184,7 +184,7 @@ export default function ScriptsColumn() {
         const { active, over } = event;
 
         if (!over || !folderResponse || !selectedRootFolderId) {
-            dispatch(folderSlice.actions.setIsReorderingFolder(false));
+            dispatch(rootFolderSlice.actions.setIsReorderingFolder(false));
             return;
         }
 
@@ -304,7 +304,7 @@ export default function ScriptsColumn() {
             }
         }
 
-        dispatch(folderSlice.actions.setIsReorderingFolder(false));
+        dispatch(rootFolderSlice.actions.setIsReorderingFolder(false));
         setActiveId(null);
         setActiveType(null);
     };

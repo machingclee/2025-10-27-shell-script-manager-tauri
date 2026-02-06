@@ -1,0 +1,162 @@
+{
+    "commandEvents": [
+        {
+            "from": "CreateAIScriptedToolCommand",
+            "to": ["AIScriptedToolCreatedEvent"]
+        },
+        {
+            "from": "CreateAiProfileCommand",
+            "to": ["AiProfileCreatedEvent"]
+        },
+        {
+            "from": "CreateModelConfigCommand",
+            "to": ["ModelConfigCreatedEvent"]
+        },
+        {
+            "from": "DeleteAiProfileCommand",
+            "to": ["AiProfileDeletedEvent", "ModelConfigDeletedEvent", "AiScriptedToolDeletedEvent"]
+        },
+        {
+            "from": "DeleteAiScriptedToolCommand",
+            "to": ["AiScriptedToolDeletedEvent"]
+        },
+        {
+            "from": "DeleteModelConfigCommand",
+            "to": ["ModelConfigDeletedEvent"]
+        },
+        {
+            "from": "ResetModelConfigOfAIProfileCommand",
+            "to": ["AiProfileModelConfigResetEvent"]
+        },
+        {
+            "from": "SelectAiProfileDefaultModelConfigCommand",
+            "to": ["AiProfileDefaultModelConfigSelectedEvent"]
+        },
+        {
+            "from": "SelectDefaultAiProfileCommand",
+            "to": ["DefaultAiProfileSelectedEvent"]
+        },
+        {
+            "from": "UpdateAiProfileCommand",
+            "to": ["AiProfileUpdatedEvent"]
+        },
+        {
+            "from": "UpdateAiScriptedToolCommand",
+            "to": ["AiScriptedToolUpdatedEvent"]
+        },
+        {
+            "from": "UpdateModelConfigCommand",
+            "to": ["ModelConfigUpdatedEvent"]
+        },
+        {
+            "from": "AddSubfolderCommand",
+            "to": ["SubfolderAddedEvent"]
+        },
+        {
+            "from": "CreateFolderCommand",
+            "to": ["FolderCreatedEvent"]
+        },
+        {
+            "from": "CreateFolderInWorkspaceCommand",
+            "to": ["FolderCreatedInWorkspaceEvent", "FolderCreatedEvent"]
+        },
+        {
+            "from": "CreateMarkdownCommand",
+            "to": ["MarkdownCreatedEvent"]
+        },
+        {
+            "from": "CreateScriptCommand",
+            "to": ["ScriptCreatedEvent"]
+        },
+        {
+            "from": "CreateScriptHistoryCommand",
+            "to": ["ScriptHistoryCreatedEvent"]
+        },
+        {
+            "from": "CreateWorkspaceCommand",
+            "to": ["WorkspaceCreatedEvent"]
+        },
+        {
+            "from": "DeleteFolderCommand",
+            "to": ["FolderDeletedEvent", "ScriptDeletedEvent"]
+        },
+        {
+            "from": "DeleteScriptCommand",
+            "to": ["ScriptDeletedEvent"]
+        },
+        {
+            "from": "DeleteWorkspaceCommand",
+            "to": ["WorkspaceDeletedEvent", "FolderDeletedEvent", "ScriptDeletedEvent"]
+        },
+        {
+            "from": "MoveFolderToWorkspaceCommand",
+            "to": ["FolderAddedToWorkspaceEvent"]
+        },
+        {
+            "from": "MoveScriptToFolderCommand",
+            "to": ["ScriptMovedToFolderEvent"]
+        },
+        {
+            "from": "RemoveFolderFromWorkspaceCommand",
+            "to": ["FolderRemovedFromWorkspaceEvent"]
+        },
+        {
+            "from": "ReorderFoldersCommand",
+            "to": ["FoldersReorderedEvent"]
+        },
+        {
+            "from": "ReorderScriptsCommand",
+            "to": ["ScriptsReorderedEvent"]
+        },
+        {
+            "from": "ReorderWorkspaceFoldersCommand",
+            "to": ["WorkspaceFoldersReorderedEvent"]
+        },
+        {
+            "from": "ReorderWorkspacesCommand",
+            "to": ["WorkspacesReorderedEvent"]
+        },
+        {
+            "from": "UpdateAppStateCommand",
+            "to": ["AppStateUpdatedEvent"]
+        },
+        {
+            "from": "UpdateFolderCommand",
+            "to": ["FolderUpdatedEvent"]
+        },
+        {
+            "from": "UpdateMarkdownCommand",
+            "to": ["MarkdownUpdatedEvent"]
+        },
+        {
+            "from": "UpdateScriptCommand",
+            "to": ["ScriptUpdatedEvent"]
+        },
+        {
+            "from": "UpdateWorkspaceCommand",
+            "to": ["WorkspaceUpdatedEvent"]
+        }
+    ],
+    "policyCommands": [
+        {
+            "policy": "AIProfileDefaultPolicy",
+            "fromEvent": "AiProfileCreatedEvent",
+            "toCommand": "SelectDefaultAiProfileCommand"
+        },
+        {
+            "policy": "AIProfileDefaultPolicy",
+            "fromEvent": "ModelConfigDeletedEvent",
+            "toCommand": "ResetModelConfigOfAIProfileCommand"
+        },
+        {
+            "policy": "AIProfileDefaultPolicy",
+            "fromEvent": "ModelConfigCreatedEvent",
+            "toCommand": "SelectAiProfileDefaultModelConfigCommand"
+        },
+        {
+            "policy": "RecordExecutedCommandIntoHistoryPolicy",
+            "fromEvent": "ScriptExecutedEvent",
+            "toCommand": "CreateScriptHistoryCommand"
+        }
+    ]
+}

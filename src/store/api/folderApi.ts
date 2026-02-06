@@ -1,7 +1,7 @@
 import { ScriptsFolderDTO, ScriptsFolderResponse } from "@/types/dto";
 import { baseApi } from "./baseApi";
 import { workspaceApi } from "./workspaceApi";
-import folderSlice from "../slices/folderSlice";
+import rootFolderSlice from "../slices/rootFolderSlice";
 import type { RootState } from "../store";
 
 export interface Folder {
@@ -109,7 +109,9 @@ export const folderApi = baseApi.injectEndpoints({
 
                     if (remainingFolderIdToSelect != null) {
                         dispatch(
-                            folderSlice.actions.setSelectedFolderId(remainingFolderIdToSelect)
+                            rootFolderSlice.actions.setSelectedRootFolderId(
+                                remainingFolderIdToSelect
+                            )
                         );
                     }
                 } catch {}

@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import folderSlice from "../../store/slices/folderSlice";
+import rootFolderSlice from "../../store/slices/rootFolderSlice";
 import SortableFolderItem from "./SortableFolderItem";
 import SortableWorkspace from "./SortableWorkspace";
 import {
@@ -133,7 +133,7 @@ export default function FolderColumn() {
     );
 
     const handleFolderClick = (folderId: number) => {
-        dispatch(folderSlice.actions.setSelectedFolderId(folderId));
+        dispatch(rootFolderSlice.actions.setSelectedRootFolderId(folderId));
         if (appState) {
             updateAppState({ ...appState, lastOpenedFolderId: folderId });
         }
@@ -175,7 +175,7 @@ export default function FolderColumn() {
         }
 
         // Hide selection highlight during drag to avoid flashing
-        dispatch(folderSlice.actions.setIsReorderingFolder(true));
+        dispatch(rootFolderSlice.actions.setIsReorderingFolder(true));
     };
 
     const handleDragEnd = async (event: DragEndEvent) => {
@@ -323,7 +323,7 @@ export default function FolderColumn() {
             setActiveFolder(null);
 
             // Restore selection highlight after drag
-            dispatch(folderSlice.actions.setIsReorderingFolder(false));
+            dispatch(rootFolderSlice.actions.setIsReorderingFolder(false));
         }
     };
 
@@ -341,7 +341,7 @@ export default function FolderColumn() {
         await deleteFolder(id);
         // If the deleted folder was selected, clear selection
         if (selectedFolderId === id) {
-            dispatch(folderSlice.actions.clearSelectedFolderId());
+            dispatch(rootFolderSlice.actions.clearSelectedFolderId());
         }
     };
 
