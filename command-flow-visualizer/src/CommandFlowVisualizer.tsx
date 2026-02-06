@@ -8,6 +8,8 @@ import {
     type Edge,
     MarkerType,
     Position,
+    useNodesState,
+    useEdgesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import data from "./data.json";
@@ -28,7 +30,7 @@ interface FlowData {
     policyCommands: PolicyCommand[];
 }
 
-const VERTICAL_SPACING = 60;
+const VERTICAL_SPACING = 75;
 const NODE_WIDTH = "400px"; // Global default width for all cells
 const FONT_SIZE = "16px"; // Global font size for node labels
 
@@ -37,21 +39,37 @@ const COMMAND_X = 100;
 const EVENT_X = 600;
 const POLICY_X = 1100;
 
+// Generate distinct colors based on event name
+const generateColorForEvent = (eventName: string): string => {
+    // Predefined colors that are visually distinct
+    const colors = [
+        "#ef4444", // red
+        "#06b6d4", // cyan
+        "#8b5cf6", // violet
+        "#ec4899", // pink
+        "#14b8a6", // teal
+        "#f97316", // orange
+        "#6366f1", // indigo
+        "#84cc16", // lime
+        "#f59e0b", // amber
+        "#22c55e", // green
+    ];
+
+    // Simple hash function to convert event name to a number
+    let hash = 0;
+    for (let i = 0; i < eventName.length; i++) {
+        hash = (hash << 5) - hash + eventName.charCodeAt(i);
+        hash = hash & hash; // Convert to 32bit integer
+    }
+
+    return colors[Math.abs(hash) % colors.length];
+};
+
 const CommandFlowVisualizer = () => {
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
+    const [_copiedText, setCopiedText] = useState<string | null>(null);
 
-    const onNodeClick = useCallback(
-        (_event: React.MouseEvent, node: Node) => {
-            setSelectedNode(selectedNode === node.id ? null : node.id);
-        },
-        [selectedNode]
-    );
-
-    const onPaneClick = useCallback(() => {
-        setSelectedNode(null);
-    }, []);
-
-    const { nodes, edges } = useMemo(() => {
+    const { nodes: initialNodes, edges: initialEdges } = useMemo(() => {
         const flowData: FlowData = data as FlowData;
         const nodeMap = new Map<string, Node>();
         const edgeList: Edge[] = [];
@@ -137,10 +155,49 @@ const CommandFlowVisualizer = () => {
 
         // Add policy nodes and connections
         const policyPositions = new Map<string, number>();
+        const eventColors = new Map<string, string>();
+
+        // First pass: assign colors to unique events that have policies
+        flowData.policyCommands.forEach((policy) => {
+            if (!eventColors.has(policy.fromEvent)) {
+                eventColors.set(policy.fromEvent, generateColorForEvent(policy.fromEvent));
+            }
+        });
+
+        // Second pass: create event nodes for external events (events not from commands)
+        flowData.policyCommands.forEach((policy) => {
+            const eventId = `event-${policy.fromEvent}`;
+
+            // If event doesn't exist, it's an external event (e.g., from another microservice)
+            if (!nodeMap.has(eventId)) {
+                const eventY = yOffset;
+                yOffset += VERTICAL_SPACING;
+
+                nodeMap.set(eventId, {
+                    id: eventId,
+                    type: "default",
+                    data: { label: policy.fromEvent },
+                    position: { x: EVENT_X, y: eventY },
+                    style: {
+                        background: "#10b981",
+                        color: "#fff",
+                        border: "2px solid #059669",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        fontSize: FONT_SIZE,
+                        width: NODE_WIDTH,
+                    },
+                    sourcePosition: Position.Right,
+                    targetPosition: Position.Left,
+                });
+            }
+        });
+
         flowData.policyCommands.forEach((policy, _index) => {
             const policyId = `policy-${policy.policy}`;
             const eventId = `event-${policy.fromEvent}`;
             const commandId = `command-${policy.toCommand}`;
+            const eventColor = eventColors.get(policy.fromEvent)!;
 
             // Add policy node (only once per unique policy name)
             if (!nodeMap.has(policyId)) {
@@ -153,9 +210,9 @@ const CommandFlowVisualizer = () => {
                     data: { label: policy.policy },
                     position: { x: POLICY_X, y: policyY },
                     style: {
-                        background: "#f59e0b",
+                        background: eventColor,
                         color: "#fff",
-                        border: "2px solid #d97706",
+                        border: `2px solid ${eventColor}`,
                         borderRadius: "8px",
                         padding: "10px",
                         fontSize: FONT_SIZE,
@@ -166,7 +223,7 @@ const CommandFlowVisualizer = () => {
                 });
             }
 
-            // Connect event to policy
+            // Connect event to policy with event color
             if (nodeMap.has(eventId)) {
                 const edgeId = `${eventId}-${policyId}`;
                 // Only add edge if it doesn't exist (avoid duplicate edges)
@@ -177,16 +234,16 @@ const CommandFlowVisualizer = () => {
                         target: policyId,
                         type: "smoothstep",
                         animated: true,
-                        style: { stroke: "#f59e0b", strokeWidth: 2 },
+                        style: { stroke: eventColor, strokeWidth: 2 },
                         markerEnd: {
                             type: MarkerType.ArrowClosed,
-                            color: "#f59e0b",
+                            color: eventColor,
                         },
                     });
                 }
             }
 
-            // Connect policy to command
+            // Connect policy to command with the same event color
             if (nodeMap.has(commandId)) {
                 const edgeId = `${policyId}-${commandId}`;
                 // Only add edge if it doesn't exist (avoid duplicate edges)
@@ -197,10 +254,10 @@ const CommandFlowVisualizer = () => {
                         target: commandId,
                         type: "smoothstep",
                         animated: true,
-                        style: { stroke: "#f59e0b", strokeWidth: 2 },
+                        style: { stroke: eventColor, strokeWidth: 2 },
                         markerEnd: {
                             type: MarkerType.ArrowClosed,
-                            color: "#f59e0b",
+                            color: eventColor,
                         },
                     });
                 }
@@ -211,6 +268,32 @@ const CommandFlowVisualizer = () => {
             nodes: Array.from(nodeMap.values()),
             edges: edgeList,
         };
+    }, []);
+
+    const [nodes, _setNodes, onNodesChange] = useNodesState(initialNodes);
+    const [edges, _setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+    const onNodeClick = useCallback(
+        (_event: React.MouseEvent, node: Node) => {
+            setSelectedNode(selectedNode === node.id ? null : node.id);
+
+            // Copy node label to clipboard
+            const label = node.data.label as string;
+            navigator.clipboard
+                .writeText(label)
+                .then(() => {
+                    setCopiedText(label);
+                    setTimeout(() => setCopiedText(null), 2000);
+                })
+                .catch((err) => {
+                    console.error("Failed to copy text: ", err);
+                });
+        },
+        [selectedNode]
+    );
+
+    const onPaneClick = useCallback(() => {
+        setSelectedNode(null);
     }, []);
 
     // Compute highlighted edges based on selected node
@@ -270,6 +353,9 @@ const CommandFlowVisualizer = () => {
                 zoomOnScroll={true}
                 zoomOnPinch={true}
                 zoomOnDoubleClick={true}
+                nodesDraggable={true}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
             >
@@ -284,24 +370,6 @@ const CommandFlowVisualizer = () => {
                     }}
                 />
             </ReactFlow>
-
-            <div className="absolute top-5 left-5 bg-white p-4 rounded-lg shadow-lg z-10">
-                <h3 className="m-0 mb-2.5 text-base font-semibold">Legend</h3>
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-blue-500 rounded"></div>
-                        <span className="text-xs">Command</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-emerald-500 rounded"></div>
-                        <span className="text-xs">Event</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-amber-500 rounded"></div>
-                        <span className="text-xs">Policy</span>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };

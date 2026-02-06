@@ -7,7 +7,8 @@
         "start:dev": "vite",
         "build": "tsc -b && vite build",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "deploy": "yarn build && aws s3 sync --delete ./dist/ s3://event-storming-example"
     },
     "dependencies": {
         "@xyflow/react": "^12.10.0",
