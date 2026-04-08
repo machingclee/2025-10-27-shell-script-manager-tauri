@@ -572,7 +572,7 @@ export default function FolderColumn() {
             </div>
 
             {/* Python Backend Port Info */}
-            <div
+            {/* <div
                 className={`relative border-t border-gray-400 dark:border-neutral-600 p-2 text-xs text-neutral-500 dark:text-neutral-400 text-center transition-all duration-200 select-none ${
                     pythonPort
                         ? "cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700"
@@ -593,7 +593,7 @@ export default function FolderColumn() {
                         <Loader2 className="w-4 h-4 animate-spin" />
                     </span>
                 )}
-            </div>
+            </div> */}
 
             {/* Create Folder Dialog */}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>

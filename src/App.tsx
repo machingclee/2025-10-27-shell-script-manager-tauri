@@ -215,7 +215,7 @@ function App() {
 
                 {/* History button (right side) */}
                 <div className="absolute right-4 z-10 flex items-center gap-2">
-                    <AIProfileButton />
+                    {/* <AIProfileButton /> */}
                     <HistoryButton />
                 </div>
 
