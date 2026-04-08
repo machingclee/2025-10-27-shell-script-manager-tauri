@@ -15,34 +15,6 @@ echo "Building Shell Script Manager Production"
 echo "========================================="
 echo ""
 
-# Step 0: Ensure Python runtime is installed
-echo "Step 0: Checking Python runtime..."
-sh "$PROJECT_ROOT/install_python_runtime.sh"
-echo ""
-
-# Step 0.5: Copy Python scripts to resources
-echo "Step 0.5: Copying Python scripts to resources..."
-sh "$PROJECT_ROOT/copy-python-scripts.sh"
-echo ""
-
-# Step 0.6: Update tauri.conf.json to include Python resources
-echo "Step 0.6: Updating tauri.conf.json for production build..."
-TAURI_CONF="$TAURI_DIR/tauri.conf.json"
-# Backup original config
-cp "$TAURI_CONF" "$TAURI_CONF.backup"
-
-# Add Python resources using jq (or sed if jq not available)
-if command -v jq &> /dev/null; then
-    jq '.bundle.resources += ["resources/python-runtime/**/*", "resources/python-backend/**/*"]' "$TAURI_CONF" > "$TAURI_CONF.tmp"
-    mv "$TAURI_CONF.tmp" "$TAURI_CONF"
-    echo "✓ Added Python resources to tauri.conf.json"
-else
-    # Fallback to sed if jq is not available
-    sed -i '' 's/"resources\/backend-spring\/backend-native"/"resources\/backend-spring\/backend-native",\n            "resources\/python-runtime\/**\/*",\n            "resources\/python-backend\/**\/*"/' "$TAURI_CONF"
-    echo "✓ Added Python resources to tauri.conf.json (using sed)"
-fi
-echo ""
-
 # Step 1: Clean up old build artifacts
 echo "Step 1: Cleaning up old build artifacts..."
 if [ -f "$TAURI_DIR/target/release/bundle/dmg/shell-script-manager_0.1.0_aarch64.dmg" ]; then

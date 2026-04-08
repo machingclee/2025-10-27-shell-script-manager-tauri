@@ -69,11 +69,11 @@ export default function FolderColumn() {
     const selectedFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const backendPort = useAppSelector((s) => s.config.backendPort);
-    const pythonPort = useAppSelector((s) => s.config.pythonPort);
+    // const pythonPort = useAppSelector((s) => s.config.pythonPort);
     const [openingBackend, setOpeningBackend] = useState(false);
-    const [openingPython, setOpeningPython] = useState(false);
+    // const [openingPython, setOpeningPython] = useState(false);
     const [isBackendClicked, setIsBackendClicked] = useState(false);
-    const [isPythonClicked, setIsPythonClicked] = useState(false);
+    // const [isPythonClicked, setIsPythonClicked] = useState(false);
 
     // Track active dragging item for DragOverlay
     const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceResponse | null>(null);
@@ -402,34 +402,34 @@ export default function FolderColumn() {
         }
     };
 
-    const handleOpenPythonDocs = async () => {
-        if (!pythonPort) return; // Don't open if not started
+    // const handleOpenPythonDocs = async () => {
+    //     if (!pythonPort) return; // Don't open if not started
 
-        // Trigger click animation
-        setIsPythonClicked(true);
-        setTimeout(() => setIsPythonClicked(false), 200);
+    //     // Trigger click animation
+    //     setIsPythonClicked(true);
+    //     setTimeout(() => setIsPythonClicked(false), 200);
 
-        const url = `http://localhost:${pythonPort}/docs`;
-        try {
-            const isMac = navigator.userAgent.includes("Mac");
-            const isWindows = navigator.userAgent.includes("Windows");
+    //     const url = `http://localhost:${pythonPort}/docs`;
+    //     try {
+    //         const isMac = navigator.userAgent.includes("Mac");
+    //         const isWindows = navigator.userAgent.includes("Windows");
 
-            let command: string;
-            if (isMac) {
-                command = `open "${url}"`;
-            } else if (isWindows) {
-                command = `start "${url}"`;
-            } else {
-                command = `xdg-open "${url}"`;
-            }
-            setOpeningPython(true);
-            await invoke("execute_command", { command });
-        } catch (error) {
-            console.error("Failed to open Python docs:", error);
-        } finally {
-            setOpeningPython(false);
-        }
-    };
+    //         let command: string;
+    //         if (isMac) {
+    //             command = `open "${url}"`;
+    //         } else if (isWindows) {
+    //             command = `start "${url}"`;
+    //         } else {
+    //             command = `xdg-open "${url}"`;
+    //         }
+    //         setOpeningPython(true);
+    //         await invoke("execute_command", { command });
+    //     } catch (error) {
+    //         console.error("Failed to open Python docs:", error);
+    //     } finally {
+    //         setOpeningPython(false);
+    //     }
+    // };
 
     const getWorkspaceDroppableId = (workspace: WorkspaceResponse) => {
         return `workspace-${workspace.id}`;

@@ -31,7 +31,7 @@ export const AIProfilesDialog = () => {
     const [createAIProfile] = aiApi.endpoints.createAIProfile.useMutation();
     const [updateAIProfile] = aiApi.endpoints.updateAIProfile.useMutation();
     const [deleteAIProfile] = aiApi.endpoints.deleteAIProfile.useMutation();
-    const [selectDefaultAiProfile] = aiApi.endpoints.selectDefaultAiProfile.useMutation();
+    // const [selectDefaultAiProfile] = aiApi.endpoints.selectDefaultAiProfile.useMutation();
     const [createModelConfig] = aiApi.endpoints.createModelConfig.useMutation();
     const [updateModelConfig] = aiApi.endpoints.updateModelConfig.useMutation();
     const [deleteModelConfig] = aiApi.endpoints.deleteModelConfig.useMutation();
