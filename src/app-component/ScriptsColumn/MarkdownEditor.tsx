@@ -20,6 +20,22 @@ import "prismjs/themes/prism-tomorrow.css";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 
+// Rehype plugin: annotate block elements with their source line number
+function rehypeAddSourceLines() {
+    return (tree: any) => {
+        function walk(node: any) {
+            if (node.type === "element" && node.position?.start?.line != null) {
+                node.properties = node.properties ?? {};
+                node.properties["data-source-line"] = String(node.position.start.line);
+            }
+            if (node.children) {
+                for (const child of node.children) walk(child);
+            }
+        }
+        walk(tree);
+    };
+}
+
 // List spacing constants for alignment calibration
 const LIST_GUTTER_WIDTH = "2em";
 const LIST_ITEM_PADDING = "0.5em";
@@ -370,6 +386,31 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         return () => textarea.removeEventListener("paste", handlePaste);
     }, [isEditMode, editorReady, editContent, pushHistory]);
 
+    const handlePreviewDoubleClick = useCallback(
+        (e: React.MouseEvent) => {
+            let el = e.target as HTMLElement | null;
+            while (el) {
+                const lineAttr = el.getAttribute("data-source-line");
+                if (lineAttr) {
+                    const lineNum = Math.max(0, parseInt(lineAttr, 10) - 1); // 0-based
+                    const textarea =
+                        editorWrapperRef.current?.querySelector<HTMLTextAreaElement>("textarea");
+                    if (textarea) {
+                        const lines = editContent.split("\n");
+                        const charPos = lines
+                            .slice(0, lineNum)
+                            .reduce((acc, l) => acc + l.length + 1, 0);
+                        textarea.focus();
+                        textarea.setSelectionRange(charPos, charPos);
+                    }
+                    break;
+                }
+                el = el.parentElement;
+            }
+        },
+        [editContent]
+    );
+
     const handleEditorKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLDivElement | HTMLTextAreaElement>) => {
             const wrapPairs: Record<string, string> = {
@@ -650,6 +691,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                             <Box
                                 className="markdown-preview"
                                 style={{ width: `${100 - splitRatio}%` }}
+                                onDoubleClick={handlePreviewDoubleClick}
                                 sx={{
                                     height: "100%",
                                     userSelect: "text",
@@ -825,7 +867,11 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                             >
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm, remarkMath]}
-                                    rehypePlugins={[rehypeHighlight, rehypeMathjax]}
+                                    rehypePlugins={[
+                                        rehypeHighlight,
+                                        rehypeMathjax,
+                                        rehypeAddSourceLines,
+                                    ]}
                                     components={markdownComponents}
                                 >
                                     {editContent}
