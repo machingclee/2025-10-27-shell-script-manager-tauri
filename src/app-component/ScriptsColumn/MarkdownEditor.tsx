@@ -7,7 +7,7 @@ import { scriptApi } from "@/store/api/scriptApi";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Box } from "@mui/material";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye } from "lucide-react";
+import { Edit, Eye, AlignLeft, Columns2 } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
@@ -45,6 +45,8 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const [editName, setEditName] = useState("");
     const [edited, setEdited] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
+    const [splitRatio, setSplitRatio] = useState(50);
+    const [editViewMode, setEditViewMode] = useState<"plain" | "mixed">("plain");
     // Only true after useEffect has seeded editContent from the real script data.
     // Prevents SimpleEditor from mounting with an empty string and letting
     // WKWebView's NSUndoManager record "" → content as an undoable action.
@@ -54,11 +56,30 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const latestContentRef = useRef("");
     const handleSaveEditRef = useRef<((closeEditMode?: boolean) => Promise<void>) | null>(null);
     const imagesDirRef = useRef<string | null>(null);
+    const isDraggingRef = useRef(false);
 
     useEffect(() => {
         invoke<string>("get_images_dir").then((dir) => {
             imagesDirRef.current = dir;
         });
+    }, []);
+
+    // Split-pane drag handling
+    useEffect(() => {
+        const onMove = (e: MouseEvent) => {
+            if (!isDraggingRef.current) return;
+            const pct = (e.clientX / window.innerWidth) * 100;
+            setSplitRatio(Math.min(80, Math.max(20, pct)));
+        };
+        const onUp = () => {
+            isDraggingRef.current = false;
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+        return () => {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+        };
     }, []);
 
     // Undo/redo history
@@ -503,6 +524,30 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                             </>
                         ) : (
                             <>
+                                <div className="flex items-center rounded overflow-hidden border border-neutral-600">
+                                    <button
+                                        onClick={() => setEditViewMode("plain")}
+                                        className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors ${
+                                            editViewMode === "plain"
+                                                ? "bg-neutral-600 text-white"
+                                                : "bg-transparent text-gray-400 hover:text-white hover:bg-neutral-700"
+                                        }`}
+                                    >
+                                        <AlignLeft className="w-3.5 h-3.5" />
+                                        Plain Text
+                                    </button>
+                                    <button
+                                        onClick={() => setEditViewMode("mixed")}
+                                        className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors ${
+                                            editViewMode === "mixed"
+                                                ? "bg-neutral-600 text-white"
+                                                : "bg-transparent text-gray-400 hover:text-white hover:bg-neutral-700"
+                                        }`}
+                                    >
+                                        <Columns2 className="w-3.5 h-3.5" />
+                                        Mixed
+                                    </button>
+                                </div>
                                 <Button
                                     onClick={() => handleSaveEdit(true)}
                                     disabled={!hasChanges}
@@ -526,30 +571,268 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                         </div>
                     </div>
                 ) : isEditMode ? (
-                    <div ref={editorWrapperRef} className="h-full overflow-auto bg-[#1e1e1e] p-4">
-                        <SimpleEditor
-                            value={editContent}
-                            onValueChange={(code) => {
-                                setEditContent(code);
-                                setHasChanges(true);
-                                setEdited(false);
-                                pushHistory(code);
-                            }}
-                            highlight={(code) => highlight(code, languages.markdown, "markdown")}
-                            padding={16}
-                            style={{
-                                fontFamily:
-                                    '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                fontSize: 15,
-                                lineHeight: 1.5,
-                                minHeight: "100%",
-                                backgroundColor: "#1e1e1e",
-                                color: "#d4d4d4",
-                            }}
-                            textareaClassName="focus:outline-none"
-                            onKeyDown={handleEditorKeyDown}
-                        />
-                    </div>
+                    editViewMode === "plain" ? (
+                        <div
+                            ref={editorWrapperRef}
+                            className="h-full overflow-auto bg-[#1e1e1e] p-4"
+                        >
+                            <SimpleEditor
+                                value={editContent}
+                                onValueChange={(code) => {
+                                    setEditContent(code);
+                                    setHasChanges(true);
+                                    setEdited(false);
+                                    pushHistory(code);
+                                }}
+                                highlight={(code) =>
+                                    highlight(code, languages.markdown, "markdown")
+                                }
+                                padding={16}
+                                style={{
+                                    fontFamily:
+                                        '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                    fontSize: 15,
+                                    lineHeight: 1.5,
+                                    minHeight: "100%",
+                                    backgroundColor: "#1e1e1e",
+                                    color: "#d4d4d4",
+                                }}
+                                textareaClassName="focus:outline-none"
+                                onKeyDown={handleEditorKeyDown}
+                            />
+                        </div>
+                    ) : (
+                        <div
+                            className="flex h-full"
+                            style={{ userSelect: isDraggingRef.current ? "none" : undefined }}
+                        >
+                            {/* Left: editor */}
+                            <div
+                                ref={editorWrapperRef}
+                                style={{ width: `${splitRatio}%` }}
+                                className="h-full overflow-auto bg-[#1e1e1e] flex-shrink-0"
+                            >
+                                <SimpleEditor
+                                    value={editContent}
+                                    onValueChange={(code) => {
+                                        setEditContent(code);
+                                        setHasChanges(true);
+                                        setEdited(false);
+                                        pushHistory(code);
+                                    }}
+                                    highlight={(code) =>
+                                        highlight(code, languages.markdown, "markdown")
+                                    }
+                                    padding={16}
+                                    style={{
+                                        fontFamily:
+                                            '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                        fontSize: 15,
+                                        lineHeight: 1.5,
+                                        minHeight: "100%",
+                                        backgroundColor: "#1e1e1e",
+                                        color: "#d4d4d4",
+                                    }}
+                                    textareaClassName="focus:outline-none"
+                                    onKeyDown={handleEditorKeyDown}
+                                />
+                            </div>
+
+                            {/* Divider */}
+                            <div
+                                className="w-1 cursor-col-resize bg-neutral-600 hover:bg-blue-500 flex-shrink-0 transition-colors"
+                                onMouseDown={() => {
+                                    isDraggingRef.current = true;
+                                }}
+                            />
+
+                            {/* Right: live preview */}
+                            <Box
+                                className="markdown-preview"
+                                style={{ width: `${100 - splitRatio}%` }}
+                                sx={{
+                                    height: "100%",
+                                    userSelect: "text",
+                                    cursor: "text",
+                                    overflowY: "auto",
+                                    backgroundColor: "rgb(209, 213, 219)",
+                                    padding: "24px",
+                                    ".dark &": {
+                                        backgroundColor: "rgba(255, 255, 255, 0.05) !important",
+                                        color: "rgb(212, 212, 212) !important",
+                                    },
+                                    "& h1": {
+                                        fontSize: "2em",
+                                        fontWeight: "700",
+                                        marginTop: "0.67em",
+                                        marginBottom: "0.67em",
+                                        borderBottom: "2px solid rgba(255, 255, 255, 0.2)",
+                                        paddingBottom: "0.3em",
+                                        color: "rgb(255, 255, 255)",
+                                    },
+                                    "& h2": {
+                                        fontSize: "1.75em",
+                                        fontWeight: "700",
+                                        marginTop: "0.75em",
+                                        marginBottom: "0.5em",
+                                        borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
+                                        paddingBottom: "0.3em",
+                                        color: "rgb(255, 255, 255)",
+                                    },
+                                    "& h3": {
+                                        fontSize: "1.5em",
+                                        fontWeight: "600",
+                                        marginTop: "0.75em",
+                                        marginBottom: "0.5em",
+                                        color: "rgb(245, 245, 245)",
+                                    },
+                                    "& h4": {
+                                        fontSize: "1.25em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: "rgb(245, 245, 245)",
+                                    },
+                                    "& h5": {
+                                        fontSize: "1.1em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: "rgb(230, 230, 230)",
+                                    },
+                                    "& h6": {
+                                        fontSize: "1em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: "rgb(220, 220, 220)",
+                                    },
+                                    "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child":
+                                        {
+                                            marginTop: "0",
+                                        },
+                                    "& ul, & ol": {
+                                        paddingLeft: LIST_GUTTER_WIDTH,
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& ul": {
+                                        listStyleType: "disc",
+                                    },
+                                    "& ol": {
+                                        listStyleType: "decimal",
+                                    },
+                                    "& li": {
+                                        display: "list-item",
+                                        paddingLeft: LIST_ITEM_PADDING,
+                                        lineHeight: LIST_ITEM_LINE_HEIGHT,
+                                    },
+                                    "& li.task-list-item": {
+                                        listStyleType: "none",
+                                        paddingLeft: "0",
+                                    },
+                                    "& input[type='checkbox']": {
+                                        appearance: "none !important",
+                                        WebkitAppearance: "none !important",
+                                        width: "16px",
+                                        height: "16px",
+                                        marginTop: "-2px",
+                                        marginRight: CHECKBOX_SPACING,
+                                        marginLeft: "0",
+                                        cursor: "pointer",
+                                        border: "2px solid rgba(255, 255, 255, 0.3)",
+                                        borderRadius: "3px",
+                                        backgroundColor: "transparent",
+                                        position: "relative",
+                                        left: `-${LIST_GUTTER_WIDTH}`,
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        verticalAlign: "middle",
+                                        flexShrink: 0,
+                                        "&:checked": {
+                                            backgroundColor: "rgb(59, 130, 246)",
+                                            borderColor: "rgb(59, 130, 246)",
+                                            "&::after": {
+                                                content: '"✓"',
+                                                color: "white",
+                                                fontSize: "12px",
+                                                fontWeight: "bold",
+                                                lineHeight: "1",
+                                            },
+                                        },
+                                    },
+                                    "& p": {
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& code:not(pre code)": {
+                                        fontSize: "0.95em",
+                                        backgroundColor: LIGHT_WHITE_BG,
+                                        padding: "2px 6px",
+                                        borderRadius: "4px",
+                                    },
+                                    "& pre": {
+                                        backgroundColor: "rgba(0, 0, 0, 0.3)",
+                                        borderRadius: "4px",
+                                        padding: "12px",
+                                        overflow: "auto",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& pre code": {
+                                        backgroundColor: "transparent",
+                                        padding: "0",
+                                        fontSize: "0.9em",
+                                    },
+                                    "& blockquote": {
+                                        borderLeft: "4px solid rgba(255, 255, 255, 0.3)",
+                                        paddingLeft: "1em",
+                                        marginLeft: "0",
+                                        color: "rgba(255, 255, 255, 0.8)",
+                                    },
+                                    "& a": {
+                                        color: "rgb(96, 165, 250)",
+                                        textDecoration: "underline",
+                                        "&:hover": {
+                                            color: "rgb(147, 197, 253)",
+                                        },
+                                    },
+                                    "& table": {
+                                        borderCollapse: "collapse",
+                                        width: "100%",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& th, & td": {
+                                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                                        padding: "8px",
+                                    },
+                                    "& th": {
+                                        backgroundColor: "rgba(0, 0, 0, 0.3)",
+                                        fontWeight: "600",
+                                    },
+                                    "& mjx-container": {
+                                        display: "inline-block",
+                                        verticalAlign: "middle",
+                                    },
+                                    "& mjx-container[display='true']": {
+                                        display: "block",
+                                        textAlign: "center",
+                                        margin: "1em 0",
+                                    },
+                                }}
+                            >
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkMath]}
+                                    rehypePlugins={[rehypeHighlight, rehypeMathjax]}
+                                    components={markdownComponents}
+                                >
+                                    {editContent}
+                                </ReactMarkdown>
+                            </Box>
+                        </div>
+                    )
                 ) : (
                     <Box
                         className="markdown-preview"
