@@ -11,11 +11,18 @@ import "highlight.js/styles/github-dark.css";
 import { ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Box, Popover } from "@mui/material";
+import { Box } from "@mui/material";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { invoke } from "@tauri-apps/api/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { getSubwindowPaths } from "@/lib/subwindowPaths";
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,7 +33,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { Trash2, Eye, FileText, Edit, Globe } from "lucide-react";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
@@ -54,8 +60,6 @@ export default function MarkdownItem({
     const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
     const [isSelected, setIsSelected] = useState(false);
-    const [previewAnchor, setPreviewAnchor] = useState<HTMLElement | null>(null);
-    const [hoverTimeout, setHoverTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     const latestContentRef = useRef("");
     const imagesDirRef = useRef<string | null>(null);
@@ -66,9 +70,7 @@ export default function MarkdownItem({
         });
     }, []);
 
-    const handleViewClick = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-
+    const handleViewClick = async () => {
         try {
             if (!script.id) {
                 console.error("Script ID is undefined. Cannot open markdown window.");
@@ -96,9 +98,7 @@ export default function MarkdownItem({
         }
     };
 
-    const handleEditClick = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-
+    const handleEditClick = async () => {
         try {
             if (!script.id) {
                 console.error("Script ID is undefined. Cannot open markdown window.");
@@ -127,8 +127,7 @@ export default function MarkdownItem({
         }
     };
 
-    const handleViewAsHtml = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleViewAsHtml = async () => {
         try {
             const imagesDir = imagesDirRef.current ?? "";
 
@@ -267,8 +266,7 @@ export default function MarkdownItem({
         [script?.command]
     );
 
-    const handleDelete = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleDelete = async () => {
         setIsDeleteOpen(true);
     };
 
@@ -279,88 +277,107 @@ export default function MarkdownItem({
 
     return (
         <>
-            <div
-                className={`rounded-md border transition-colors cursor-pointer pt-4 ${
-                    isSelected
-                        ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
-                        : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
-                }`}
-                onContextMenu={(e) => e.preventDefault()}
-                onMouseDown={() => setIsSelected(true)}
-                onMouseUp={() => setIsSelected(false)}
-                onMouseEnter={(e) => {
-                    const target = e.currentTarget;
-                    const timeout = setTimeout(() => {
-                        setPreviewAnchor(target);
-                    }, 300);
-                    setHoverTimeout(timeout);
-                }}
-                onMouseLeave={() => {
-                    setIsSelected(false);
-                    // Only cancel the show timeout if popover hasn't appeared yet
-                    if (hoverTimeout) {
-                        clearTimeout(hoverTimeout);
-                        setHoverTimeout(null);
-                    }
-                    // Don't close the popover here - let the popover's onMouseLeave handle it
-                }}
-                // onDoubleClick={handleEditClick}
-            >
-                {parentFolderPath && (
-                    <div className="px-3 pt-2 text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)]">
-                        {parentFolderPath}
+            <ContextMenu>
+                <ContextMenuTrigger asChild>
+                    <div
+                        className={`rounded-md border transition-colors cursor-pointer pt-4 ${
+                            isSelected
+                                ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
+                                : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
+                        }`}
+                        onMouseDown={() => setIsSelected(true)}
+                        onMouseUp={() => setIsSelected(false)}
+                        onMouseLeave={() => setIsSelected(false)}
+                        onDoubleClick={handleViewClick}
+                    >
+                        {parentFolderPath && (
+                            <div className="px-3 pt-2 text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)]">
+                                {parentFolderPath}
+                            </div>
+                        )}
+                        <div className="px-3 py-2 ">
+                            <div className="font-bold text-lg mb-2 select-none text-gray-900 dark:text-neutral-300 flex items-center gap-2">
+                                <FileText className="w-7 h-7 flex-shrink-0 text-blue-500 dark:text-blue-400" />
+                                {script.name}
+                            </div>
+                        </div>
+                        <Box
+                            className="markdown-editor-container px-3 pb-2"
+                            sx={{
+                                "& div[class*='contentEditable']": {
+                                    paddingTop: "0 !important",
+                                },
+                                "& .mdxeditor-root-contenteditable": {
+                                    backgroundColor: "rgb(209, 213, 219)",
+                                    padding: "0px",
+                                    borderRadius: "4px",
+                                    border: "1px solid rgba(0, 0, 0, 0.1)",
+                                    maxHeight: "6em",
+                                    overflow: "hidden",
+                                    position: "relative",
+                                    "&::after": {
+                                        content: '""',
+                                        position: "absolute",
+                                        bottom: 0,
+                                        right: 0,
+                                        width: "100%",
+                                        height: "1.5em",
+                                        background:
+                                            "linear-gradient(to bottom, transparent, rgb(209, 213, 219))",
+                                        pointerEvents: "none",
+                                    },
+                                },
+                                ".dark & .mdxeditor-root-contenteditable": {
+                                    backgroundColor: "rgba(0, 0, 0, 0.1) !important",
+                                    borderColor: "rgba(255, 255, 255, 0.1) !important",
+                                    "&::after": {
+                                        background:
+                                            "linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1)) !important",
+                                    },
+                                },
+                                "& .mdxeditor, & .mdxeditor-root-contenteditable, & .mdxeditor-root-contenteditable *":
+                                    {
+                                        color: "rgb(212, 212, 212) !important",
+                                    },
+                                "& .cm-editor, & .cm-content, & .cm-line": {
+                                    color: "inherit !important",
+                                },
+                            }}
+                        ></Box>
                     </div>
-                )}
-                <div className="px-3 py-2 ">
-                    <div className="font-bold text-lg mb-2 select-none text-gray-900 dark:text-neutral-300 flex items-center gap-2">
-                        <FileText className="w-7 h-7 flex-shrink-0 text-blue-500 dark:text-blue-400" />
-                        {script.name}
-                    </div>
-                </div>
-                <Box
-                    className="markdown-editor-container px-3 pb-2"
-                    sx={{
-                        "& div[class*='contentEditable']": {
-                            paddingTop: "0 !important",
-                        },
-                        "& .mdxeditor-root-contenteditable": {
-                            backgroundColor: "rgb(209, 213, 219)",
-                            padding: "0px",
-                            borderRadius: "4px",
-                            border: "1px solid rgba(0, 0, 0, 0.1)",
-                            maxHeight: "6em",
-                            overflow: "hidden",
-                            position: "relative",
-                            "&::after": {
-                                content: '""',
-                                position: "absolute",
-                                bottom: 0,
-                                right: 0,
-                                width: "100%",
-                                height: "1.5em",
-                                background:
-                                    "linear-gradient(to bottom, transparent, rgb(209, 213, 219))",
-                                pointerEvents: "none",
-                            },
-                        },
-                        ".dark & .mdxeditor-root-contenteditable": {
-                            backgroundColor: "rgba(0, 0, 0, 0.1) !important",
-                            borderColor: "rgba(255, 255, 255, 0.1) !important",
-                            "&::after": {
-                                background:
-                                    "linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1)) !important",
-                            },
-                        },
-                        "& .mdxeditor, & .mdxeditor-root-contenteditable, & .mdxeditor-root-contenteditable *":
-                            {
-                                color: "rgb(212, 212, 212) !important",
-                            },
-                        "& .cm-editor, & .cm-content, & .cm-line": {
-                            color: "inherit !important",
-                        },
-                    }}
-                ></Box>
-            </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-48 dark:bg-neutral-800 dark:border-neutral-700">
+                    <ContextMenuItem
+                        onClick={handleViewClick}
+                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
+                    >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={handleViewAsHtml}
+                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
+                    >
+                        <Globe className="w-4 h-4 mr-2" />
+                        View as HTML
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={handleEditClick}
+                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
+                    >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                    </ContextMenuItem>
+                    <ContextMenuSeparator className="dark:bg-neutral-700" />
+                    <ContextMenuItem
+                        onClick={handleDelete}
+                        className="text-red-600 dark:text-red-400 dark:focus:bg-neutral-700 cursor-pointer"
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                    </ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
 
             <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
                 <AlertDialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
@@ -377,227 +394,6 @@ export default function MarkdownItem({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            <Popover
-                open={Boolean(previewAnchor)}
-                anchorEl={previewAnchor}
-                onClose={() => setPreviewAnchor(null)}
-                anchorOrigin={{
-                    vertical: "top",
-                    horizontal: "right",
-                }}
-                transformOrigin={{
-                    vertical: "top",
-                    horizontal: "left",
-                }}
-                slotProps={{
-                    paper: {
-                        onMouseEnter: () => {
-                            // Prevent closing when entering the popover
-                        },
-                        onMouseLeave: () => {
-                            setPreviewAnchor(null);
-                        },
-                        sx: {
-                            position: "relative",
-                            maxWidth: "500px",
-                            maxHeight: "600px",
-                            overflow: "auto",
-                            backgroundColor: "rgb(38, 38, 38)",
-                            border: "1px solid rgba(255, 255, 255, 0.1)",
-                            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
-                            borderRadius: "8px",
-                        },
-                    },
-                }}
-            >
-                <Box
-                    sx={{
-                        position: "sticky",
-                        top: 0,
-                        zIndex: 10,
-                        backgroundColor: "rgb(45, 45, 45)",
-                        display: "flex",
-                        gap: "8px",
-                        padding: "6px 16px 8px 16px",
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                        justifyContent: "flex-end",
-                    }}
-                >
-                    <Button
-                        size="sm"
-                        onClick={(e) => {
-                            setPreviewAnchor(null);
-                            handleViewClick(e);
-                        }}
-                        className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                    >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                    </Button>
-                    <Button
-                        size="sm"
-                        onClick={(e) => {
-                            setPreviewAnchor(null);
-                            handleViewAsHtml(e);
-                        }}
-                        className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                    >
-                        <Globe className="w-4 h-4 mr-2" />
-                        View as HTML
-                    </Button>
-                    <Button
-                        size="sm"
-                        onClick={(e) => {
-                            setPreviewAnchor(null);
-                            handleEditClick(e);
-                        }}
-                        className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                    >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                    </Button>
-                    <Button
-                        size="sm"
-                        // variant="destructive"
-                        onClick={(e) => {
-                            setPreviewAnchor(null);
-                            handleDelete(e);
-                        }}
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                    </Button>
-                </Box>
-                <Box
-                    sx={{
-                        padding: "16px",
-                        color: "rgb(212, 212, 212)",
-                        "& h1": {
-                            fontSize: "1.5em",
-                            fontWeight: "700",
-                            marginTop: "0.5em",
-                            marginBottom: "0.5em",
-                            borderBottom: "2px solid rgba(255, 255, 255, 0.2)",
-                            paddingBottom: "0.3em",
-                            color: "rgb(255, 255, 255)",
-                        },
-                        "& h2": {
-                            fontSize: "1.3em",
-                            fontWeight: "700",
-                            marginTop: "0.5em",
-                            marginBottom: "0.4em",
-                            borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
-                            paddingBottom: "0.3em",
-                            color: "rgb(255, 255, 255)",
-                        },
-                        "& h3": {
-                            fontSize: "1.15em",
-                            fontWeight: "600",
-                            marginTop: "0.5em",
-                            marginBottom: "0.4em",
-                            color: "rgb(245, 245, 245)",
-                        },
-                        "& h1:first-child, & h2:first-child, & h3:first-child": {
-                            marginTop: "0",
-                        },
-                        "& ul, & ol": {
-                            paddingLeft: LIST_GUTTER_WIDTH,
-                            marginTop: "0.5em",
-                            marginBottom: "0.5em",
-                        },
-                        "& ul": {
-                            listStyleType: "disc",
-                            listStylePosition: "outside",
-                        },
-                        "& ol": {
-                            listStyleType: "decimal",
-                            listStylePosition: "outside",
-                        },
-                        "& li": {
-                            display: "list-item",
-                            paddingLeft: LIST_ITEM_PADDING,
-                            lineHeight: LIST_ITEM_LINE_HEIGHT,
-                            margin: LIST_ITEM_MARGIN,
-                        },
-                        "& li.task-list-item": {
-                            listStyleType: "none",
-                            paddingLeft: "0",
-                        },
-                        "& input[type='checkbox']": {
-                            appearance: "none",
-                            width: "16px",
-                            height: "16px",
-                            marginTop: "-2px",
-                            marginRight: CHECKBOX_SPACING,
-                            marginLeft: "0",
-                            cursor: "pointer",
-                            border: "2px solid rgba(255, 255, 255, 0.3)",
-                            borderRadius: "3px",
-                            backgroundColor: "transparent",
-                            position: "relative",
-                            left: `-${LIST_GUTTER_WIDTH}`,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            verticalAlign: "middle",
-                            flexShrink: 0,
-                            "&:checked": {
-                                backgroundColor: "rgb(59, 130, 246)",
-                                borderColor: "rgb(59, 130, 246)",
-                                "&::after": {
-                                    content: '"✓"',
-                                    color: "white",
-                                    fontSize: "12px",
-                                    fontWeight: "bold",
-                                    lineHeight: "1",
-                                },
-                            },
-                        },
-                        "& p": {
-                            marginTop: "0.5em",
-                            marginBottom: "0.5em",
-                        },
-                        "& code:not(pre code)": {
-                            fontSize: "0.9em",
-                            backgroundColor: LIGHT_WHITE_BG,
-                            padding: "2px 6px",
-                            borderRadius: "3px",
-                        },
-                        "& pre": {
-                            backgroundColor: "rgba(0, 0, 0, 0.3)",
-                            borderRadius: "4px",
-                            padding: "8px",
-                            overflow: "auto",
-                            fontSize: "0.85em",
-                        },
-                        "& pre code": {
-                            backgroundColor: "transparent",
-                            padding: "0",
-                        },
-                        "& mjx-container": {
-                            display: "inline-block",
-                            verticalAlign: "middle",
-                        },
-                        "& mjx-container[display='true']": {
-                            display: "block",
-                            textAlign: "center",
-                            margin: "1em 0",
-                        },
-                    }}
-                >
-                    <div>
-                        <ReactMarkdown
-                            remarkPlugins={[remarkGfm, remarkMath]}
-                            rehypePlugins={[rehypeHighlight, rehypeMathjax]}
-                            components={markdownComponents}
-                        >
-                            {script.command || ""}
-                        </ReactMarkdown>
-                    </div>
-                </Box>
-            </Popover>
         </>
     );
 }

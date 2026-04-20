@@ -1,13 +1,17 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
 import rehypeHighlight from "rehype-highlight";
 import rehypeMathjax from "rehype-mathjax";
+import rehypeStringify from "rehype-stringify";
+import { unified } from "unified";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Box } from "@mui/material";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye, AlignLeft, Columns2 } from "lucide-react";
+import { Edit, Eye, AlignLeft, Columns2, Globe } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
@@ -62,7 +66,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const [edited, setEdited] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
     const [splitRatio, setSplitRatio] = useState(50);
-    const [editViewMode, setEditViewMode] = useState<"plain" | "mixed">("plain");
+    const [editViewMode, setEditViewMode] = useState<"plain" | "mixed">("mixed");
     // Only true after useEffect has seeded editContent from the real script data.
     // Prevents SimpleEditor from mounting with an empty string and letting
     // WKWebView's NSUndoManager record "" → content as an undoable action.
@@ -115,6 +119,64 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const handleEnableEdit = () => {
         setIsEditMode(true);
         setEditName(script?.name || "");
+    };
+
+    const handleViewAsHtml = async () => {
+        if (!script) return;
+        try {
+            const imagesDir = imagesDirRef.current ?? "";
+            const resolvedMarkdown = (script.command || "").replace(
+                /!\[([^\]]*)\]\(images\/([^)]+)\)/g,
+                (_match, altText, rest) => {
+                    const filename = rest.replace(/\?width=\d+$/, "");
+                    const widthMatch = rest.match(/\?width=(\d+)/);
+                    const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : "";
+                    return `<img src="file://${imagesDir}/${filename}" alt="${altText}"${widthAttr} style="max-width:100%" />`;
+                }
+            );
+            const file = await unified()
+                .use(remarkParse)
+                .use(remarkGfm)
+                .use(remarkMath)
+                .use(remarkRehype, { allowDangerousHtml: true })
+                .use(rehypeHighlight)
+                .use(rehypeMathjax)
+                .use(rehypeStringify, { allowDangerousHtml: true })
+                .process(resolvedMarkdown);
+            const bodyHtml = String(file);
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${script.name}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #ffffff; color: #1f2328; line-height: 1.7; }
+    h1, h2, h3, h4, h5, h6 { color: #1f2328; margin-top: 1.5em; }
+    h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; }
+    h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.2em; }
+    a { color: #0969da; }
+    code:not(pre code) { background: #f6f8fa; border: 1px solid #d0d7de; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; }
+    blockquote { border-left: 4px solid #d0d7de; margin-left: 0; padding-left: 1em; color: #57606a; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #d0d7de; padding: 8px 12px; }
+    th { background: #f6f8fa; }
+    input[type="checkbox"] { margin-right: 6px; }
+    mjx-container { display: inline-block; vertical-align: middle; }
+    mjx-container[display="true"] { display: block; text-align: center; margin: 1em 0; }
+  </style>
+</head>
+<body>
+  <h1 style="margin-top:0">${script.name}</h1>
+  ${bodyHtml}
+</body>
+</html>`;
+            await invoke("write_and_open_html", { html });
+        } catch (error) {
+            console.error("Failed to open as HTML:", error);
+        }
     };
 
     // Initialize editName when script loads if starting in edit mode
@@ -170,7 +232,9 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             // Cmd+W or Esc to close window
             if (((e.metaKey || e.ctrlKey) && e.key === "w") || e.key === "Escape") {
                 e.preventDefault();
-                getCurrentWindow().close();
+                // Drive the close from Rust via invoke so WKWebView teardown happens
+                // entirely outside the JS event-handler stack — prevents SIGSEGV on macOS.
+                invoke("close_subwindow", { label: getCurrentWindow().label });
             }
         };
 
@@ -554,14 +618,20 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                         {!isEditMode ? (
                             <>
                                 <Button
+                                    variant="outline"
+                                    onClick={handleViewAsHtml}
+                                    className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                                >
+                                    <Globe className="w-4 h-4 mr-2" />
+                                    View as HTML
+                                </Button>
+                                <Button
                                     onClick={handleEnableEdit}
                                     className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
                                 >
                                     <Edit className="w-4 h-4 mr-2" />
                                     Edit
                                 </Button>
-                                {}
-                                {/* {closeButton()} */}
                             </>
                         ) : (
                             <>

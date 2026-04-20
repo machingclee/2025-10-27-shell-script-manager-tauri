@@ -20,6 +20,22 @@ pub static CLEANUP_DONE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 #[cfg(target_os = "macos")]
 pub static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 
+/// Close a child (non-main) window by label from the Rust side.
+/// We spawn a separate async task so the actual window.close() executes AFTER the
+/// WKScriptMessageHandler IPC callback has fully returned — calling close() from
+/// within that callback causes a native SIGSEGV on macOS.
+#[tauri::command]
+async fn close_subwindow(app: tauri::AppHandle, label: String) -> Result<(), String> {
+    tauri::async_runtime::spawn(async move {
+        // Yield briefly so the IPC handler unwinds completely before the webview is destroyed.
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+        if let Some(window) = app.get_webview_window(&label) {
+            window.close().ok();
+        }
+    });
+    Ok(())
+}
+
 #[tauri::command]
 async fn run_script(command: String) -> Result<(), String> {
     println!("Running script command in Terminal: {}", command);
@@ -269,6 +285,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            close_subwindow,
             run_script,
             execute_command,
             execute_command_in_shell,
