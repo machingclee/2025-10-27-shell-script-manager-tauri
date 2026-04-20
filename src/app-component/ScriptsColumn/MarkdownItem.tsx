@@ -1,4 +1,3 @@
-import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
@@ -10,11 +9,10 @@ import { unified } from "unified";
 import "highlight.js/styles/github-dark.css";
 import { ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Box } from "@mui/material";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { invoke } from "@tauri-apps/api/core";
-import { convertFileSrc } from "@tauri-apps/api/core";
 import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import {
     ContextMenu,
@@ -35,16 +33,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2, Eye, FileText, Edit, Globe } from "lucide-react";
 
-const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
-
-// List spacing constants for alignment calibration
-// These values work together: checkbox uses left: -LIST_GUTTER_WIDTH to position in the gutter
-const LIST_GUTTER_WIDTH = "2em"; // Width of the bullet/checkbox column (ul/ol paddingLeft)
-const LIST_ITEM_PADDING = "0em"; // Additional spacing after bullet for regular list items
-const CHECKBOX_SPACING = "-1.25em"; // Spacing between checkbox and text
-const LIST_ITEM_LINE_HEIGHT = "1.2"; // Line height for list items (default is ~1.6)
-const LIST_ITEM_MARGIN = "0.3em 0"; // Vertical margin between list items
-
 export default function MarkdownItem({
     script,
     parentFolderId,
@@ -57,11 +45,8 @@ export default function MarkdownItem({
 }) {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
-    const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
     const [isSelected, setIsSelected] = useState(false);
-
-    const latestContentRef = useRef("");
     const imagesDirRef = useRef<string | null>(null);
 
     useEffect(() => {
@@ -187,84 +172,6 @@ export default function MarkdownItem({
             console.error("Failed to open as HTML:", error);
         }
     };
-
-    const handleCheckboxToggle = async (checkboxIndex: number) => {
-        const content = latestContentRef.current || script.command;
-        const lines = content.split("\n");
-
-        let checkboxCount = 0;
-        for (let i = 0; i < lines.length; i++) {
-            const match = lines[i].match(/^(\s*-\s+)\[([ xX])\](.*)$/);
-            if (match) {
-                if (checkboxCount === checkboxIndex) {
-                    const isChecked = match[2].toLowerCase() === "x";
-                    lines[i] = `${match[1]}[${isChecked ? " " : "x"}]${match[3]}`;
-                    break;
-                }
-                checkboxCount++;
-            }
-        }
-
-        const newContent = lines.join("\n");
-        latestContentRef.current = newContent;
-
-        await updateMarkdown({
-            ...script,
-            command: newContent,
-        }).unwrap();
-    };
-
-    const markdownComponents = useMemo(
-        () => ({
-            img: ({ src, alt }: { src?: string; alt?: string }) => {
-                const widthMatch = src?.match(/\?width=(\d+)/);
-                const width = widthMatch ? parseInt(widthMatch[1]) : undefined;
-                const cleanPath = src?.replace(/\?width=\d+$/, "") ?? "";
-                let imgSrc = cleanPath;
-                if (cleanPath.startsWith("images/") && imagesDirRef.current) {
-                    const filename = cleanPath.replace(/^images\//, "");
-                    imgSrc = convertFileSrc(`${imagesDirRef.current}/${filename}`);
-                }
-                return (
-                    <img
-                        src={imgSrc}
-                        alt={alt ?? ""}
-                        style={{ maxWidth: "100%", ...(width ? { width: `${width}px` } : {}) }}
-                    />
-                );
-            },
-            input: ({ node, checked, disabled, ...props }: any) => {
-                if (props.type === "checkbox") {
-                    return (
-                        <input
-                            {...props}
-                            defaultChecked={checked}
-                            disabled={false}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                const target = e.target as HTMLInputElement;
-                                const allCheckboxes =
-                                    document.querySelectorAll('input[type="checkbox"]');
-                                let index = -1;
-                                for (let i = 0; i < allCheckboxes.length; i++) {
-                                    if (allCheckboxes[i] === target) {
-                                        index = i;
-                                        break;
-                                    }
-                                }
-                                if (index !== -1) {
-                                    handleCheckboxToggle(index);
-                                }
-                            }}
-                            onDoubleClick={(e) => e.stopPropagation()}
-                        />
-                    );
-                }
-                return <input {...props} />;
-            },
-        }),
-        [script?.command]
-    );
 
     const handleDelete = async () => {
         setIsDeleteOpen(true);
