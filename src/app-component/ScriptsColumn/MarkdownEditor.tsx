@@ -457,41 +457,65 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         const preview = previewBoxRef.current;
         if (!preview) return;
         // Find all annotated elements and pick the closest one at-or-before lineNum
-        const candidates = Array.from(
-            preview.querySelectorAll<HTMLElement>("[data-source-line]")
-        );
+        const candidates = Array.from(preview.querySelectorAll<HTMLElement>("[data-source-line]"));
         let best: HTMLElement | null = null;
         for (const el of candidates) {
             const n = parseInt(el.getAttribute("data-source-line") ?? "0", 10);
-            if (n <= lineNum + 1) best = el;
+            if (n <= lineNum) best = el;
             else break;
         }
         if (best) {
+            // Walk up to the nearest block-level element so inline nodes (e.g. <code>)
+            // don't get flashed in isolation — we want to highlight the whole line.
+            const BLOCK_TAGS = new Set([
+                "P",
+                "LI",
+                "H1",
+                "H2",
+                "H3",
+                "H4",
+                "H5",
+                "H6",
+                "BLOCKQUOTE",
+                "PRE",
+                "TABLE",
+                "TR",
+                "TD",
+                "TH",
+            ]);
+            let flashTarget: HTMLElement = best;
+            while (flashTarget.parentElement && !BLOCK_TAGS.has(flashTarget.tagName)) {
+                flashTarget = flashTarget.parentElement;
+            }
+
             const offsetTop = best.offsetTop;
             preview.scrollTop = Math.max(0, offsetTop - preview.clientHeight / 2);
             if (flash) {
                 // Flash the target element
-                best.classList.remove("preview-flash");
+                flashTarget.classList.remove("preview-flash");
                 // Force reflow so removing then adding the class restarts the animation
-                void best.offsetWidth;
-                best.classList.add("preview-flash");
-                best.addEventListener(
+                void flashTarget.offsetWidth;
+                flashTarget.classList.add("preview-flash");
+                flashTarget.addEventListener(
                     "animationend",
-                    () => best!.classList.remove("preview-flash"),
+                    () => flashTarget.classList.remove("preview-flash"),
                     { once: true }
                 );
             }
         }
     }, []);
 
-    const handleEditorCursorChange = useCallback((flash: boolean) => {
-        const textarea =
-            editorWrapperRef.current?.querySelector<HTMLTextAreaElement>("textarea");
-        if (!textarea) return;
-        const pos = textarea.selectionStart;
-        const lineNum = editContent.slice(0, pos).split("\n").length;
-        scrollPreviewToLine(lineNum, flash);
-    }, [editContent, scrollPreviewToLine]);
+    const handleEditorCursorChange = useCallback(
+        (flash: boolean) => {
+            const textarea =
+                editorWrapperRef.current?.querySelector<HTMLTextAreaElement>("textarea");
+            if (!textarea) return;
+            const pos = textarea.selectionStart;
+            const lineNum = editContent.slice(0, pos).split("\n").length;
+            scrollPreviewToLine(lineNum, flash);
+        },
+        [editContent, scrollPreviewToLine]
+    );
 
     const handlePreviewDoubleClick = useCallback(
         (e: React.MouseEvent) => {

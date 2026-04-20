@@ -96,9 +96,15 @@
 }
 
 @keyframes preview-flash {
-    0%   { background-color: transparent; }
-    30%  { background-color: rgba(99, 179, 237, 0.35); }
-    100% { background-color: transparent; }
+    0% {
+        background-color: transparent;
+    }
+    30% {
+        background-color: rgba(99, 179, 237, 0.35);
+    }
+    100% {
+        background-color: transparent;
+    }
 }
 
 .preview-flash {
