@@ -59,7 +59,8 @@
                         "core:window:allow-minimize",
                         "core:event:default",
                         "core:path:default",
-                        "core:default"
+                        "core:default",
+                        "opener:default"
                     ]
                 }
             ]

@@ -16,6 +16,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import SimpleEditor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs";
@@ -520,6 +521,19 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
 
     const markdownComponents = useMemo(() => {
         return {
+            a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+                <a
+                    href={href}
+                    onClick={(e) => {
+                        if (!href || href.startsWith("#")) return;
+                        e.preventDefault();
+                        openUrl(href).catch(console.error);
+                    }}
+                    style={{ cursor: "pointer" }}
+                >
+                    {children}
+                </a>
+            ),
             img: ({ src, alt }: { src?: string; alt?: string }) => {
                 // Parse optional ?width=N from the src
                 const widthMatch = src?.match(/\?width=(\d+)/);
