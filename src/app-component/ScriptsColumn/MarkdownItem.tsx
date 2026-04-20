@@ -153,6 +153,7 @@ export default function MarkdownItem({
     a { color: #0969da; }
     code:not(pre code) { background: #f6f8fa; border: 1px solid #d0d7de; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
     pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; }
+    pre code.hljs { background: transparent; padding: 0; }
     blockquote { border-left: 4px solid #d0d7de; margin-left: 0; padding-left: 1em; color: #57606a; }
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #d0d7de; padding: 8px 12px; }
