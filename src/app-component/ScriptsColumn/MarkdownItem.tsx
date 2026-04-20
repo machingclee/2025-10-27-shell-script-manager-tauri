@@ -10,10 +10,11 @@ import { unified } from "unified";
 import "highlight.js/styles/github-dark.css";
 import { ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Box, Popover } from "@mui/material";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import {
     AlertDialog,
@@ -57,6 +58,13 @@ export default function MarkdownItem({
     const [hoverTimeout, setHoverTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     const latestContentRef = useRef("");
+    const imagesDirRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        invoke<string>("get_images_dir").then((dir) => {
+            imagesDirRef.current = dir;
+        });
+    }, []);
 
     const handleViewClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -122,15 +130,28 @@ export default function MarkdownItem({
     const handleViewAsHtml = async (e: React.MouseEvent) => {
         e.stopPropagation();
         try {
+            const imagesDir = imagesDirRef.current ?? "";
+
+            // Replace images/filename?width=N with the absolute path so the browser can open them
+            const resolvedMarkdown = (script.command || "").replace(
+                /!\[([^\]]*)\]\(images\/([^)]+)\)/g,
+                (_match, altText, rest) => {
+                    const filename = rest.replace(/\?width=\d+$/, "");
+                    const widthMatch = rest.match(/\?width=(\d+)/);
+                    const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : "";
+                    return `<img src="file://${imagesDir}/${filename}" alt="${altText}"${widthAttr} style="max-width:100%" />`;
+                }
+            );
+
             const file = await unified()
                 .use(remarkParse)
                 .use(remarkGfm)
                 .use(remarkMath)
-                .use(remarkRehype)
+                .use(remarkRehype, { allowDangerousHtml: true })
                 .use(rehypeHighlight)
                 .use(rehypeMathjax)
-                .use(rehypeStringify)
-                .process(script.command || "");
+                .use(rehypeStringify, { allowDangerousHtml: true })
+                .process(resolvedMarkdown);
 
             const bodyHtml = String(file);
             const html = `<!DOCTYPE html>
@@ -139,19 +160,19 @@ export default function MarkdownItem({
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${script.name}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #1e1e2e; color: #cdd6f4; line-height: 1.7; }
-    h1, h2, h3, h4, h5, h6 { color: #cba6f7; margin-top: 1.5em; }
-    h1 { border-bottom: 2px solid #45475a; padding-bottom: 0.3em; }
-    h2 { border-bottom: 1px solid #45475a; padding-bottom: 0.2em; }
-    a { color: #89b4fa; }
-    code:not(pre code) { background: #313244; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-    pre { background: #181825; border-radius: 6px; padding: 16px; overflow: auto; }
-    blockquote { border-left: 4px solid #45475a; margin-left: 0; padding-left: 1em; color: #a6adc8; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #ffffff; color: #1f2328; line-height: 1.7; }
+    h1, h2, h3, h4, h5, h6 { color: #1f2328; margin-top: 1.5em; }
+    h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; }
+    h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.2em; }
+    a { color: #0969da; }
+    code:not(pre code) { background: #f6f8fa; border: 1px solid #d0d7de; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; }
+    blockquote { border-left: 4px solid #d0d7de; margin-left: 0; padding-left: 1em; color: #57606a; }
     table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #45475a; padding: 8px 12px; }
-    th { background: #181825; }
+    th, td { border: 1px solid #d0d7de; padding: 8px 12px; }
+    th { background: #f6f8fa; }
     input[type="checkbox"] { margin-right: 6px; }
     mjx-container { display: inline-block; vertical-align: middle; }
     mjx-container[display="true"] { display: block; text-align: center; margin: 1em 0; }
@@ -196,6 +217,23 @@ export default function MarkdownItem({
 
     const markdownComponents = useMemo(
         () => ({
+            img: ({ src, alt }: { src?: string; alt?: string }) => {
+                const widthMatch = src?.match(/\?width=(\d+)/);
+                const width = widthMatch ? parseInt(widthMatch[1]) : undefined;
+                const cleanPath = src?.replace(/\?width=\d+$/, "") ?? "";
+                let imgSrc = cleanPath;
+                if (cleanPath.startsWith("images/") && imagesDirRef.current) {
+                    const filename = cleanPath.replace(/^images\//, "");
+                    imgSrc = convertFileSrc(`${imagesDirRef.current}/${filename}`);
+                }
+                return (
+                    <img
+                        src={imgSrc}
+                        alt={alt ?? ""}
+                        style={{ maxWidth: "100%", ...(width ? { width: `${width}px` } : {}) }}
+                    />
+                );
+            },
             input: ({ node, checked, disabled, ...props }: any) => {
                 if (props.type === "checkbox") {
                     return (

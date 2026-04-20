@@ -189,6 +189,44 @@ async fn set_title_bar_color(is_dark: bool) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn get_images_dir(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let db_path = get_database_path(&app_handle)?;
+    let db_dir = std::path::Path::new(&db_path)
+        .parent()
+        .ok_or_else(|| "Cannot determine db parent directory".to_string())?
+        .to_path_buf();
+    let images_dir = db_dir.join("images");
+    std::fs::create_dir_all(&images_dir)
+        .map_err(|e| format!("Failed to create images directory: {}", e))?;
+    Ok(images_dir.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn save_pasted_image(app_handle: tauri::AppHandle, data: Vec<u8>) -> Result<String, String> {
+    let db_path = get_database_path(&app_handle)?;
+    let db_dir = std::path::Path::new(&db_path)
+        .parent()
+        .ok_or_else(|| "Cannot determine db parent directory".to_string())?
+        .to_path_buf();
+    let images_dir = db_dir.join("images");
+    std::fs::create_dir_all(&images_dir)
+        .map_err(|e| format!("Failed to create images directory: {}", e))?;
+
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+
+    let filename = format!("image-{}.png", ts);
+    let file_path = images_dir.join(&filename);
+
+    std::fs::write(&file_path, &data).map_err(|e| format!("Failed to write image file: {}", e))?;
+
+    Ok(filename)
+}
+
+#[tauri::command]
 async fn write_and_open_html(html: String) -> Result<(), String> {
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -201,8 +239,7 @@ async fn write_and_open_html(html: String) -> Result<(), String> {
     let mut path = std::env::temp_dir();
     path.push(format!("markdown-preview-{}.html", ts));
 
-    fs::write(&path, html.as_bytes())
-        .map_err(|e| format!("Failed to write HTML file: {}", e))?;
+    fs::write(&path, html.as_bytes()).map_err(|e| format!("Failed to write HTML file: {}", e))?;
 
     let path_str = path.to_string_lossy().to_string();
 
@@ -239,6 +276,8 @@ pub fn run() {
             check_backend_health,
             set_title_bar_color,
             write_and_open_html,
+            get_images_dir,
+            save_pasted_image,
         ])
         .setup(|app| {
             // 0. Initialize cleanup flag

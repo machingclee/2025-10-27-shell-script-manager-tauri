@@ -11,6 +11,8 @@ import { Edit, Eye } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import SimpleEditor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-markdown";
@@ -51,6 +53,13 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
 
     const latestContentRef = useRef("");
     const handleSaveEditRef = useRef<((closeEditMode?: boolean) => Promise<void>) | null>(null);
+    const imagesDirRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        invoke<string>("get_images_dir").then((dir) => {
+            imagesDirRef.current = dir;
+        });
+    }, []);
 
     // Undo/redo history
     const undoStackRef = useRef<string[]>([]);
@@ -300,6 +309,46 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         };
     }, [isEditMode, editorReady]);
 
+    // Paste image from clipboard
+    useEffect(() => {
+        if (!isEditMode || !editorReady) return;
+        const container = editorWrapperRef.current;
+        if (!container) return;
+        const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
+        if (!textarea) return;
+
+        const handlePaste = async (e: ClipboardEvent) => {
+            const items = Array.from(e.clipboardData?.items ?? []);
+            const imageItem = items.find((item) => item.type.startsWith("image/"));
+            if (!imageItem) return;
+
+            e.preventDefault();
+            const blob = imageItem.getAsFile();
+            if (!blob) return;
+
+            const arrayBuffer = await blob.arrayBuffer();
+            const bytes = Array.from(new Uint8Array(arrayBuffer));
+
+            try {
+                const filename = await invoke<string>("save_pasted_image", { data: bytes });
+                const insertion = `![pasted image](images/${filename}?width=500)`;
+                const { selectionStart, selectionEnd } = textarea;
+                const before = editContent.slice(0, selectionStart);
+                const after = editContent.slice(selectionEnd);
+                const newContent = before + insertion + after;
+                setEditContent(newContent);
+                pushHistory(newContent);
+                setHasChanges(true);
+                setEdited(false);
+            } catch (err) {
+                console.error("Failed to save pasted image:", err);
+            }
+        };
+
+        textarea.addEventListener("paste", handlePaste);
+        return () => textarea.removeEventListener("paste", handlePaste);
+    }, [isEditMode, editorReady, editContent, pushHistory]);
+
     const handleEditorKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLDivElement | HTMLTextAreaElement>) => {
             const wrapPairs: Record<string, string> = {
@@ -345,6 +394,29 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
 
     const markdownComponents = useMemo(() => {
         return {
+            img: ({ src, alt }: { src?: string; alt?: string }) => {
+                // Parse optional ?width=N from the src
+                const widthMatch = src?.match(/\?width=(\d+)/);
+                const width = widthMatch ? parseInt(widthMatch[1]) : undefined;
+                const cleanPath = src?.replace(/\?width=\d+$/, "") ?? "";
+
+                let imgSrc = cleanPath;
+                if (cleanPath.startsWith("images/") && imagesDirRef.current) {
+                    const filename = cleanPath.replace(/^images\//, "");
+                    imgSrc = convertFileSrc(`${imagesDirRef.current}/${filename}`);
+                }
+
+                return (
+                    <img
+                        src={imgSrc}
+                        alt={alt ?? ""}
+                        style={{
+                            maxWidth: "100%",
+                            ...(width ? { width: `${width}px` } : {}),
+                        }}
+                    />
+                );
+            },
             input: ({ node, checked, disabled, ...props }: any) => {
                 if (props.type === "checkbox") {
                     return (

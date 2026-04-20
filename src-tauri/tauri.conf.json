@@ -21,7 +21,11 @@
             }
         ],
         "security": {
-            "csp": "default-src 'self' tauri: http://tauri.localhost; connect-src 'self' tauri: http://tauri.localhost http://localhost:* ws://localhost:*; font-src 'self' tauri: http://tauri.localhost; img-src 'self' tauri: http://tauri.localhost data: https:; style-src 'self' tauri: http://tauri.localhost 'unsafe-inline'; style-src-elem 'self' tauri: http://tauri.localhost 'unsafe-inline'; script-src 'self' tauri: http://tauri.localhost 'unsafe-inline' 'unsafe-eval'",
+            "csp": "default-src 'self' tauri: http://tauri.localhost; connect-src 'self' tauri: http://tauri.localhost http://localhost:* ws://localhost:*; font-src 'self' tauri: http://tauri.localhost; img-src 'self' tauri: asset: http://asset.localhost http://tauri.localhost data: https:; style-src 'self' tauri: http://tauri.localhost 'unsafe-inline'; style-src-elem 'self' tauri: http://tauri.localhost 'unsafe-inline'; script-src 'self' tauri: http://tauri.localhost 'unsafe-inline' 'unsafe-eval'",
+            "assetProtocol": {
+                "enable": true,
+                "scope": ["**"]
+            },
             "capabilities": [
                 {
                     "identifier": "main-window",
