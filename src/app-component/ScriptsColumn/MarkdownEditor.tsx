@@ -1,6 +1,8 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
+import rehypeMathjax from "rehype-mathjax";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Box } from "@mui/material";
@@ -41,10 +43,28 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const [editName, setEditName] = useState("");
     const [edited, setEdited] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
+    // Only true after useEffect has seeded editContent from the real script data.
+    // Prevents SimpleEditor from mounting with an empty string and letting
+    // WKWebView's NSUndoManager record "" → content as an undoable action.
+    const [editorReady, setEditorReady] = useState(false);
     const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
     const latestContentRef = useRef("");
     const handleSaveEditRef = useRef<((closeEditMode?: boolean) => Promise<void>) | null>(null);
+
+    // Undo/redo history
+    const undoStackRef = useRef<string[]>([]);
+    const undoIndexRef = useRef(-1);
+    const isUndoingRef = useRef(false);
+
+    const pushHistory = useCallback((content: string) => {
+        if (isUndoingRef.current) return; // ignore changes triggered by our own undo/redo
+        const stack = undoStackRef.current.slice(0, undoIndexRef.current + 1);
+        stack.push(content);
+        if (stack.length > 500) stack.shift();
+        undoStackRef.current = stack;
+        undoIndexRef.current = stack.length - 1;
+    }, []);
 
     const handleEnableEdit = () => {
         setIsEditMode(true);
@@ -101,8 +121,8 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                 }
             }
 
-            // Cmd+W to close window
-            if ((e.metaKey || e.ctrlKey) && e.key === "w") {
+            // Cmd+W or Esc to close window
+            if (((e.metaKey || e.ctrlKey) && e.key === "w") || e.key === "Escape") {
                 e.preventDefault();
                 getCurrentWindow().close();
             }
@@ -175,8 +195,14 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     };
 
     useEffect(() => {
-        setEditContent(script?.command || "");
-        latestContentRef.current = script?.command || "";
+        if (!script) return;
+        const content = script.command || "";
+        setEditContent(content);
+        latestContentRef.current = content;
+        // Seed the undo stack with the real content
+        undoStackRef.current = [content];
+        undoIndexRef.current = 0;
+        setEditorReady(true);
     }, [script]);
 
     // Add Cmd+S keyboard shortcut for saving
@@ -193,6 +219,129 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isEditMode, script, editName, editContent]);
+
+    // Undo/redo via capture-phase native listener so it beats WKWebView's NSUndoManager
+    const editorWrapperRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (!isEditMode) return;
+        const container = editorWrapperRef.current;
+        if (!container) return;
+        const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
+        if (!textarea) return;
+
+        // Block native browser/WKWebView undo-redo so NSUndoManager can't touch the textarea.
+        // `beforeinput` prevention may not stop AppKit-level NSUndoManager in WKWebView, so we
+        // also intercept `input` (fires AFTER the native undo mutates the textarea) in capture
+        // phase, restore the correct value directly on the DOM, and block React from seeing it.
+        const beforeInputHandler = (e: Event) => {
+            const ie = e as InputEvent;
+            if (ie.inputType === "historyUndo" || ie.inputType === "historyRedo") {
+                e.preventDefault();
+            }
+        };
+        textarea.addEventListener("beforeinput", beforeInputHandler, true);
+
+        const nativeUndoInputHandler = (e: Event) => {
+            const ie = e as InputEvent;
+            if (ie.inputType !== "historyUndo" && ie.inputType !== "historyRedo") return;
+            // Prevent React's synthetic onChange from seeing the native-undone value
+            e.stopImmediatePropagation();
+            const idx = undoIndexRef.current;
+            const correct = undoStackRef.current[Math.max(0, idx)] ?? "";
+            // Restore directly on DOM so there is no visible flash
+            textarea.value = correct;
+            isUndoingRef.current = true;
+            setEditContent(correct);
+            latestContentRef.current = correct;
+            setTimeout(() => {
+                isUndoingRef.current = false;
+            }, 0);
+        };
+        textarea.addEventListener("input", nativeUndoInputHandler, true);
+
+        const handler = (e: KeyboardEvent) => {
+            if (!(e.metaKey || e.ctrlKey)) return;
+            if (e.key === "z" && !e.shiftKey) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                const idx = undoIndexRef.current;
+                if (idx > 0) {
+                    const prev = undoStackRef.current[idx - 1];
+                    undoIndexRef.current = idx - 1;
+                    isUndoingRef.current = true;
+                    setEditContent(prev);
+                    latestContentRef.current = prev;
+                    setTimeout(() => {
+                        isUndoingRef.current = false;
+                    }, 0);
+                }
+            } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                const idx = undoIndexRef.current;
+                if (idx < undoStackRef.current.length - 1) {
+                    const next = undoStackRef.current[idx + 1];
+                    undoIndexRef.current = idx + 1;
+                    isUndoingRef.current = true;
+                    setEditContent(next);
+                    latestContentRef.current = next;
+                    setTimeout(() => {
+                        isUndoingRef.current = false;
+                    }, 0);
+                }
+            }
+        };
+
+        textarea.addEventListener("keydown", handler, true); // capture phase
+        return () => {
+            textarea.removeEventListener("keydown", handler, true);
+            textarea.removeEventListener("beforeinput", beforeInputHandler, true);
+            textarea.removeEventListener("input", nativeUndoInputHandler, true);
+        };
+    }, [isEditMode, editorReady]);
+
+    const handleEditorKeyDown = useCallback(
+        (e: React.KeyboardEvent<HTMLDivElement | HTMLTextAreaElement>) => {
+            const wrapPairs: Record<string, string> = {
+                "*": "*",
+                _: "_",
+                "`": "`",
+                "(": ")",
+                "[": "]",
+                "{": "}",
+                '"': '"',
+                "'": "'",
+            };
+
+            const close = wrapPairs[e.key];
+            if (!close) return;
+
+            const textarea = e.currentTarget as HTMLTextAreaElement;
+            const { selectionStart, selectionEnd } = textarea;
+            if (selectionStart === selectionEnd) return; // no selection — normal typing
+
+            e.preventDefault();
+            const selected = editContent.slice(selectionStart, selectionEnd);
+            const newContent =
+                editContent.slice(0, selectionStart) +
+                e.key +
+                selected +
+                close +
+                editContent.slice(selectionEnd);
+
+            setEditContent(newContent);
+            pushHistory(newContent);
+            setHasChanges(true);
+            setEdited(false);
+
+            // Restore the selection inside the wrap characters after React re-render
+            requestAnimationFrame(() => {
+                textarea.selectionStart = selectionStart + 1;
+                textarea.selectionEnd = selectionEnd + 1;
+            });
+        },
+        [editContent, pushHistory]
+    );
 
     const markdownComponents = useMemo(() => {
         return {
@@ -298,20 +447,21 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
 
             {/* Content */}
             <div className="flex-1 overflow-hidden">
-                {scriptIsLoading ? (
+                {scriptIsLoading || (isEditMode && !editorReady) ? (
                     <div className="flex items-center justify-center h-full">
                         <div className="text-gray-500 dark:text-gray-400">
                             Loading script data...
                         </div>
                     </div>
                 ) : isEditMode ? (
-                    <div className="h-full overflow-auto bg-[#1e1e1e] p-4">
+                    <div ref={editorWrapperRef} className="h-full overflow-auto bg-[#1e1e1e] p-4">
                         <SimpleEditor
                             value={editContent}
                             onValueChange={(code) => {
                                 setEditContent(code);
                                 setHasChanges(true);
                                 setEdited(false);
+                                pushHistory(code);
                             }}
                             highlight={(code) => highlight(code, languages.markdown, "markdown")}
                             padding={16}
@@ -325,6 +475,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 color: "#d4d4d4",
                             }}
                             textareaClassName="focus:outline-none"
+                            onKeyDown={handleEditorKeyDown}
                         />
                     </div>
                 ) : (
@@ -492,13 +643,22 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 backgroundColor: "rgba(0, 0, 0, 0.3)",
                                 fontWeight: "600",
                             },
+                            "& mjx-container": {
+                                display: "inline-block",
+                                verticalAlign: "middle",
+                            },
+                            "& mjx-container[display='true']": {
+                                display: "block",
+                                textAlign: "center",
+                                margin: "1em 0",
+                            },
                         }}
                         onDoubleClick={handleEnableEdit}
                     >
                         <ReactMarkdown
                             key={script?.command}
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeHighlight]}
+                            remarkPlugins={[remarkGfm, remarkMath]}
+                            rehypePlugins={[rehypeHighlight, rehypeMathjax]}
                             components={markdownComponents}
                         >
                             {script?.command || ""}

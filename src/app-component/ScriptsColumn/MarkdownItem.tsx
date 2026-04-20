@@ -1,12 +1,19 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
+import rehypeMathjax from "rehype-mathjax";
+import rehypeStringify from "rehype-stringify";
+import remarkParse from "remark-parse";
+import remarkRehype from "remark-rehype";
+import { unified } from "unified";
 import "highlight.js/styles/github-dark.css";
 import { ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useState, useRef, useMemo } from "react";
 import { Box, Popover } from "@mui/material";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { invoke } from "@tauri-apps/api/core";
 import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import {
     AlertDialog,
@@ -19,7 +26,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Eye, FileText, Edit } from "lucide-react";
+import { Trash2, Eye, FileText, Edit, Globe } from "lucide-react";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 
@@ -47,7 +54,7 @@ export default function MarkdownItem({
 
     const [isSelected, setIsSelected] = useState(false);
     const [previewAnchor, setPreviewAnchor] = useState<HTMLElement | null>(null);
-    const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [hoverTimeout, setHoverTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     const latestContentRef = useRef("");
 
@@ -109,6 +116,55 @@ export default function MarkdownItem({
             });
         } catch (error) {
             console.error("Failed to create webview window:", error);
+        }
+    };
+
+    const handleViewAsHtml = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            const file = await unified()
+                .use(remarkParse)
+                .use(remarkGfm)
+                .use(remarkMath)
+                .use(remarkRehype)
+                .use(rehypeHighlight)
+                .use(rehypeMathjax)
+                .use(rehypeStringify)
+                .process(script.command || "");
+
+            const bodyHtml = String(file);
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${script.name}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #1e1e2e; color: #cdd6f4; line-height: 1.7; }
+    h1, h2, h3, h4, h5, h6 { color: #cba6f7; margin-top: 1.5em; }
+    h1 { border-bottom: 2px solid #45475a; padding-bottom: 0.3em; }
+    h2 { border-bottom: 1px solid #45475a; padding-bottom: 0.2em; }
+    a { color: #89b4fa; }
+    code:not(pre code) { background: #313244; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #181825; border-radius: 6px; padding: 16px; overflow: auto; }
+    blockquote { border-left: 4px solid #45475a; margin-left: 0; padding-left: 1em; color: #a6adc8; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #45475a; padding: 8px 12px; }
+    th { background: #181825; }
+    input[type="checkbox"] { margin-right: 6px; }
+    mjx-container { display: inline-block; vertical-align: middle; }
+    mjx-container[display="true"] { display: block; text-align: center; margin: 1em 0; }
+  </style>
+</head>
+<body>
+  <h1 style="margin-top:0">${script.name}</h1>
+  ${bodyHtml}
+</body>
+</html>`;
+            await invoke("write_and_open_html", { html });
+        } catch (error) {
+            console.error("Failed to open as HTML:", error);
         }
     };
 
@@ -345,6 +401,17 @@ export default function MarkdownItem({
                         size="sm"
                         onClick={(e) => {
                             setPreviewAnchor(null);
+                            handleViewAsHtml(e);
+                        }}
+                        className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                    >
+                        <Globe className="w-4 h-4 mr-2" />
+                        View as HTML
+                    </Button>
+                    <Button
+                        size="sm"
+                        onClick={(e) => {
+                            setPreviewAnchor(null);
                             handleEditClick(e);
                         }}
                         className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
@@ -471,12 +538,21 @@ export default function MarkdownItem({
                             backgroundColor: "transparent",
                             padding: "0",
                         },
+                        "& mjx-container": {
+                            display: "inline-block",
+                            verticalAlign: "middle",
+                        },
+                        "& mjx-container[display='true']": {
+                            display: "block",
+                            textAlign: "center",
+                            margin: "1em 0",
+                        },
                     }}
                 >
                     <div>
                         <ReactMarkdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeHighlight]}
+                            remarkPlugins={[remarkGfm, remarkMath]}
+                            rehypePlugins={[rehypeHighlight, rehypeMathjax]}
                             components={markdownComponents}
                         >
                             {script.command || ""}

@@ -188,6 +188,45 @@ async fn set_title_bar_color(is_dark: bool) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn write_and_open_html(html: String) -> Result<(), String> {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+
+    let mut path = std::env::temp_dir();
+    path.push(format!("markdown-preview-{}.html", ts));
+
+    fs::write(&path, html.as_bytes())
+        .map_err(|e| format!("Failed to write HTML file: {}", e))?;
+
+    let path_str = path.to_string_lossy().to_string();
+
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg(&path_str)
+        .spawn()
+        .map_err(|e| format!("Failed to open browser: {}", e))?;
+
+    #[cfg(target_os = "windows")]
+    std::process::Command::new("cmd")
+        .args(["/C", "start", "", &path_str])
+        .spawn()
+        .map_err(|e| format!("Failed to open browser: {}", e))?;
+
+    #[cfg(target_os = "linux")]
+    std::process::Command::new("xdg-open")
+        .arg(&path_str)
+        .spawn()
+        .map_err(|e| format!("Failed to open browser: {}", e))?;
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -199,6 +238,7 @@ pub fn run() {
             get_backend_port,
             check_backend_health,
             set_title_bar_color,
+            write_and_open_html,
         ])
         .setup(|app| {
             // 0. Initialize cleanup flag
