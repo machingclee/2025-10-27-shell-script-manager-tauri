@@ -334,6 +334,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
 
     // Undo/redo via capture-phase native listener so it beats WKWebView's NSUndoManager
     const editorWrapperRef = useRef<HTMLDivElement>(null);
+    const previewBoxRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         if (!isEditMode) return;
         const container = editorWrapperRef.current;
@@ -452,6 +453,46 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         return () => textarea.removeEventListener("paste", handlePaste);
     }, [isEditMode, editorReady, editContent, pushHistory]);
 
+    const scrollPreviewToLine = useCallback((lineNum: number, flash = false) => {
+        const preview = previewBoxRef.current;
+        if (!preview) return;
+        // Find all annotated elements and pick the closest one at-or-before lineNum
+        const candidates = Array.from(
+            preview.querySelectorAll<HTMLElement>("[data-source-line]")
+        );
+        let best: HTMLElement | null = null;
+        for (const el of candidates) {
+            const n = parseInt(el.getAttribute("data-source-line") ?? "0", 10);
+            if (n <= lineNum + 1) best = el;
+            else break;
+        }
+        if (best) {
+            const offsetTop = best.offsetTop;
+            preview.scrollTop = Math.max(0, offsetTop - preview.clientHeight / 2);
+            if (flash) {
+                // Flash the target element
+                best.classList.remove("preview-flash");
+                // Force reflow so removing then adding the class restarts the animation
+                void best.offsetWidth;
+                best.classList.add("preview-flash");
+                best.addEventListener(
+                    "animationend",
+                    () => best!.classList.remove("preview-flash"),
+                    { once: true }
+                );
+            }
+        }
+    }, []);
+
+    const handleEditorCursorChange = useCallback((flash: boolean) => {
+        const textarea =
+            editorWrapperRef.current?.querySelector<HTMLTextAreaElement>("textarea");
+        if (!textarea) return;
+        const pos = textarea.selectionStart;
+        const lineNum = editContent.slice(0, pos).split("\n").length;
+        scrollPreviewToLine(lineNum, flash);
+    }, [editContent, scrollPreviewToLine]);
+
     const handlePreviewDoubleClick = useCallback(
         (e: React.MouseEvent) => {
             let el = e.target as HTMLElement | null;
@@ -468,6 +509,18 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                             .reduce((acc, l) => acc + l.length + 1, 0);
                         textarea.focus();
                         textarea.setSelectionRange(charPos, charPos);
+
+                        // Scroll the editor wrapper so the target line is centred in view
+                        const wrapper = editorWrapperRef.current;
+                        if (wrapper) {
+                            const FONT_SIZE = 15;
+                            const LINE_HEIGHT = FONT_SIZE * 1.5; // matches SimpleEditor style
+                            const PADDING = 16;
+                            const lineTop = PADDING + lineNum * LINE_HEIGHT;
+                            const centredScrollTop =
+                                lineTop - wrapper.clientHeight / 2 + LINE_HEIGHT / 2;
+                            wrapper.scrollTop = Math.max(0, centredScrollTop);
+                        }
                     }
                     break;
                 }
@@ -761,6 +814,8 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     }}
                                     textareaClassName="focus:outline-none"
                                     onKeyDown={handleEditorKeyDown}
+                                    onKeyUp={() => handleEditorCursorChange(false)}
+                                    onClick={() => handleEditorCursorChange(true)}
                                 />
                             </div>
 
@@ -774,6 +829,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
 
                             {/* Right: live preview */}
                             <Box
+                                ref={previewBoxRef}
                                 className="markdown-preview"
                                 style={{ width: `${100 - splitRatio}%` }}
                                 onDoubleClick={handlePreviewDoubleClick}

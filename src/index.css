@@ -94,3 +94,14 @@
 .dark *::-webkit-scrollbar-thumb:hover {
     background-color: rgba(115, 115, 115, 0.7);
 }
+
+@keyframes preview-flash {
+    0%   { background-color: transparent; }
+    30%  { background-color: rgba(99, 179, 237, 0.35); }
+    100% { background-color: transparent; }
+}
+
+.preview-flash {
+    animation: preview-flash 600ms ease-out;
+    border-radius: 3px;
+}
