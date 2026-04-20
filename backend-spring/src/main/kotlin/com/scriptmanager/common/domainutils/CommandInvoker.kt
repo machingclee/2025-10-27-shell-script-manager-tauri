@@ -208,8 +208,8 @@ data class PolicyCommandFlow(
 )
 
 data class FlowResponse(
-    val commandEvents: List<CommandEventFlow>,
-    val policyCommands: List<PolicyCommandFlow>
+    val commands: List<CommandEventFlow>,
+    val policies: List<PolicyCommandFlow>
 )
 
 interface CommandInvoker {
@@ -244,8 +244,8 @@ class OneTransactionCommandInvoker(
         handlerMap.size // Access handlerMap to trigger lazy initialization
 
         return FlowResponse(
-            commandEvents = _commandEventFlow.toList(),
-            policyCommands = _policyCommandFlow.toList()
+            commands = _commandEventFlow.toList(),
+            policies = _policyCommandFlow.toList()
         )
     }
 

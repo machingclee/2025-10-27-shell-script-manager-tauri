@@ -9,6 +9,17 @@ import configSlice from "../store/slices/configSlice";
 import { invoke } from "@tauri-apps/api/core";
 import "../index.css";
 import { StyledEngineProvider } from "@mui/material/styles";
+import { openUrl } from "@tauri-apps/plugin-opener";
+
+// Intercept all link clicks and open them in the default browser
+document.addEventListener("click", (e) => {
+    const target = (e.target as HTMLElement).closest("a");
+    if (!target) return;
+    const href = target.getAttribute("href");
+    if (!href || href.startsWith("#")) return;
+    e.preventDefault();
+    openUrl(href).catch(console.error);
+});
 
 // No need to override MonacoEnvironment when using loader.config with paths
 // The loader handles the worker paths automatically relative to the 'vs' path

@@ -1,6 +1,8 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
+import rehypeMathjax from "rehype-mathjax";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Box } from "@mui/material";
@@ -418,13 +420,22 @@ export default function MarkdownDialog({
                                     backgroundColor: "rgba(0, 0, 0, 0.3)",
                                     fontWeight: "600",
                                 },
+                                "& mjx-container": {
+                                    display: "inline-block",
+                                    verticalAlign: "middle",
+                                },
+                                "& mjx-container[display='true']": {
+                                    display: "block",
+                                    textAlign: "center",
+                                    margin: "1em 0",
+                                },
                             }}
                             onDoubleClick={handleEnableEdit}
                         >
                             <ReactMarkdown
                                 key={script?.command}
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeHighlight]}
+                                remarkPlugins={[remarkGfm, remarkMath]}
+                                rehypePlugins={[rehypeHighlight, rehypeMathjax]}
                                 components={markdownComponents}
                             >
                                 {script?.command || ""}

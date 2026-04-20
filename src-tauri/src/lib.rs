@@ -16,11 +16,25 @@ pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
 pub static PRISMA_CLIENT: OnceLock<PrismaClient> = OnceLock::new();
 pub static SPRING_BOOT_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
 pub static BACKEND_PORT: OnceLock<u16> = OnceLock::new();
-pub static PYTHON_PORT: OnceLock<u16> = OnceLock::new();
 pub static CLEANUP_DONE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
-pub static PYTHON_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
 #[cfg(target_os = "macos")]
 pub static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
+
+/// Close a child (non-main) window by label from the Rust side.
+/// We spawn a separate async task so the actual window.close() executes AFTER the
+/// WKScriptMessageHandler IPC callback has fully returned — calling close() from
+/// within that callback causes a native SIGSEGV on macOS.
+#[tauri::command]
+async fn close_subwindow(app: tauri::AppHandle, label: String) -> Result<(), String> {
+    tauri::async_runtime::spawn(async move {
+        // Yield briefly so the IPC handler unwinds completely before the webview is destroyed.
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+        if let Some(window) = app.get_webview_window(&label) {
+            window.close().ok();
+        }
+    });
+    Ok(())
+}
 
 #[tauri::command]
 async fn run_script(command: String) -> Result<(), String> {
@@ -190,190 +204,80 @@ async fn set_title_bar_color(is_dark: bool) -> Result<(), String> {
     Ok(())
 }
 
-// Get the path to the bundled Python runtime
 #[tauri::command]
-async fn get_python_path(app_handle: tauri::AppHandle) -> Result<String, String> {
-    let resource_path = app_handle
-        .path()
-        .resource_dir()
-        .map_err(|e| format!("Failed to get resource directory: {}", e))?;
-
-    // Detect architecture
-    let arch = std::env::consts::ARCH;
-    let python_arch = match arch {
-        "aarch64" => "aarch64",
-        "x86_64" => "x86_64",
-        _ => return Err(format!("Unsupported architecture: {}", arch)),
-    };
-
-    // Tauri places bundled resources in a "resources" subdirectory
-    let python_bin = resource_path
-        .join("resources")
-        .join("python-runtime")
-        .join(python_arch)
-        .join("bin")
-        .join("python3.12");
-
-    if !python_bin.exists() {
-        return Err(format!("Python binary not found at: {:?}", python_bin));
-    }
-
-    Ok(python_bin.to_string_lossy().to_string())
+async fn get_images_dir(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let db_path = get_database_path(&app_handle)?;
+    let db_dir = std::path::Path::new(&db_path)
+        .parent()
+        .ok_or_else(|| "Cannot determine db parent directory".to_string())?
+        .to_path_buf();
+    let images_dir = db_dir.join("images");
+    std::fs::create_dir_all(&images_dir)
+        .map_err(|e| format!("Failed to create images directory: {}", e))?;
+    Ok(images_dir.to_string_lossy().to_string())
 }
 
-// Start a Python FastAPI server as a background process with automatic port assignment
 #[tauri::command]
-async fn start_python_server(
-    app_handle: tauri::AppHandle,
-    script_path: String,
-) -> Result<String, String> {
-    #[cfg(debug_assertions)]
-    {
-        return Err("Python server not available in dev mode. Please run Python directly from python-backend/ folder.".to_string());
-    }
+async fn save_pasted_image(app_handle: tauri::AppHandle, data: Vec<u8>) -> Result<String, String> {
+    let db_path = get_database_path(&app_handle)?;
+    let db_dir = std::path::Path::new(&db_path)
+        .parent()
+        .ok_or_else(|| "Cannot determine db parent directory".to_string())?
+        .to_path_buf();
+    let images_dir = db_dir.join("images");
+    std::fs::create_dir_all(&images_dir)
+        .map_err(|e| format!("Failed to create images directory: {}", e))?;
 
-    #[cfg(not(debug_assertions))]
-    {
-        start_python_server_prod(app_handle, script_path).await
-    }
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+
+    let filename = format!("image-{}.png", ts);
+    let file_path = images_dir.join(&filename);
+
+    std::fs::write(&file_path, &data).map_err(|e| format!("Failed to write image file: {}", e))?;
+
+    Ok(filename)
 }
 
-#[cfg(not(debug_assertions))]
-async fn start_python_server_prod(
-    app_handle: tauri::AppHandle,
-    script_path: String,
-) -> Result<String, String> {
-    // Initialize PYTHON_PROCESS if needed
-    if PYTHON_PROCESS.get().is_none() {
-        PYTHON_PROCESS
-            .set(Arc::new(Mutex::new(None)))
-            .map_err(|_| "Failed to initialize Python process storage")?;
-    }
+#[tauri::command]
+async fn write_and_open_html(html: String) -> Result<(), String> {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
-    let python_path = get_python_path(app_handle).await?;
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
 
-    // Check if a server is already running
-    let process_lock = PYTHON_PROCESS.get().unwrap();
-    let mut process_guard = process_lock.lock().unwrap();
+    let mut path = std::env::temp_dir();
+    path.push(format!("markdown-preview-{}.html", ts));
 
-    if let Some(child) = process_guard.as_mut() {
-        // Check if the previous process is still running
-        match child.try_wait() {
-            Ok(Some(_)) => {
-                // Process has exited, we can start a new one
-            }
-            Ok(None) => {
-                return Err("Python server is already running".to_string());
-            }
-            Err(e) => {
-                return Err(format!("Failed to check process status: {}", e));
-            }
-        }
-    }
+    fs::write(&path, html.as_bytes()).map_err(|e| format!("Failed to write HTML file: {}", e))?;
 
-    // Find an available port (always random in production)
-    let port = find_available_port()?;
+    let path_str = path.to_string_lossy().to_string();
 
-    println!("Starting Python server on port {}...", port);
-
-    // Store the port
-    if PYTHON_PORT.get().is_none() {
-        PYTHON_PORT
-            .set(port)
-            .map_err(|_| "Failed to set Python port")?;
-    }
-
-    // Start the Python server
-    let child = Command::new(&python_path)
-        .arg(&script_path)
-        .env("PORT", port.to_string())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg(&path_str)
         .spawn()
-        .map_err(|e| format!("Failed to start Python server: {}", e))?;
+        .map_err(|e| format!("Failed to open browser: {}", e))?;
 
-    let pid = child.id();
-    *process_guard = Some(child);
+    #[cfg(target_os = "windows")]
+    std::process::Command::new("cmd")
+        .args(["/C", "start", "", &path_str])
+        .spawn()
+        .map_err(|e| format!("Failed to open browser: {}", e))?;
 
-    println!("Python server started successfully with PID: {}", pid);
-    Ok(format!(
-        "Python server started on port {} with PID: {}",
-        port, pid
-    ))
-}
+    #[cfg(target_os = "linux")]
+    std::process::Command::new("xdg-open")
+        .arg(&path_str)
+        .spawn()
+        .map_err(|e| format!("Failed to open browser: {}", e))?;
 
-// Stop the Python FastAPI server
-#[tauri::command]
-async fn stop_python_server() -> Result<String, String> {
-    let process_lock = PYTHON_PROCESS
-        .get()
-        .ok_or("Python process not initialized")?;
-    let mut process_guard = process_lock.lock().unwrap();
-
-    if let Some(mut child) = process_guard.take() {
-        child
-            .kill()
-            .map_err(|e| format!("Failed to kill Python server: {}", e))?;
-        Ok("Python server stopped".to_string())
-    } else {
-        Err("No Python server is running".to_string())
-    }
-}
-
-// Execute a Python script and return the output
-#[tauri::command]
-async fn execute_python_script(
-    app_handle: tauri::AppHandle,
-    script_path: String,
-    args: Vec<String>,
-) -> Result<String, String> {
-    #[cfg(debug_assertions)]
-    {
-        return Err("Python execution not available in dev mode. Please run Python directly from python-backend/ folder.".to_string());
-    }
-
-    #[cfg(not(debug_assertions))]
-    {
-        execute_python_script_prod(app_handle, script_path, args).await
-    }
-}
-
-#[cfg(not(debug_assertions))]
-async fn execute_python_script_prod(
-    app_handle: tauri::AppHandle,
-    script_path: String,
-    args: Vec<String>,
-) -> Result<String, String> {
-    let python_path = get_python_path(app_handle).await?;
-
-    let output = Command::new(&python_path)
-        .arg(&script_path)
-        .args(&args)
-        .output()
-        .map_err(|e| format!("Failed to execute Python script: {}", e))?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-
-    if !output.status.success() {
-        let error_msg = if !stderr.is_empty() {
-            stderr
-        } else {
-            format!("Script failed with exit code: {:?}", output.status.code())
-        };
-        return Err(error_msg);
-    }
-
-    Ok(stdout)
-}
-
-// Get the Python server port
-#[tauri::command]
-async fn get_python_port() -> Result<u16, String> {
-    PYTHON_PORT
-        .get()
-        .copied()
-        .ok_or_else(|| "Python server not started or port not initialized".to_string())
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -381,17 +285,16 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            close_subwindow,
             run_script,
             execute_command,
             execute_command_in_shell,
             get_backend_port,
             check_backend_health,
             set_title_bar_color,
-            get_python_path,
-            get_python_port,
-            start_python_server,
-            stop_python_server,
-            execute_python_script,
+            write_and_open_html,
+            get_images_dir,
+            save_pasted_image,
         ])
         .setup(|app| {
             // 0. Initialize cleanup flag
@@ -418,10 +321,7 @@ pub fn run() {
             // 4. Initialize and optionally start Spring Boot
             init_spring_boot(app.handle().clone())?;
 
-            // 5. Initialize and optionally start Python backend
-            init_python(app.handle().clone())?;
-
-            // 6. Setup macOS menu and handlers
+            // 5. Setup macOS menu and handlers
             #[cfg(target_os = "macos")]
             {
                 setup_macos_menu(app)?;
@@ -470,10 +370,9 @@ pub fn run() {
                     // Give frontend time to show the spinner
                     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
-                    // Kill both Spring Boot and Python backends
+                    // Kill Spring Boot backend
                     println!("Window close requested, shutting down backends...");
                     kill_spring_boot_backend();
-                    kill_python_server();
 
                     // Give it extra time to ensure cleanup is complete
                     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
@@ -988,68 +887,6 @@ fn kill_spring_boot_backend() {
     }
 }
 
-// Verify that the backend process is actually killed
-fn kill_python_server() {
-    if let Some(process_mutex) = PYTHON_PROCESS.get() {
-        if let Some(mut process) = process_mutex.lock().unwrap().take() {
-            println!("Shutting down Python server...");
-
-            let pid = process.id();
-
-            match process.kill() {
-                Ok(_) => {
-                    println!(
-                        "Successfully sent kill signal to Python server (PID: {})",
-                        pid
-                    );
-
-                    // Wait for the process to exit
-                    let start = std::time::Instant::now();
-                    let timeout = std::time::Duration::from_secs(5);
-                    let mut exited = false;
-
-                    while start.elapsed() < timeout {
-                        match process.try_wait() {
-                            Ok(Some(status)) => {
-                                println!("Python server exited with status: {:?}", status);
-                                exited = true;
-                                break;
-                            }
-                            Ok(None) => {
-                                std::thread::sleep(std::time::Duration::from_millis(200));
-                            }
-                            Err(e) => {
-                                eprintln!("Error waiting for Python server: {}", e);
-                                break;
-                            }
-                        }
-                    }
-
-                    if !exited {
-                        println!("Python server did not exit gracefully, forcing kill...");
-                    }
-
-                    // Force kill if still running on Unix systems
-                    #[cfg(unix)]
-                    {
-                        use std::process::Command;
-                        let _ = Command::new("pkill")
-                            .arg("-9")
-                            .arg("-P")
-                            .arg(pid.to_string())
-                            .output();
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Failed to kill Python server: {}", e);
-                }
-            }
-        } else {
-            println!("No Python server process to kill");
-        }
-    }
-}
-
 fn verify_backend_killed() {
     #[cfg(unix)]
     {
@@ -1245,91 +1082,6 @@ fn init_spring_boot(app_handle: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-// Initialize Python process storage and conditionally start Python backend
-fn init_python(app_handle: tauri::AppHandle) -> Result<(), String> {
-    // Initialize Python process storage
-    PYTHON_PROCESS
-        .set(Arc::new(Mutex::new(None)))
-        .map_err(|_| "Failed to initialize Python process storage".to_string())?;
-
-    // Determine port based on build mode
-    #[cfg(debug_assertions)]
-    let port = 8000; // Fixed port for development
-
-    #[cfg(not(debug_assertions))]
-    let port = find_available_port()?; // Random port for production
-
-    PYTHON_PORT
-        .set(port)
-        .map_err(|_| "Failed to set Python port".to_string())?;
-    println!("Python backend will use port: {}", port);
-
-    // Start Python backend (only in production mode)
-    #[cfg(not(debug_assertions))]
-    {
-        println!("Production mode: Auto-starting Python FastAPI backend...");
-        std::thread::spawn(move || {
-            if let Err(e) = start_python_backend(app_handle, port) {
-                eprintln!("Failed to start Python backend: {}", e);
-            }
-        });
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        println!("Development mode: Python backend not started in dev mode");
-        println!("Python commands will return 'not available in dev mode' errors");
-        println!("Expected port (if running manually): {}", port);
-    }
-
-    Ok(())
-}
-
-#[cfg(not(debug_assertions))]
-fn start_python_backend(app_handle: tauri::AppHandle, port: u16) -> Result<(), String> {
-    use tauri::Manager;
-
-    // Resolve the path to app.py
-    let resource_path = app_handle
-        .path()
-        .resolve(
-            "resources/python-backend/app.py",
-            tauri::path::BaseDirectory::Resource,
-        )
-        .map_err(|e| format!("Failed to resolve app.py path: {}", e))?;
-
-    let script_path = resource_path
-        .to_str()
-        .ok_or("Failed to convert path to string")?;
-
-    // Get Python executable path
-    let python_path_result = tauri::async_runtime::block_on(get_python_path(app_handle.clone()));
-    let python_path = python_path_result?;
-
-    println!("Starting Python server at: {}", script_path);
-    println!("Using Python: {}", python_path);
-
-    // Start the Python server
-    let child = Command::new(&python_path)
-        .arg(script_path)
-        .env("PORT", port.to_string())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Failed to start Python server: {}", e))?;
-
-    let pid = child.id();
-    println!("Python server started successfully with PID: {}", pid);
-
-    // Store the process handle
-    if let Some(process_lock) = PYTHON_PROCESS.get() {
-        let mut process_guard = process_lock.lock().unwrap();
-        *process_guard = Some(child);
-    }
-
-    Ok(())
-}
-
 // Setup macOS window appearance
 #[cfg(target_os = "macos")]
 fn setup_macos_window(app: &tauri::App) {
@@ -1425,11 +1177,9 @@ fn setup_app_delegate() {
                     // Give frontend time to show the spinner
                     tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
 
-                    // Kill both backends synchronously
+                    // Kill backend synchronously
                     eprintln!("=== Killing Spring Boot backend... ===");
                     kill_spring_boot_backend();
-                    eprintln!("=== Killing Python server... ===");
-                    kill_python_server();
 
                     // Wait for cleanup
                     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
