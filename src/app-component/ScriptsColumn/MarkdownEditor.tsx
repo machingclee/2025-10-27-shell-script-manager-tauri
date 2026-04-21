@@ -78,6 +78,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const handleSaveEditRef = useRef<((closeEditMode?: boolean) => Promise<void>) | null>(null);
     const imagesDirRef = useRef<string | null>(null);
     const isDraggingRef = useRef(false);
+    const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
         invoke<string>("get_images_dir").then((dir) => {
@@ -94,6 +95,9 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         };
         const onUp = () => {
             isDraggingRef.current = false;
+            setIsDragging(false);
+            document.body.style.userSelect = "";
+            document.body.style.cursor = "";
         };
         window.addEventListener("mousemove", onMove);
         window.addEventListener("mouseup", onUp);
@@ -232,7 +236,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             }
 
             // Cmd+W or Esc to close window
-            if (((e.metaKey || e.ctrlKey) && e.key === "w") || e.key === "Escape") {
+            if ((e.metaKey || e.ctrlKey) && e.key === "w") {
                 e.preventDefault();
                 // Drive the close from Rust via invoke so WKWebView teardown happens
                 // entirely outside the JS event-handler stack — prevents SIGSEGV on macOS.
@@ -752,6 +756,14 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     </button>
                                 </div>
                                 <Button
+                                    variant="outline"
+                                    onClick={handleViewAsHtml}
+                                    className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
+                                >
+                                    <Globe className="w-4 h-4 mr-2" />
+                                    View as HTML
+                                </Button>
+                                <Button
                                     onClick={() => handleSaveEdit(true)}
                                     disabled={!hasChanges}
                                     className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
@@ -807,12 +819,16 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                     ) : (
                         <div
                             className="flex h-full"
-                            style={{ userSelect: isDraggingRef.current ? "none" : undefined }}
+                            style={{ userSelect: isDragging ? "none" : undefined }}
                         >
                             {/* Left: editor */}
                             <div
                                 ref={editorWrapperRef}
-                                style={{ width: `${splitRatio}%` }}
+                                style={{
+                                    width: `${splitRatio}%`,
+                                    pointerEvents: isDragging ? "none" : undefined,
+                                    userSelect: isDragging ? "none" : undefined,
+                                }}
                                 className="h-full overflow-auto bg-[#1e1e1e] flex-shrink-0"
                             >
                                 <SimpleEditor
@@ -839,15 +855,20 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     textareaClassName="focus:outline-none"
                                     onKeyDown={handleEditorKeyDown}
                                     onKeyUp={() => handleEditorCursorChange(false)}
-                                    onClick={() => handleEditorCursorChange(true)}
+                                    onDoubleClick={() => handleEditorCursorChange(true)}
                                 />
                             </div>
 
                             {/* Divider */}
                             <div
                                 className="w-1 cursor-col-resize bg-neutral-600 hover:bg-blue-500 flex-shrink-0 transition-colors"
-                                onMouseDown={() => {
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
                                     isDraggingRef.current = true;
+                                    setIsDragging(true);
+                                    document.body.style.userSelect = "none";
+                                    document.body.style.cursor = "col-resize";
+                                    window.getSelection()?.removeAllRanges();
                                 }}
                             />
 
