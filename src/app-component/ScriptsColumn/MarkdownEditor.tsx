@@ -434,12 +434,38 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             const blob = imageItem.getAsFile();
             if (!blob) return;
 
-            const arrayBuffer = await blob.arrayBuffer();
+            // Compress to JPEG via canvas to avoid OOM on large screenshots (e.g. TIFFs)
+            const compressedBlob = await (async () => {
+                try {
+                    const bitmap = await createImageBitmap(blob);
+                    const MAX_WIDTH = 1400;
+                    const scale = bitmap.width > MAX_WIDTH ? MAX_WIDTH / bitmap.width : 1;
+                    const w = Math.round(bitmap.width * scale);
+                    const h = Math.round(bitmap.height * scale);
+                    const canvas = document.createElement("canvas");
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext("2d")!;
+                    ctx.drawImage(bitmap, 0, 0, w, h);
+                    bitmap.close();
+                    return await new Promise<Blob>((resolve, reject) => {
+                        canvas.toBlob(
+                            (b) => (b ? resolve(b) : reject(new Error("canvas.toBlob failed"))),
+                            "image/jpeg",
+                            0.85
+                        );
+                    });
+                } catch {
+                    return blob; // fall back to original if compression fails
+                }
+            })();
+
+            const arrayBuffer = await compressedBlob.arrayBuffer();
             const bytes = Array.from(new Uint8Array(arrayBuffer));
 
             try {
                 const filename = await invoke<string>("save_pasted_image", { data: bytes });
-                const insertion = `![pasted image](images/${filename}?width=500)`;
+                const insertion = `![pasted image](images/${filename})`;
                 const { selectionStart, selectionEnd } = textarea;
                 const before = editContent.slice(0, selectionStart);
                 const after = editContent.slice(selectionEnd);
