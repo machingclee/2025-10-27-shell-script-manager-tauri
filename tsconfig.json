@@ -22,7 +22,7 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         /* Path Alias */
-        "ignoreDeprecations": "6.0",
+        "ignoreDeprecations": "5.0",
         "baseUrl": ".",
         "paths": {
             "@/*": [
