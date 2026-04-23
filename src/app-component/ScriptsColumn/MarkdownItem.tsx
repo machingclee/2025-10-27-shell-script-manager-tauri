@@ -126,9 +126,19 @@ export default function MarkdownItem({
                 console.error("Script ID is undefined. Cannot open markdown window.");
                 return;
             }
+
+            const windowLabel = `markdown-${script.id}`;
+
+            // If the window is already open, just bring it to the front.
+            const existing = await WebviewWindow.getByLabel(windowLabel);
+            if (existing) {
+                await existing.setFocus();
+                return;
+            }
+
             const url = getSubwindowPaths.markdown(script.id, true);
 
-            const webview = new WebviewWindow(`markdown-${script.id}`, {
+            const webview = new WebviewWindow(windowLabel, {
                 url,
                 title: `Edit: ${script.name}`,
                 width: 1000,
@@ -207,7 +217,8 @@ export default function MarkdownItem({
     input[type="checkbox"] {
       appearance: none; -webkit-appearance: none;
       width: 16px; height: 16px;
-      margin-top: -2px; margin-right: -1.25em; margin-left: 0;
+      margin-top: -2px; margin-right: -1.5em !important; margin-left: 0;
+
       cursor: pointer;
       border: 2px solid #999; border-radius: 3px;
       background-color: transparent;

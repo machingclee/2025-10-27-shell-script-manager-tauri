@@ -339,6 +339,12 @@ export default function ScriptItem({
                 <DialogContent
                     onClick={(e) => e.stopPropagation()}
                     onDoubleClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                        if ((e.metaKey || e.ctrlKey) && e.key === "w") {
+                            e.preventDefault();
+                            setIsEditOpen(false);
+                        }
+                    }}
                     className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl"
                 >
                     <DialogHeader>
@@ -356,6 +362,12 @@ export default function ScriptItem({
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
                                 placeholder="Script name"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        handleUpdate();
+                                    }
+                                }}
                             />
                         </div>
                         <div className="grid gap-2">
@@ -367,6 +379,11 @@ export default function ScriptItem({
                                 placeholder="Command to execute"
                                 rows={18}
                                 className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
+                                onKeyDown={(e) => {
+                                    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                                        handleUpdate();
+                                    }
+                                }}
                             />
                         </div>
                     </div>

@@ -41,6 +41,12 @@ export const RenameFolderDialog = (props: {
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
                             placeholder="Folder name"
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && newName.trim()) {
+                                    handleRename();
+                                }
+                            }}
                         />
                     </div>
                 </div>

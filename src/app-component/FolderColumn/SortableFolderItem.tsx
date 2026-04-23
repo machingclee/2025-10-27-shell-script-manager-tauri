@@ -172,18 +172,6 @@ export default React.memo(
                             <ContextMenuItem
                                 className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                                 onClick={() => {
-                                    setScriptName("");
-                                    setScriptCommand("");
-                                    setIsAddScriptOpen(true);
-                                }}
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Script
-                            </ContextMenuItem>
-
-                            <ContextMenuItem
-                                className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
-                                onClick={() => {
                                     setMarkdownName("");
                                     setMarkdownContent("");
                                     setIsAddMarkdownOpen(true);
@@ -193,6 +181,17 @@ export default React.memo(
                                 Add Markdown
                             </ContextMenuItem>
 
+                            <ContextMenuItem
+                                className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                                onClick={() => {
+                                    setScriptName("");
+                                    setScriptCommand("");
+                                    setIsAddScriptOpen(true);
+                                }}
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Script
+                            </ContextMenuItem>
                             <ContextMenuItem
                                 className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                                 onClick={() => {

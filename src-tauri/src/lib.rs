@@ -20,6 +20,71 @@ pub static CLEANUP_DONE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 #[cfg(target_os = "macos")]
 pub static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 
+/// Raise all subwindows (non-main) to the front without stealing keyboard focus from the main
+/// window. On macOS this uses NSWindow orderFront:, which is a purely visual raise.
+/// Subwindows are raised in their existing front-to-back order (preserved), then
+/// main is raised last so it ends up on top of everything.
+#[tauri::command]
+fn raise_subwindows(app: tauri::AppHandle) {
+    let windows = app.webview_windows();
+
+    #[cfg(target_os = "macos")]
+    unsafe {
+        use cocoa::base::nil;
+
+        // Collect ns_window pointers for our subwindows.
+        let mut subwindow_ptrs: Vec<cocoa::base::id> = Vec::new();
+        let mut main_ptr: Option<cocoa::base::id> = None;
+        for (label, window) in &windows {
+            if let Ok(ptr) = window.ns_window() {
+                let ptr = ptr as cocoa::base::id;
+                if label == "main" {
+                    main_ptr = Some(ptr);
+                } else {
+                    subwindow_ptrs.push(ptr);
+                }
+            }
+        }
+
+        // Ask NSApp for the current front-to-back window order.
+        let ns_app: cocoa::base::id =
+            msg_send![class!(NSApplication), sharedApplication];
+        let ordered: cocoa::base::id = msg_send![ns_app, orderedWindows];
+        let count: usize = msg_send![ordered, count];
+
+        // Build a list of our subwindow pointers in their current front-to-back order.
+        let mut ordered_subwindows: Vec<cocoa::base::id> = Vec::new();
+        for i in 0..count {
+            let ns_win: cocoa::base::id = msg_send![ordered, objectAtIndex: i];
+            if subwindow_ptrs.contains(&ns_win) {
+                ordered_subwindows.push(ns_win);
+            }
+        }
+
+        // Raise subwindows back-to-front so their relative order is unchanged.
+        for ns_win in ordered_subwindows.iter().rev() {
+            let _: () = msg_send![*ns_win, orderFront: nil];
+        }
+
+        // Raise main window last — it ends up on top, subwindows sit below it.
+        if let Some(ptr) = main_ptr {
+            let _: () = msg_send![ptr, orderFront: nil];
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        for (label, window) in &windows {
+            if label != "main" {
+                let _ = window.set_focus();
+            }
+        }
+        if let Some(main_window) = windows.get("main") {
+            let _ = main_window.set_focus();
+        }
+    }
+}
+
 /// Close a child (non-main) window by label from the Rust side.
 /// We spawn a separate async task so the actual window.close() executes AFTER the
 /// WKScriptMessageHandler IPC callback has fully returned — calling close() from
@@ -286,6 +351,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             close_subwindow,
+            raise_subwindows,
             run_script,
             execute_command,
             execute_command_in_shell,

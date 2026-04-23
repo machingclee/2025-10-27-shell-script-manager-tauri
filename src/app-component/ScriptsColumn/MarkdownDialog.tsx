@@ -27,7 +27,7 @@ const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 // These values work together: checkbox uses left: -LIST_GUTTER_WIDTH to position in the gutter
 const LIST_GUTTER_WIDTH = "2em"; // Width of the bullet/checkbox column (ul/ol paddingLeft)
 const LIST_ITEM_PADDING = "0.5em"; // Additional spacing after bullet for regular list items
-const CHECKBOX_SPACING = "-1.25em"; // Spacing between checkbox and text
+const CHECKBOX_SPACING = "-1.5em"; // Spacing between checkbox and text
 const LIST_ITEM_LINE_HEIGHT = "1.4"; // Line height for list items (default is ~1.6)
 
 export default function MarkdownDialog({

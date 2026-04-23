@@ -80,6 +80,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const isDraggingRef = useRef(false);
     const [isDragging, setIsDragging] = useState(false);
 
+
     useEffect(() => {
         invoke<string>("get_images_dir").then((dir) => {
             imagesDirRef.current = dir;
@@ -175,7 +176,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     input[type="checkbox"] {
       appearance: none; -webkit-appearance: none;
       width: 16px; height: 16px;
-      margin-top: -2px; margin-right: -1.25em; margin-left: 0;
+      margin-top: -2px; margin-right: -1.5em; margin-left: 0;
       cursor: pointer;
       border: 2px solid #999; border-radius: 3px;
       background-color: transparent;
@@ -614,6 +615,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 lineTop - wrapper.clientHeight / 2 + LINE_HEIGHT / 2;
                             wrapper.scrollTop = Math.max(0, centredScrollTop);
                         }
+
                     }
                     break;
                 }
@@ -855,7 +857,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                     editViewMode === "plain" ? (
                         <div
                             ref={editorWrapperRef}
-                            className="h-full overflow-auto bg-[#1e1e1e] p-4"
+                            className="h-full overflow-auto bg-[#1e1e1e] p-4 relative"
                         >
                             <SimpleEditor
                                 value={editContent}
@@ -895,7 +897,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     pointerEvents: isDragging ? "none" : undefined,
                                     userSelect: isDragging ? "none" : undefined,
                                 }}
-                                className="h-full overflow-auto bg-[#1e1e1e] flex-shrink-0"
+                                className="h-full overflow-auto bg-[#1e1e1e] flex-shrink-0 relative"
                             >
                                 <SimpleEditor
                                     value={editContent}

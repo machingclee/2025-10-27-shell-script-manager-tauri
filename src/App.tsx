@@ -120,6 +120,21 @@ function App() {
         };
     }, []); // Empty deps - only register once!
 
+    // Bring all subwindows to the front when the main window gains focus
+    useEffect(() => {
+        const mainWindow = getCurrentWindow();
+        const unlisten = mainWindow.onFocusChanged(async ({ payload: focused }) => {
+            if (focused) {
+                // Use Rust-side orderFront (macOS) so subwindows are raised visually
+                // without stealing keyboard focus away from the main window.
+                await invoke("raise_subwindows");
+            }
+        });
+        return () => {
+            unlisten.then((fn) => fn());
+        };
+    }, []);
+
     // Listen for markdown updates from subwindows and invalidate cache
     useEffect(() => {
         const unlisten = listen<{ scriptId: number }>("markdown-updated", ({ payload }) => {
