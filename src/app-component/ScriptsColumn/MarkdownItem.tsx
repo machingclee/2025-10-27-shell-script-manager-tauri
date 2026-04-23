@@ -125,18 +125,40 @@ export default function MarkdownItem({
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #ffffff; color: #1f2328; line-height: 1.7; }
-    h1, h2, h3, h4, h5, h6 { color: #1f2328; margin-top: 1.5em; }
-    h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; }
-    h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 0.2em; }
-    a { color: #0969da; }
-    code:not(pre code) { background: #f6f8fa; border: 1px solid #d0d7de; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
-    pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; }
-    pre code.hljs { background: transparent; padding: 0; }
+    h1 { font-size: 2em; font-weight: 700; border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; margin-top: 0.67em; margin-bottom: 0.67em; }
+    h2 { font-size: 1.75em; font-weight: 700; border-bottom: 1px solid #d0d7de; padding-bottom: 0.2em; margin-top: 0.75em; margin-bottom: 0.5em; }
+    h3 { font-size: 1.5em; font-weight: 600; margin-top: 0.75em; margin-bottom: 0.5em; }
+    h4 { font-size: 1.25em; font-weight: 600; margin-top: 0.5em; margin-bottom: 0.5em; }
+    h5 { font-size: 1.1em; font-weight: 600; margin-top: 0.5em; margin-bottom: 0.5em; }
+    h6 { font-size: 1em; font-weight: 600; margin-top: 0.5em; margin-bottom: 0.5em; }
+    p { margin-top: 0.5em; margin-bottom: 0.5em; }
+    a { color: #0969da; text-decoration: underline; }
+    ul, ol { padding-left: 2em; margin-top: 0.5em; margin-bottom: 0.5em; }
+    ul { list-style-type: disc; }
+    ol { list-style-type: decimal; }
+    li { display: list-item; padding-left: 0.5em; line-height: 1.4; }
+    ul.contains-task-list { padding-left: 2em; }
+    li.task-list-item { list-style: none; padding-left: 0; }
+    input[type="checkbox"] {
+      appearance: none; -webkit-appearance: none;
+      width: 16px; height: 16px;
+      margin-top: -2px; margin-right: -1.25em; margin-left: 0;
+      cursor: pointer;
+      border: 2px solid #999; border-radius: 3px;
+      background-color: transparent;
+      position: relative; left: -2em;
+      display: inline-flex; align-items: center; justify-content: center;
+      vertical-align: middle; flex-shrink: 0;
+    }
+    input[type="checkbox"]:checked { background-color: rgb(59,130,246); border-color: rgb(59,130,246); }
+    input[type="checkbox"]:checked::after { content: "✓"; color: white; font-size: 12px; font-weight: bold; line-height: 1; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    code:not(pre code) { background: #f6f8fa; border: 1px solid #d0d7de; padding: 2px 6px; border-radius: 4px; font-size: 0.95em; }
+    pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; margin-top: 0.5em; margin-bottom: 0.5em; }
+    pre code.hljs { background: transparent; padding: 0; font-size: 0.9em; }
     blockquote { border-left: 4px solid #d0d7de; margin-left: 0; padding-left: 1em; color: #57606a; }
-    table { border-collapse: collapse; width: 100%; }
+    table { border-collapse: collapse; width: 100%; margin-top: 0.5em; margin-bottom: 0.5em; }
     th, td { border: 1px solid #d0d7de; padding: 8px 12px; }
-    th { background: #f6f8fa; }
-    input[type="checkbox"] { margin-right: 6px; }
+    th { background: #f6f8fa; font-weight: 600; }
     mjx-container { display: inline-block; vertical-align: middle; }
     mjx-container[display="true"] { display: block; text-align: center; margin: 1em 0; }
   </style>
