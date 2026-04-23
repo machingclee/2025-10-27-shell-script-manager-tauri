@@ -40,6 +40,7 @@ import { scriptApi } from "@/store/api/scriptApi";
 import { useAppSelector } from "@/store/hooks";
 import clsx from "clsx";
 import SortableScriptItem from "./SortableScriptItem";
+import { AddMarkdownDialog } from "../FolderColumn/Dialog/AddMarkdownDialog";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function ({
@@ -54,6 +55,7 @@ export default function ({
     const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
     const [createSubfolder] = folderApi.endpoints.createSubfolder.useMutation();
     const [createScript] = scriptApi.endpoints.createScript.useMutation();
+    const [createMarkdownScript] = scriptApi.endpoints.createMarkdownScript.useMutation();
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Close folder when closeAllFoldersTrigger changes
@@ -139,6 +141,9 @@ export default function ({
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isCreateSubfolderOpen, setIsCreateSubfolderOpen] = useState(false);
     const [isAddScriptOpen, setIsAddScriptOpen] = useState(false);
+    const [isAddMarkdownOpen, setIsAddMarkdownOpen] = useState(false);
+    const [markdownName, setMarkdownName] = useState("");
+    const [markdownContent, setMarkdownContent] = useState("");
     const [newName, setNewName] = useState(folder.name);
     const [subfolderName, setSubfolderName] = useState("");
     const [scriptName, setScriptName] = useState("");
@@ -183,6 +188,19 @@ export default function ({
             setScriptName("");
             setScriptCommand("");
             setIsAddScriptOpen(false);
+        }
+    };
+
+    const handleAddMarkdown = async () => {
+        if (markdownName.trim() && markdownContent.trim()) {
+            await createMarkdownScript({
+                name: markdownName,
+                content: markdownContent,
+                folderId: folder.id,
+            });
+            setMarkdownName("");
+            setMarkdownContent("");
+            setIsAddMarkdownOpen(false);
         }
     };
 
@@ -254,6 +272,17 @@ export default function ({
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             Add Script
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                            onClick={() => {
+                                setMarkdownName("");
+                                setMarkdownContent("");
+                                setIsAddMarkdownOpen(true);
+                            }}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Markdown
                         </ContextMenuItem>
                         {!folder.parentFolder && (
                             <ContextMenuItem
@@ -399,6 +428,18 @@ export default function ({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Add Markdown Dialog */}
+            <AddMarkdownDialog
+                isAddMarkdownOpen={isAddMarkdownOpen}
+                setIsAddMarkdownOpen={setIsAddMarkdownOpen}
+                folder={folder}
+                markdownName={markdownName}
+                setMarkdownName={setMarkdownName}
+                markdownContent={markdownContent}
+                setMarkdownContent={setMarkdownContent}
+                handleAddMarkdown={handleAddMarkdown}
+            />
 
             {/* Add Script Dialog */}
             <Dialog open={isAddScriptOpen} onOpenChange={setIsAddScriptOpen}>

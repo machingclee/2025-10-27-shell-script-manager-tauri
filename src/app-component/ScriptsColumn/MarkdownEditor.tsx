@@ -797,10 +797,10 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                             </>
                         ) : (
                             <>
-                                <div className="flex items-center rounded overflow-hidden border border-neutral-600">
+                                <div className="flex items-center rounded-lg overflow-hidden border border-neutral-600">
                                     <button
                                         onClick={() => setEditViewMode("plain")}
-                                        className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors ${
+                                        className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors rounded-none ${
                                             editViewMode === "plain"
                                                 ? "bg-neutral-600 text-white"
                                                 : "bg-transparent text-gray-400 hover:text-white hover:bg-neutral-700"
@@ -811,7 +811,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     </button>
                                     <button
                                         onClick={() => setEditViewMode("mixed")}
-                                        className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors ${
+                                        className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors rounded-none ${
                                             editViewMode === "mixed"
                                                 ? "bg-neutral-600 text-white"
                                                 : "bg-transparent text-gray-400 hover:text-white hover:bg-neutral-700"

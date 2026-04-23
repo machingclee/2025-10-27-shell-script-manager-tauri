@@ -1,10 +1,24 @@
 import { Button } from "@/components/ui/button";
-import { Edit, Loader2, Play, Trash, Lock, LockOpen, Terminal } from "lucide-react";
+import {
+    Edit,
+    Loader2,
+    Play,
+    Trash,
+    Lock,
+    LockOpen,
+    Terminal,
+    FolderInput,
+    Folder,
+} from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
+    ContextMenuSeparator,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
@@ -30,8 +44,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
-import { ScriptsFolderDTO, ShellScriptDTO } from "@/types/dto";
+import { ScriptsFolderDTO, ScriptsFolderResponse, ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
+import { workspaceApi } from "@/store/api/workspaceApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 
@@ -52,8 +67,70 @@ export default function ScriptItem({
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateScript] = scriptApi.endpoints.updateScript.useMutation();
     const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
-    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [moveScriptIntoFolder] = scriptApi.endpoints.moveScriptIntoFolder.useMutation();
+    const { data: workspaces = [] } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined);
+
+    const containsFolder = (folder: ScriptsFolderResponse, targetId: number): boolean => {
+        if (folder.id === targetId) return true;
+        return folder.subfolders.some((sub) => containsFolder(sub, targetId));
+    };
+
+    const renderFolderItem = (folder: ScriptsFolderResponse, rootFolderId: number) => {
+        const isCurrent = containsFolder(folder, parentFolderId);
+        const disabledClass = "opacity-40 cursor-default dark:text-neutral-500";
+        const enabledClass = "cursor-pointer dark:hover:bg-neutral-700 dark:text-neutral-200";
+
+        if (folder.subfolders.length > 0) {
+            return (
+                <ContextMenuSub key={folder.id}>
+                    <ContextMenuSubTrigger className={isCurrent ? disabledClass : enabledClass}>
+                        <Folder className="w-4 h-4 mr-2" />
+                        {folder.name}
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
+                        <ContextMenuItem
+                            disabled={isCurrent}
+                            className={isCurrent ? disabledClass : enabledClass}
+                            onClick={() =>
+                                !isCurrent &&
+                                moveScriptIntoFolder({
+                                    scriptId: script.id!,
+                                    folderId: folder.id,
+                                    rootFolderId,
+                                })
+                            }
+                        >
+                            Move here
+                        </ContextMenuItem>
+                        <ContextMenuSeparator className="dark:bg-neutral-700" />
+                        {folder.subfolders.map((sub) => renderFolderItem(sub, rootFolderId))}
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
+            );
+        }
+
+        return (
+            <ContextMenuItem
+                key={folder.id}
+                disabled={isCurrent}
+                className={isCurrent ? disabledClass : enabledClass}
+                onClick={() =>
+                    !isCurrent &&
+                    moveScriptIntoFolder({
+                        scriptId: script.id!,
+                        folderId: folder.id,
+                        rootFolderId,
+                    })
+                }
+            >
+                <Folder className="w-4 h-4 mr-2" />
+                {folder.name}
+            </ContextMenuItem>
+        );
+    };
+
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
     const [editName, setEditName] = useState(script.name);
     const [editCommand, setEditCommand] = useState(script.command);
     const [isSelected, setIsSelected] = useState(false);
@@ -333,6 +410,34 @@ export default function ScriptItem({
                             <Edit className="w-4 h-4 mr-2" />
                             Edit
                         </ContextMenuItem>
+                        <ContextMenuSub>
+                            <ContextMenuSubTrigger className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 dark:text-neutral-200">
+                                <FolderInput className="w-4 h-4 mr-2" />
+                                Move to Folder
+                            </ContextMenuSubTrigger>
+                            <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
+                                {workspaces.map((workspace) => (
+                                    <ContextMenuSub key={workspace.id}>
+                                        <ContextMenuSubTrigger className="cursor-pointer dark:hover:bg-neutral-700 dark:text-neutral-200">
+                                            {workspace.name}
+                                        </ContextMenuSubTrigger>
+                                        <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
+                                            {workspace.folders.map((folder) =>
+                                                renderFolderItem(folder, folder.id)
+                                            )}
+                                            {workspace.folders.length === 0 && (
+                                                <ContextMenuItem
+                                                    disabled
+                                                    className="dark:text-neutral-500"
+                                                >
+                                                    No folders
+                                                </ContextMenuItem>
+                                            )}
+                                        </ContextMenuSubContent>
+                                    </ContextMenuSub>
+                                ))}
+                            </ContextMenuSubContent>
+                        </ContextMenuSub>
                         <ContextMenuItem
                             onClick={handleDeleteClick}
                             className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
