@@ -192,6 +192,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     table { border-collapse: collapse; width: 100%; margin-top: 0.5em; margin-bottom: 0.5em; }
     th, td { border: 1px solid #d0d7de; padding: 8px 12px; }
     th { background: #f6f8fa; font-weight: 600; }
+    img { max-width: 100%; border-radius: 4px; }
     mjx-container { display: inline-block; vertical-align: middle; }
     mjx-container[display="true"] { display: block; text-align: center; margin: 1em 0; }
   </style>
@@ -698,6 +699,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                         alt={alt ?? ""}
                         style={{
                             maxWidth: "100%",
+                            borderRadius: "4px",
                             ...(width ? { width: `${width}px` } : {}),
                         }}
                     />
