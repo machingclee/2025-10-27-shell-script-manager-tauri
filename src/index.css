@@ -112,3 +112,20 @@
     border-radius: 3px;
 }
 
+mark.search-mark {
+    background-color: rgba(255, 210, 0, 0.35);
+    color: inherit;
+    border-radius: 2px;
+    padding: 1px 0;
+}
+
+mark.editor-search-mark {
+    background-color: rgba(255, 210, 0, 0.35);
+    color: transparent;
+    border-radius: 2px;
+}
+
+mark.editor-search-mark.active {
+    background-color: rgba(255, 160, 0, 0.6);
+}
+
