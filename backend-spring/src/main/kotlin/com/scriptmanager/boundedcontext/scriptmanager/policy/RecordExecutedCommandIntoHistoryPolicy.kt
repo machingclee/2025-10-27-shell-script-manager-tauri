@@ -17,11 +17,16 @@ class RecordExecutedCommandIntoHistoryPolicy(
     private val commandInvoker: CommandInvoker
 ) : Policy {
 
+
     override fun declareflows(): List<PolicyFlow> = listOf(
         PolicyFlow(
             fromEvent = ScriptExecutedEvent::class.java,
             toCommand = CreateScriptHistoryCommand::class.java
         )
+    )
+
+    override fun declareInvariants(): List<String> = listOf(
+        "Whenever a script is created, create a history to record the event"
     )
 
     @EventListener

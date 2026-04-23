@@ -10,6 +10,7 @@ interface Policy {
      * This is used to build the flow diagram.
      */
     fun declareflows(): List<PolicyFlow>
+    fun declareInvariants(): List<String>
 }
 
 data class PolicyFlow(

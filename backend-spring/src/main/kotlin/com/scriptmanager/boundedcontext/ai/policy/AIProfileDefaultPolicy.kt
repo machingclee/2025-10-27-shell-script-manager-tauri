@@ -24,6 +24,13 @@ class AIProfileDefaultPolicy(
     private val commandInvoker: CommandInvoker
 ) : Policy {
 
+    override fun declareInvariants(): List<String> = listOf(
+        "When created, and, when there is no default selected profile, the newly created profile should be set to default profile",
+        "When a profile get deleted, reset the default ai profile by using existing profile",
+        "For each aiprofile, any newly created modelconfig should be selected automatically"
+    )
+
+
     override fun declareflows(): List<PolicyFlow> = listOf(
         PolicyFlow(
             fromEvent = AiProfileCreatedEvent::class.java,
@@ -52,7 +59,7 @@ class AIProfileDefaultPolicy(
     @EventListener
     fun resetDefaultModelConfigInAIProfileUponModelConfigDeletion(event: ModelConfigDeletedEvent) {
         // since multiple config can be assigned to a profile, and only one can be active
-        val (_deleteBaseModelConfigId, aiProfileId) = event
+        val (deleteBaseModelConfigId, aiProfileId) = event
         val command = ResetModelConfigOfAIProfileCommand(aiProfileId = aiProfileId)
         commandInvoker.invoke(command)
     }

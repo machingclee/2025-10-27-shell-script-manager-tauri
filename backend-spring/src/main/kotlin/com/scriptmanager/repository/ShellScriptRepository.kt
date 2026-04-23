@@ -2,9 +2,11 @@ package com.scriptmanager.repository
 
 import com.scriptmanager.common.entity.ShellScript
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 
 @Repository
 interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
@@ -16,5 +18,11 @@ interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
     """
     )
     fun findByFolderId(@Param("folderId") folderId: Int): List<ShellScript>
-}
 
+    @Query(
+        value = "UPDATE shell_script SET is_editing = false",
+        nativeQuery = true
+    )
+    @Modifying
+    fun resetAllScriptItemsIsEditingStatus(): Int
+}

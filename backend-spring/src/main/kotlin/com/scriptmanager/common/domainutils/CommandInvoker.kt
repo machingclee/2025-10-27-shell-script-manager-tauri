@@ -201,15 +201,21 @@ data class CommandEventFlow(
     val to: List<String>
 )
 
-data class PolicyCommandFlow(
-    val policy: String,
+data class PolicyFlowEntry(
     val fromEvent: String,
     val toCommand: String
 )
 
+data class PolicyDetail(
+    val invariants: List<String>,
+    val flows: List<PolicyFlowEntry>
+)
+
+typealias PolicyName = String
+
 data class FlowResponse(
     val commands: List<CommandEventFlow>,
-    val policies: List<PolicyCommandFlow>
+    val policies: Map<PolicyName, PolicyDetail>
 )
 
 interface CommandInvoker {
@@ -230,7 +236,7 @@ class OneTransactionCommandInvoker(
     private val transactionTemplate: TransactionTemplate = TransactionTemplate(transactionManager)
 
     private val _commandEventFlow = mutableListOf<CommandEventFlow>()
-    private val _policyCommandFlow = mutableListOf<PolicyCommandFlow>()
+    private val _policyDetails = mutableMapOf<String, PolicyDetail>()
 
     /**
      * Map of command class to its handler for fast lookup
@@ -245,7 +251,7 @@ class OneTransactionCommandInvoker(
 
         return FlowResponse(
             commands = _commandEventFlow.toList(),
-            policies = _policyCommandFlow.toList()
+            policies = _policyDetails.toMap()
         )
     }
 
@@ -288,20 +294,29 @@ class OneTransactionCommandInvoker(
     private fun buildPolicyFlows() {
         policies.forEach { policy ->
             val policyName = policy::class.java.simpleName
-            try {
-                val flows = policy.declareflows()
-                flows.forEach { flow ->
-                    val policyCommandFlow = PolicyCommandFlow(
-                        policy = policyName,
+
+            val flows = try {
+                policy.declareflows().map { flow ->
+                    PolicyFlowEntry(
                         fromEvent = flow.fromEvent.simpleName,
                         toCommand = flow.toCommand.simpleName
-                    )
-                    _policyCommandFlow.add(policyCommandFlow)
-                    println("Policy flow: ${flow.fromEvent.simpleName} -> $policyName -> ${flow.toCommand.simpleName}")
+                    ).also { println("Policy flow: ${flow.fromEvent.simpleName} -> $policyName -> ${flow.toCommand.simpleName}") }
                 }
             } catch (e: Exception) {
                 println("Warning: Failed to get declared flows from $policyName: ${e.message}")
+                emptyList()
             }
+
+            val invariants = try {
+                policy.declareInvariants().also {
+                    if (it.isNotEmpty()) println("Invariants for $policyName: $it")
+                }
+            } catch (e: Exception) {
+                println("Warning: Failed to get declared invariants from $policyName: ${e.message}")
+                emptyList()
+            }
+
+            _policyDetails[policyName] = PolicyDetail(invariants = invariants, flows = flows)
         }
     }
 

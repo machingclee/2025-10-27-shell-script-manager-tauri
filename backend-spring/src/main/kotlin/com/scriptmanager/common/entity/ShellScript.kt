@@ -14,6 +14,9 @@ class ShellScript(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null,
 
+    @Column(name = "is_editing")
+    var isEditing: Boolean = false,
+
     @Column(name = "name", nullable = false)
     var name: String = "",
 
