@@ -302,6 +302,14 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         const updatedContent = lines.join("\n");
         latestContentRef.current = updatedContent;
 
+        // Keep the editor state in sync so the mixed-mode preview re-renders immediately
+        if (isEditMode) {
+            setEditContent(updatedContent);
+            pushHistory(updatedContent);
+            setHasChanges(true);
+            setEdited(false);
+        }
+
         if (script) {
             await updateMarkdown({
                 ...script,
@@ -313,12 +321,20 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     useEffect(() => {
         if (!script) return;
         const content = script.command || "";
-        setEditContent(content);
-        latestContentRef.current = content;
-        // Seed the undo stack with the real content
-        undoStackRef.current = [content];
-        undoIndexRef.current = 0;
-        setEditorReady(true);
+        // Only seed editor state on first load. After that, mutations update
+        // latestContentRef / editContent directly (e.g. checkbox toggles) so
+        // we must not overwrite in-progress edits or destroy the undo stack.
+        if (!editorReady) {
+            setEditContent(content);
+            latestContentRef.current = content;
+            undoStackRef.current = [content];
+            undoIndexRef.current = 0;
+            setEditorReady(true);
+        } else if (!isEditMode) {
+            // In read-only view keep the ref fresh so checkbox toggles read
+            // the latest saved content from the server.
+            latestContentRef.current = content;
+        }
     }, [script]);
 
     // Add Cmd+S keyboard shortcut for saving

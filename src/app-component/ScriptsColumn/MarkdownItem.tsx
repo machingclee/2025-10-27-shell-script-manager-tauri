@@ -31,7 +31,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Eye, FileText, Edit, Globe } from "lucide-react";
+import { Trash2, FileText, Edit } from "lucide-react";
 
 export default function MarkdownItem({
     script,
@@ -54,34 +54,6 @@ export default function MarkdownItem({
             imagesDirRef.current = dir;
         });
     }, []);
-
-    const handleViewClick = async () => {
-        try {
-            if (!script.id) {
-                console.error("Script ID is undefined. Cannot open markdown window.");
-                return;
-            }
-            const url = getSubwindowPaths.markdown(script.id, false);
-
-            const webview = new WebviewWindow(`markdown-${script.id}`, {
-                url,
-                title: `View: ${script.name}`,
-                width: 1000,
-                height: 700,
-                minWidth: 800,
-                minHeight: 600,
-                skipTaskbar: false,
-                alwaysOnTop: false,
-                focus: true,
-            });
-
-            webview.once("tauri://error", function (e) {
-                console.error("Error creating markdown window:", e);
-            });
-        } catch (error) {
-            console.error("Error opening markdown window:", error);
-        }
-    };
 
     const handleEditClick = async () => {
         try {
@@ -123,7 +95,8 @@ export default function MarkdownItem({
                     const filename = rest.replace(/\?width=\d+$/, "");
                     const widthMatch = rest.match(/\?width=(\d+)/);
                     const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : "";
-                    return `<img src="file://${imagesDir}/${filename}" alt="${altText}"${widthAttr} style="max-width:100%" />`;
+                    const src = `file://${imagesDir}/${filename}`;
+                    return `<a href="${src}" target="_blank" rel="noopener noreferrer"><img src="${src}" alt="${altText}"${widthAttr} style="max-width:100%" /></a>`;
                 }
             );
 
@@ -137,7 +110,12 @@ export default function MarkdownItem({
                 .use(rehypeStringify, { allowDangerousHtml: true })
                 .process(resolvedMarkdown);
 
-            const bodyHtml = String(file);
+            const rawBodyHtml = String(file);
+            // Make all links pointing to image files open in a new tab
+            const bodyHtml = rawBodyHtml.replace(
+                /<a\s+(href="[^"]+\.(png|jpg|jpeg|gif|webp|svg|bmp|tiff|avif)(\?[^"]*)?")(\s[^>]*)?>([^<]*)<\/a>/gi,
+                '<a $1 target="_blank" rel="noopener noreferrer">$5</a>'
+            );
             const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -196,7 +174,7 @@ export default function MarkdownItem({
                         onMouseDown={() => setIsSelected(true)}
                         onMouseUp={() => setIsSelected(false)}
                         onMouseLeave={() => setIsSelected(false)}
-                        onDoubleClick={handleViewClick}
+                        onDoubleClick={handleViewAsHtml}
                     >
                         {parentFolderPath && (
                             <div className="px-3 pt-2 text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)]">
@@ -255,20 +233,6 @@ export default function MarkdownItem({
                     </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="w-48 dark:bg-neutral-800 dark:border-neutral-700">
-                    <ContextMenuItem
-                        onClick={handleViewClick}
-                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
-                    >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                        onClick={handleViewAsHtml}
-                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
-                    >
-                        <Globe className="w-4 h-4 mr-2" />
-                        View as HTML
-                    </ContextMenuItem>
                     <ContextMenuItem
                         onClick={handleEditClick}
                         className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
