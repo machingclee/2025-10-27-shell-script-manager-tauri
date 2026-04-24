@@ -23,6 +23,9 @@ import SimpleEditor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-markdown";
 import "prismjs/themes/prism-tomorrow.css";
+import markdownHTMLTemplate from "./markdownHTMLTemplate";
+import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
+import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 
@@ -269,59 +272,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                 .use(rehypeStringify, { allowDangerousHtml: true })
                 .process(resolvedMarkdown);
             const bodyHtml = String(file);
-            const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${script.name}</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #ffffff; color: #1f2328; line-height: 1.7; }
-    h1 { font-size: 2em; font-weight: 700; border-bottom: 1px solid #d0d7de; padding-bottom: 0.3em; margin-top: 0.67em; margin-bottom: 0.67em; }
-    h2 { font-size: 1.75em; font-weight: 700; border-bottom: 1px solid #d0d7de; padding-bottom: 0.2em; margin-top: 0.75em; margin-bottom: 0.5em; }
-    h3 { font-size: 1.5em; font-weight: 600; margin-top: 0.75em; margin-bottom: 0.5em; }
-    h4 { font-size: 1.25em; font-weight: 600; margin-top: 0.5em; margin-bottom: 0.5em; }
-    h5 { font-size: 1.1em; font-weight: 600; margin-top: 0.5em; margin-bottom: 0.5em; }
-    h6 { font-size: 1em; font-weight: 600; margin-top: 0.5em; margin-bottom: 0.5em; }
-    p { margin-top: 0.5em; margin-bottom: 0.5em; }
-    a { color: #0969da; text-decoration: underline; }
-    ul, ol { padding-left: 2em; margin-top: 0.5em; margin-bottom: 0.5em; }
-    ul { list-style-type: disc; }
-    ol { list-style-type: decimal; }
-    li { display: list-item; padding-left: 0.5em; line-height: 1.4; }
-    ul.contains-task-list { padding-left: 2em; }
-    li.task-list-item { list-style: none; padding-left: 0; }
-    input[type="checkbox"] {
-      appearance: none; -webkit-appearance: none;
-      width: 16px; height: 16px;
-      margin-top: -2px; margin-right: -1.5em; margin-left: 0;
-      cursor: pointer;
-      border: 2px solid #999; border-radius: 3px;
-      background-color: transparent;
-      position: relative; left: -2em;
-      display: inline-flex; align-items: center; justify-content: center;
-      vertical-align: middle; flex-shrink: 0;
-    }
-    input[type="checkbox"]:checked { background-color: rgb(59,130,246); border-color: rgb(59,130,246); }
-    input[type="checkbox"]:checked::after { content: "✓"; color: white; font-size: 12px; font-weight: bold; line-height: 1; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
-    code:not(pre code) { background: #f6f8fa; border: 1px solid #d0d7de; padding: 2px 6px; border-radius: 4px; font-size: 0.95em; }
-    pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; margin-top: 0.5em; margin-bottom: 0.5em; }
-    pre code.hljs { background: transparent; padding: 0; font-size: 0.9em; }
-    blockquote { border-left: 4px solid #d0d7de; margin-left: 0; padding-left: 1em; color: #57606a; }
-    table { border-collapse: collapse; width: 100%; margin-top: 0.5em; margin-bottom: 0.5em; }
-    th, td { border: 1px solid #d0d7de; padding: 8px 12px; }
-    th { background: #f6f8fa; font-weight: 600; }
-    img { max-width: 100%; border-radius: 4px; }
-    mjx-container { display: inline-block; vertical-align: middle; }
-    mjx-container[display="true"] { display: block; text-align: center; margin: 1em 0; }
-  </style>
-</head>
-<body>
-  <h1 style="margin-top:0">${script.name}</h1>
-  ${bodyHtml}
-</body>
-</html>`;
+            const html = markdownHTMLTemplate({ scriptName: script.name, bodyHtml });
             await invoke("write_and_open_html", { html });
         } catch (error) {
             console.error("Failed to open as HTML:", error);
@@ -368,44 +319,29 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         handleSaveEditRef.current = handleSaveEdit;
     }, [handleSaveEdit]);
 
-    // Global Cmd+S handler
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-                e.preventDefault();
-                if (isEditMode) {
-                    handleSaveEdit(false);
-                }
-            }
-
-            // Cmd+W or Esc to close window
-            if ((e.metaKey || e.ctrlKey) && e.key === "w") {
-                e.preventDefault();
-                // Drive the close from Rust via invoke so WKWebView teardown happens
-                // entirely outside the JS event-handler stack — prevents SIGSEGV on macOS.
-                invoke("close_subwindow", { label: getCurrentWindow().label });
-            }
-
-            // Cmd+F — open search bar(s)
-            if ((e.metaKey || e.ctrlKey) && e.key === "f") {
-                e.preventDefault();
-                if (isEditMode) {
-                    setEditorSearchOpen(true);
-                    setTimeout(() => editorSearchInputRef.current?.focus(), 0);
-                    if (editViewMode === "mixed") {
-                        setPreviewSearchOpen(true);
-                        // focus editor search (preview search is secondary)
-                    }
-                } else {
+    // Shared window-level keyboard shortcuts
+    useMarkdownShortcuts({
+        onSave: () => {
+            if (isEditMode) handleSaveEdit(false);
+        },
+        onClose: () => {
+            // Drive the close from Rust via invoke so WKWebView teardown happens
+            // entirely outside the JS event-handler stack — prevents SIGSEGV on macOS.
+            invoke("close_subwindow", { label: getCurrentWindow().label });
+        },
+        onFind: () => {
+            if (isEditMode) {
+                setEditorSearchOpen(true);
+                setTimeout(() => editorSearchInputRef.current?.focus(), 0);
+                if (editViewMode === "mixed") {
                     setPreviewSearchOpen(true);
-                    setTimeout(() => previewSearchInputRef.current?.focus(), 0);
                 }
+            } else {
+                setPreviewSearchOpen(true);
+                setTimeout(() => previewSearchInputRef.current?.focus(), 0);
             }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isEditMode, editViewMode, handleSaveEdit]);
+        },
+    });
 
     const handleCancelEdit = () => {
         setEditContent(script?.command || "");
@@ -496,20 +432,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         }
     }, [script]);
 
-    // Add Cmd+S keyboard shortcut for saving
-    useEffect(() => {
-        const handleKeyDown = async (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-                e.preventDefault();
-                if (isEditMode && script) {
-                    await handleSaveEdit(false);
-                }
-            }
-        };
 
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isEditMode, script, editName, editContent]);
 
     // Undo/redo via capture-phase native listener so it beats WKWebView's NSUndoManager
     const editorWrapperRef = useRef<HTMLDivElement>(null);
@@ -831,47 +754,14 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         [editContent]
     );
 
-    const handleEditorKeyDown = useCallback(
-        (e: React.KeyboardEvent<HTMLDivElement | HTMLTextAreaElement>) => {
-            const wrapPairs: Record<string, string> = {
-                "*": "*",
-                _: "_",
-                "`": "`",
-                "(": ")",
-                "[": "]",
-                "{": "}",
-                '"': '"',
-                "'": "'",
-            };
-
-            const close = wrapPairs[e.key];
-            if (!close) return;
-
-            const textarea = e.currentTarget as HTMLTextAreaElement;
-            const { selectionStart, selectionEnd } = textarea;
-            if (selectionStart === selectionEnd) return; // no selection — normal typing
-
-            e.preventDefault();
-            const selected = editContent.slice(selectionStart, selectionEnd);
-            const newContent =
-                editContent.slice(0, selectionStart) +
-                e.key +
-                selected +
-                close +
-                editContent.slice(selectionEnd);
-
+    const handleEditorKeyDown = useMarkdownWrap(
+        editContent,
+        (newContent) => {
             setEditContent(newContent);
             pushHistory(newContent);
             setHasChanges(true);
             setEdited(false);
-
-            // Restore the selection inside the wrap characters after React re-render
-            requestAnimationFrame(() => {
-                textarea.selectionStart = selectionStart + 1;
-                textarea.selectionEnd = selectionEnd + 1;
-            });
-        },
-        [editContent, pushHistory]
+        }
     );
 
     // Rehype plugin that highlights all preview occurrences of the search query

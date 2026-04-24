@@ -192,7 +192,7 @@ export default function ({
     };
 
     const handleAddMarkdown = async () => {
-        if (markdownName.trim() && markdownContent.trim()) {
+        if (markdownName.trim()) {
             await createMarkdownScript({
                 name: markdownName,
                 content: markdownContent,
@@ -262,18 +262,7 @@ export default function ({
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:border-neutral-700">
-                        <ContextMenuItem
-                            className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
-                            onClick={() => {
-                                setScriptName("");
-                                setScriptCommand("");
-                                setIsAddScriptOpen(true);
-                            }}
-                        >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Script
-                        </ContextMenuItem>
-                        <ContextMenuItem
+                                              <ContextMenuItem
                             className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                             onClick={() => {
                                 setMarkdownName("");
@@ -283,6 +272,17 @@ export default function ({
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             Add Markdown
+                        </ContextMenuItem>
+                          <ContextMenuItem
+                            className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                            onClick={() => {
+                                setScriptName("");
+                                setScriptCommand("");
+                                setIsAddScriptOpen(true);
+                            }}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Script
                         </ContextMenuItem>
                         {!folder.parentFolder && (
                             <ContextMenuItem

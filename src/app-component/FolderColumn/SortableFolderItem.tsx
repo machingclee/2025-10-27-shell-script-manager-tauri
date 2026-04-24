@@ -115,7 +115,7 @@ export default React.memo(
         };
 
         const handleAddMarkdown = async () => {
-            if (markdownName.trim() && markdownContent.trim()) {
+            if (markdownName.trim()) {
                 await createMarkdownScript({
                     name: markdownName,
                     content: markdownContent,

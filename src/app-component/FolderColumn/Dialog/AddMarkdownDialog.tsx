@@ -9,7 +9,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import SimpleEditor from "react-simple-code-editor";
+import { highlight, languages } from "prismjs";
+import "prismjs/components/prism-markdown";
+import "prismjs/themes/prism-tomorrow.css";
+import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
+import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
 
 import { ScriptsFolderResponse } from "@/types/dto";
 
@@ -34,6 +39,22 @@ export const AddMarkdownDialog = (props: {
         handleAddMarkdown,
     } = props;
 
+    const handleEditorKeyDown = useMarkdownWrap(
+        markdownContent,
+        (newContent) => setMarkdownContent(newContent)
+    );
+
+    // Shared keyboard shortcuts
+    useMarkdownShortcuts({
+        enabled: isAddMarkdownOpen,
+        onSave: () => {
+            if (markdownName.trim()) handleAddMarkdown();
+        },
+        onSubmit: () => {
+            if (markdownName.trim()) handleAddMarkdown();
+        },
+    });
+
     return (
         <Dialog open={isAddMarkdownOpen} onOpenChange={setIsAddMarkdownOpen}>
             <DialogContent
@@ -53,21 +74,40 @@ export const AddMarkdownDialog = (props: {
                         <Input
                             className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
                             id="markdown-name"
+                            autoFocus
                             value={markdownName}
                             onChange={(e) => setMarkdownName(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter" && markdownName.trim()) {
+                                 e.preventDefault();
+                                  handleAddMarkdown(); 
+                                }
+                            }}
                             placeholder="Markdown name"
                         />
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="markdown-content">Content</Label>
-                        <Textarea
-                            id="markdown-content"
-                            value={markdownContent}
-                            onChange={(e) => setMarkdownContent(e.target.value)}
-                            placeholder="Markdown content"
-                            rows={18}
-                            className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
-                        />
+                        <div className="rounded-md overflow-auto bg-[#1e1e1e]" style={{ minHeight: "300px", maxHeight: "400px" }}>
+                            <SimpleEditor
+                                value={markdownContent}
+                                onValueChange={setMarkdownContent}
+                                highlight={(code) =>
+                                    highlight(code, languages.markdown, "markdown")
+                                }
+                                padding={16}
+                                style={{
+                                    fontFamily:
+                                        '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                    fontSize: 14,
+                                    lineHeight: 1.5,
+                                    minHeight: "300px",
+                                    backgroundColor: "#1e1e1e",
+                                    color: "#d4d4d4",
+                                }}
+                                textareaClassName="focus:outline-none"
+                                onKeyDown={handleEditorKeyDown}
+                            />
+                        </div>
                     </div>
                 </div>
                 <DialogFooter>
@@ -76,7 +116,7 @@ export const AddMarkdownDialog = (props: {
                     </Button>
                     <Button
                         onClick={handleAddMarkdown}
-                        disabled={!markdownName.trim() || !markdownContent.trim()}
+                        disabled={!markdownName.trim()}
                     >
                         Create Markdown
                     </Button>

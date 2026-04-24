@@ -10,6 +10,8 @@ import SimpleEditor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-markdown";
 import "prismjs/themes/prism-tomorrow.css";
+import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
+import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
 import {
     Dialog,
     DialogContent,
@@ -52,6 +54,15 @@ export default function MarkdownDialog({
     // Track the latest markdown content for checkbox toggles
     const latestContentRef = useRef("");
 
+    const handleEditorKeyDown = useMarkdownWrap(
+        editContent,
+        (newContent) => {
+            setEditContent(newContent);
+            setHasChanges(true);
+            setEdited(false);
+        }
+    );
+
     const handleEnableEdit = () => {
         setIsDialogEditMode(true);
         setHasChanges(false);
@@ -76,20 +87,11 @@ export default function MarkdownDialog({
         dispatch(scriptApi.util.invalidateTags([{ type: "Script", id: script.id }]));
     };
 
-    // Cmd+S handler
-    useEffect(() => {
-        if (!isDialogEditMode) return;
-
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-                e.preventDefault();
-                handleSaveEdit(false);
-            }
-        };
-
-        window.addEventListener("keydown", handleKeyDown);
-        return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [isDialogEditMode, handleSaveEdit]);
+    // Shared keyboard shortcuts
+    useMarkdownShortcuts({
+        enabled: isDialogEditMode,
+        onSave: () => handleSaveEdit(false),
+    });
 
     const handleCancelEdit = () => {
         setEditContent(script?.command || "");
@@ -254,6 +256,7 @@ export default function MarkdownDialog({
                                     color: "#d4d4d4",
                                 }}
                                 textareaClassName="focus:outline-none"
+                                onKeyDown={handleEditorKeyDown}
                             />
                         </div>
                     ) : (

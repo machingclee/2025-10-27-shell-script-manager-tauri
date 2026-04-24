@@ -30,7 +30,6 @@ class AIProfileDefaultPolicy(
         "For each aiprofile, any newly created modelconfig should be selected automatically"
     )
 
-
     override fun declareflows(): List<PolicyFlow> = listOf(
         PolicyFlow(
             fromEvent = AiProfileCreatedEvent::class.java,
