@@ -202,12 +202,12 @@ data class CommandEventFlow(
 )
 
 data class PolicyFlowEntry(
-    val fromEvent: String,
-    val toCommand: String
+    val fromEvent: String? = null,
+    val toCommand: String? = null,
+    val invariant: String? = null
 )
 
 data class PolicyDetail(
-    val invariants: List<String>,
     val flows: List<PolicyFlowEntry>
 )
 
@@ -294,29 +294,26 @@ class OneTransactionCommandInvoker(
     private fun buildPolicyFlows() {
         policies.forEach { policy ->
             val policyName = policy::class.java.simpleName
+            val flows = mutableListOf<PolicyFlowEntry>()
 
-            val flows = try {
-                policy.declareflows().map { flow ->
-                    PolicyFlowEntry(
-                        fromEvent = flow.fromEvent.simpleName,
-                        toCommand = flow.toCommand.simpleName
-                    ).also { println("Policy flow: ${flow.fromEvent.simpleName} -> $policyName -> ${flow.toCommand.simpleName}") }
-                }
-            } catch (e: Exception) {
-                println("Warning: Failed to get declared flows from $policyName: ${e.message}")
-                emptyList()
+            for (method in policy::class.java.declaredMethods) {
+                val isEventListener = method.isAnnotationPresent(org.springframework.context.event.EventListener::class.java)
+                if (!isEventListener) continue
+
+                val nextCommand = method.getAnnotation(NextCommand::class.java)
+                val invariantAnnotation = method.getAnnotation(Invariant::class.java)
+
+                val fromEvent = method.parameterTypes.firstOrNull()
+                    ?.takeIf { it != PlaceholderEvent::class.java }
+                    ?.simpleName
+                val toCommand = nextCommand?.value?.simpleName
+                val invariant = invariantAnnotation?.value?.firstOrNull()
+
+                flows.add(PolicyFlowEntry(fromEvent = fromEvent, toCommand = toCommand, invariant = invariant))
+                println("Policy flow: $fromEvent -> $policyName -> $toCommand, invariant: $invariant")
             }
 
-            val invariants = try {
-                policy.declareInvariants().also {
-                    if (it.isNotEmpty()) println("Invariants for $policyName: $it")
-                }
-            } catch (e: Exception) {
-                println("Warning: Failed to get declared invariants from $policyName: ${e.message}")
-                emptyList()
-            }
-
-            _policyDetails[policyName] = PolicyDetail(invariants = invariants, flows = flows)
+            _policyDetails[policyName] = PolicyDetail(flows = flows)
         }
     }
 

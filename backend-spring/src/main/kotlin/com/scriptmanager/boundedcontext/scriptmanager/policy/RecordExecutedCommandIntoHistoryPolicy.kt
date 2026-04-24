@@ -1,8 +1,9 @@
 package com.scriptmanager.boundedcontext.scriptmanager.policy
 
 import com.scriptmanager.common.domainutils.CommandInvoker
+import com.scriptmanager.common.domainutils.Invariant
+import com.scriptmanager.common.domainutils.NextCommand
 import com.scriptmanager.common.domainutils.Policy
-import com.scriptmanager.common.domainutils.PolicyFlow
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.CreateScriptHistoryCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptExecutedEvent
 import org.springframework.context.event.EventListener
@@ -17,19 +18,9 @@ class RecordExecutedCommandIntoHistoryPolicy(
     private val commandInvoker: CommandInvoker
 ) : Policy {
 
-
-    override fun declareflows(): List<PolicyFlow> = listOf(
-        PolicyFlow(
-            fromEvent = ScriptExecutedEvent::class.java,
-            toCommand = CreateScriptHistoryCommand::class.java
-        )
-    )
-
-    override fun declareInvariants(): List<String> = listOf(
-        "Whenever a script is created, create a history to record the event"
-    )
-
     @EventListener
+    @Invariant("Whenever a script is executed, create a history record to capture the event")
+    @NextCommand(CreateScriptHistoryCommand::class)
     fun onScriptExecuted(event: ScriptExecutedEvent) {
         val command = CreateScriptHistoryCommand(
             scriptId = event.scriptId,
@@ -38,3 +29,4 @@ class RecordExecutedCommandIntoHistoryPolicy(
         commandInvoker.invoke(command)
     }
 }
+

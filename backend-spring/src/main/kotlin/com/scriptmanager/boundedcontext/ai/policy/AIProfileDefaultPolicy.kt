@@ -8,14 +8,14 @@ import com.scriptmanager.boundedcontext.ai.event.AiProfileCreatedEvent
 import com.scriptmanager.boundedcontext.ai.event.ModelConfigCreatedEvent
 import com.scriptmanager.boundedcontext.ai.event.ModelConfigDeletedEvent
 import com.scriptmanager.common.domainutils.CommandInvoker
+import com.scriptmanager.common.domainutils.Invariant
+import com.scriptmanager.common.domainutils.NextCommand
 import com.scriptmanager.common.domainutils.Policy
-import com.scriptmanager.common.domainutils.PolicyFlow
 import com.scriptmanager.repository.AIProfileRepository
 import com.scriptmanager.repository.ApplicationStateRepository
 import org.springframework.context.event.EventListener
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
-
 
 @Component
 class AIProfileDefaultPolicy(
@@ -24,28 +24,9 @@ class AIProfileDefaultPolicy(
     private val commandInvoker: CommandInvoker
 ) : Policy {
 
-    override fun declareInvariants(): List<String> = listOf(
-        "When created, and, when there is no default selected profile, the newly created profile should be set to default profile",
-        "When a profile get deleted, reset the default ai profile by using existing profile",
-        "For each aiprofile, any newly created modelconfig should be selected automatically"
-    )
-
-    override fun declareflows(): List<PolicyFlow> = listOf(
-        PolicyFlow(
-            fromEvent = AiProfileCreatedEvent::class.java,
-            toCommand = SelectDefaultAiProfileCommand::class.java
-        ),
-        PolicyFlow(
-            fromEvent = ModelConfigDeletedEvent::class.java,
-            toCommand = ResetModelConfigOfAIProfileCommand::class.java
-        ),
-        PolicyFlow(
-            fromEvent = ModelConfigCreatedEvent::class.java,
-            toCommand = SelectAiProfileDefaultModelConfigCommand::class.java
-        )
-    )
-
     @EventListener
+    @Invariant("When created, and when there is no default selected profile, the newly created profile should be set to default profile")
+    @NextCommand(SelectDefaultAiProfileCommand::class)
     fun applicationStateShouldSelectNewlyCreatedAIProfile(event: AiProfileCreatedEvent) {
         val applicationState = applicationStateRepository.findAll().first()
         if (applicationState.selectedAiProfile == null) {
@@ -56,20 +37,21 @@ class AIProfileDefaultPolicy(
     }
 
     @EventListener
+    @Invariant("When a config gets deleted, reset the default ai profile by using an existing config")
+    @NextCommand(ResetModelConfigOfAIProfileCommand::class)
     fun resetDefaultModelConfigInAIProfileUponModelConfigDeletion(event: ModelConfigDeletedEvent) {
-        // since multiple config can be assigned to a profile, and only one can be active
         val (deleteBaseModelConfigId, aiProfileId) = event
         val command = ResetModelConfigOfAIProfileCommand(aiProfileId = aiProfileId)
         commandInvoker.invoke(command)
     }
 
-
     @EventListener
+    @Invariant("For each aiprofile, any newly created modelconfig should be selected automatically")
+    @NextCommand(SelectAiProfileDefaultModelConfigCommand::class)
     fun profileShouldSelectNewlyCreatedModelConfig(event: ModelConfigCreatedEvent) {
         val (parentAIProfileId, modelConfigDTO) = event
         val aiProfile = aiProfileRepository.findByIdOrNull(parentAIProfileId)
             ?: throw AIException("AI Profile with id $parentAIProfileId not found")
-        // only assign a new default model config (openai, azure openai, etc) when there is none in the profile
         if (aiProfile.selectedModelConfig == null) {
             val command = SelectAiProfileDefaultModelConfigCommand(
                 aiProfileId = parentAIProfileId,
@@ -79,6 +61,4 @@ class AIProfileDefaultPolicy(
         }
     }
 }
-
-
 
