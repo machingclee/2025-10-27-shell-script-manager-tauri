@@ -26,6 +26,8 @@ import "prismjs/themes/prism-tomorrow.css";
 import markdownHTMLTemplate from "./markdownHTMLTemplate";
 import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
 import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
+import { remarkItemReference } from "@/lib/remarkItemReference";
+import ItemReference from "./ItemReference";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 
@@ -168,6 +170,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const urlParams = new URLSearchParams(window.location.search);
     const editModeFromUrl = urlParams.get("editMode") === "true";
 
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(editModeFromUrl);
     const [editContent, setEditContent] = useState("");
     const [editName, setEditName] = useState("");
@@ -779,6 +782,11 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         [rehypeSearchHighlightPlugin]
     );
 
+    const remarkPluginsWithItemRef = useMemo(
+        () => [remarkGfm, remarkMath, remarkItemReference] as any[],
+        []
+    );
+
     // Mirror HTML for editor search highlight overlay (transparent marks over the textarea)
     const editorHighlightHtml = useMemo(() => {
         if (!editorSearchOpen || !editorSearchQuery.trim()) return "";
@@ -815,6 +823,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                     onClick={(e) => {
                         if (!href || href.startsWith("#")) return;
                         e.preventDefault();
+                        e.stopPropagation();
                         openUrl(href).catch(console.error);
                     }}
                     style={{ cursor: "pointer" }}
@@ -846,6 +855,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                     />
                 );
             },
+            itemref: ({ id }: { id?: string }) => <ItemReference id={id} />,
             input: ({ node, checked, disabled, ...props }: any) => {
                 if (props.type === "checkbox") {
                     return (
@@ -880,16 +890,61 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         };
     }, [script?.command]);
 
+    const handleWindowDragStart = (e: React.MouseEvent) => {
+        if (e.button !== 0) return;
+        const target = e.target as HTMLElement;
+        if (target.closest('button, input, a, [role="button"]')) return;
+        getCurrentWindow().startDragging().catch(console.error);
+    };
+
+    const handleWindowDoubleClick = async (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('button, input, a, [role="button"]')) return;
+        const next = !isFullscreen;
+        await getCurrentWindow().setFullscreen(next);
+        setIsFullscreen(next);
+    };
+
     return (
-        <div className="h-screen w-screen bg-white dark:bg-neutral-800 flex flex-col">
-            {/* Header */}
-            <div className="flex-shrink-0 bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 flex-1">
+        <div className="h-full w-full bg-white dark:bg-neutral-800 flex flex-col">
+            {/* Combined title bar + toolbar */}
+            <div
+                className="flex-shrink-0 select-none bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-3 py-2 pl-4"
+                onMouseDown={handleWindowDragStart}
+                onDoubleClick={handleWindowDoubleClick}
+            >
+                <div className="flex items-center gap-2">
+                    {/* Traffic-light buttons */}
+                    <div className="flex gap-1.5 items-center flex-shrink-0 mr-2" onDoubleClick={(e) => e.stopPropagation()}>
+                        <button
+                            onClick={() => getCurrentWindow().close()}
+                            className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group"
+                            aria-label="Close"
+                        >
+                            <span className="hidden group-hover:block text-red-900 text-[9px] leading-none">×</span>
+                        </button>
+                        <button
+                            onClick={() => getCurrentWindow().minimize()}
+                            className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center group"
+                            aria-label="Minimize"
+                        >
+                            <span className="hidden group-hover:block text-yellow-900 text-[9px] leading-none">−</span>
+                        </button>
+                        <button
+                            onClick={async () => { const next = !isFullscreen; await getCurrentWindow().setFullscreen(next); setIsFullscreen(next); }}
+                            className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center group"
+                            aria-label="Full Screen"
+                        >
+                            <span className="hidden group-hover:block text-green-900 text-[9px] leading-none">{isFullscreen ? "↙" : "↗"}</span>
+                        </button>
+                    </div>
+
+                    {/* Icon + title/name input */}
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                         {isEditMode ? (
-                            <Edit className="w-5 h-5 text-black dark:text-white" />
+                            <Edit className="w-4 h-4 text-black dark:text-white flex-shrink-0" />
                         ) : (
-                            <Eye className="w-5 h-5 text-black dark:text-white" />
+                            <Eye className="w-4 h-4 text-black dark:text-white flex-shrink-0" />
                         )}
                         {isEditMode ? (
                             <input
@@ -900,19 +955,21 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     setHasChanges(true);
                                     setEdited(false);
                                 }}
-                                className="text-lg font-semibold bg-transparent border border-gray-300 dark:border-neutral-600 focus:outline-none focus:border-blue-500 text-black dark:text-white px-2 py-1 rounded flex-1 max-w-md"
+                                className="text-sm font-semibold bg-transparent border border-gray-300 dark:border-neutral-600 focus:outline-none focus:border-blue-500 text-black dark:text-white px-2 py-0.5 rounded flex-1 max-w-sm"
                                 placeholder="Markdown name"
                             />
                         ) : (
                             <h2
-                                className="text-lg font-semibold text-black dark:text-white cursor-pointer"
-                                onDoubleClick={handleEnableEdit}
+                                className="text-sm font-semibold text-black dark:text-white cursor-pointer truncate"
+                                onDoubleClick={(e) => { e.stopPropagation(); handleEnableEdit(); }}
                             >
                                 {script?.name}
                             </h2>
                         )}
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
                         {isEditMode && (
                             <span className="text-sm text-gray-500 dark:text-gray-400">
                                 {edited ? "Saved" : hasChanges ? "Not Saved" : ""}
@@ -925,7 +982,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     onClick={handleViewAsHtml}
                                     className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
                                 >
-                                    <Globe className="w-4 h-4 mr-2" />
+                                    <Globe className="w-4 h-4" />
                                     View as HTML
                                 </Button>
                                 <Button
@@ -967,7 +1024,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     onClick={handleViewAsHtml}
                                     className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
                                 >
-                                    <Globe className="w-4 h-4 mr-2" />
+                                    <Globe className="w-4 h-4" />
                                     View as HTML
                                 </Button>
                                 <Button
@@ -1348,7 +1405,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 }}
                             >
                                 <ReactMarkdown
-                                    remarkPlugins={[remarkGfm, remarkMath]}
+                                    remarkPlugins={remarkPluginsWithItemRef}
                                     rehypePlugins={rehypePluginsMixedPreview}
                                     components={markdownComponents}
                                 >
@@ -1551,7 +1608,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                         >
                             <ReactMarkdown
                                 key={script?.command}
-                                remarkPlugins={[remarkGfm, remarkMath]}
+                                remarkPlugins={remarkPluginsWithItemRef}
                                 rehypePlugins={rehypePluginsViewPreview}
                                 components={markdownComponents}
                             >

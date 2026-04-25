@@ -361,6 +361,7 @@ pub fn run() {
             write_and_open_html,
             get_images_dir,
             save_pasted_image,
+            setup_subwindow_appearance,
         ])
         .setup(|app| {
             // 0. Initialize cleanup flag
@@ -1145,6 +1146,77 @@ fn init_spring_boot(app_handle: tauri::AppHandle) -> Result<(), String> {
         println!("Use port: {}", port);
     }
 
+    Ok(())
+}
+
+/// Apply macOS title-bar/fullscreen flags to a dynamically-created subwindow.
+///
+/// `decorations: false` creates an NSWindowStyleMaskBorderless window. That
+/// looks correct visually, but macOS shows a grey toolbar during setFullscreen
+/// transitions because it doesn't know the window is "titled".
+///
+/// This command adds NSTitledWindowMask (smooth transitions) and
+/// NSFullSizeContentViewWindowMask (content still fills the whole window),
+/// then makes the title bar transparent and hides the native traffic lights,
+/// so the window looks identical to a decorations:false window.
+#[allow(unused_variables)]
+#[tauri::command]
+async fn setup_subwindow_appearance(app: tauri::AppHandle, label: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(window) = app.get_webview_window(&label) {
+            use cocoa::base::id;
+
+            // Get the raw NSWindow pointer before moving into the closure.
+            // The pointer itself is Send (just an integer) even though the
+            // Cocoa wrapper types are not.
+            let ns_window_ptr = window
+                .ns_window()
+                .map_err(|e| format!("ns_window failed: {:?}", e))? as id as usize;
+
+            // AppKit APIs MUST run on the main thread. Async Tauri commands run
+            // on Tokio worker threads, so we dispatch back to the main thread.
+            window
+                .run_on_main_thread(move || {
+                    use cocoa::appkit::{
+                        NSWindow, NSWindowButton, NSWindowStyleMask, NSWindowTitleVisibility,
+                    };
+                    use cocoa::base::{id, nil, YES};
+
+                    unsafe {
+                        let ns_window = ns_window_ptr as id;
+
+                        let mut style_mask = ns_window.styleMask();
+                        style_mask |= NSWindowStyleMask::NSTitledWindowMask;
+                        style_mask |= NSWindowStyleMask::NSFullSizeContentViewWindowMask;
+                        ns_window.setStyleMask_(style_mask);
+
+                        ns_window.setTitlebarAppearsTransparent_(YES);
+                        ns_window.setTitleVisibility_(
+                            NSWindowTitleVisibility::NSWindowTitleHidden,
+                        );
+
+                        let close = ns_window
+                            .standardWindowButton_(NSWindowButton::NSWindowCloseButton);
+                        let mini = ns_window
+                            .standardWindowButton_(NSWindowButton::NSWindowMiniaturizeButton);
+                        let zoom = ns_window
+                            .standardWindowButton_(NSWindowButton::NSWindowZoomButton);
+
+                        if close != nil {
+                            let _: () = msg_send![close, setHidden: YES];
+                        }
+                        if mini != nil {
+                            let _: () = msg_send![mini, setHidden: YES];
+                        }
+                        if zoom != nil {
+                            let _: () = msg_send![zoom, setHidden: YES];
+                        }
+                    }
+                })
+                .map_err(|e| format!("run_on_main_thread failed: {:?}", e))?;
+        }
+    }
     Ok(())
 }
 

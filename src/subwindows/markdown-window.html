@@ -7,17 +7,33 @@
         <title>Markdown Editor</title>
         <!-- Ensure styles are loaded before content -->
         <style>
-            /* Prevent FOUC (Flash of Unstyled Content) */
-            html { visibility: hidden; }
-            html.loading { visibility: visible; }
+            /* Hide until React has painted to avoid white flash */
+            html { visibility: hidden; background: transparent !important; }
+            html.ready { visibility: visible; }
+            /* Transparent window background so rounded corners cut through */
+            html, body, #root {
+                background: transparent !important;
+                background-color: transparent !important;
+                margin: 0;
+                padding: 0;
+                height: 100%;
+                width: 100%;
+            }
+            /* Dark placeholder so if anything bleeds through before paint it's dark, not white */
+            #root {
+                background: #1a1a1a !important;
+                border-radius: 12px;
+            }
         </style>
     </head>
     <body>
         <div id="root"></div>
         <script type="module" src="/src/subwindows/markdown-window-entry.tsx"></script>
         <script>
-            // Enable visibility once loaded
-            document.documentElement.classList.add('loading');
+            // Force transparent body immediately (before Tailwind loads)
+            document.documentElement.style.setProperty('background', 'transparent', 'important');
+            document.body.style.setProperty('background', 'transparent', 'important');
+            document.body.style.setProperty('background-color', 'transparent', 'important');
         </script>
     </body>
 </html>

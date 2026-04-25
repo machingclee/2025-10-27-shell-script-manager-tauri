@@ -9,6 +9,7 @@ import {
     Terminal,
     FolderInput,
     Folder,
+    Link,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -417,6 +418,13 @@ export default function ScriptItem({
                 >
                     <Play className="w-4 h-4 mr-2" />
                     Execute
+                </ContextMenuItem>
+                <ContextMenuItem
+                    onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
+                    className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                >
+                    <Link className="w-4 h-4 mr-2" />
+                    Copy as Markdown Reference
                 </ContextMenuItem>
                 {!historyVersion && !locked && (
                     <>

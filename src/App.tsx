@@ -2,6 +2,8 @@ import "./App.css";
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import FolderColumn from "./app-component/FolderColumn/FolderColumn";
 import ScriptsColumn from "./app-component/ScriptsColumn/ScriptsColumn";
@@ -130,6 +132,43 @@ function App() {
                 await invoke("raise_subwindows");
             }
         });
+        return () => {
+            unlisten.then((fn) => fn());
+        };
+    }, []);
+
+    // Listen for open-markdown-reference events from subwindows (they can't create windows directly)
+    useEffect(() => {
+        const unlisten = listen<{ scriptId: number; scriptName: string }>(
+            "open-markdown-reference",
+            async ({ payload }) => {
+                const windowLabel = `markdown-${payload.scriptId}`;
+                const existing = await WebviewWindow.getByLabel(windowLabel);
+                if (existing) {
+                    await existing.setFocus();
+                    return;
+                }
+                const url = getSubwindowPaths.markdown(payload.scriptId, false);
+                const webview = new WebviewWindow(windowLabel, {
+                    url,
+                    title: `Edit: ${payload.scriptName}`,
+                    width: 1000,
+                    height: 700,
+                    minWidth: 800,
+                    minHeight: 600,
+                    skipTaskbar: false,
+                    alwaysOnTop: false,
+                    focus: true,
+                    devtools: true,
+                    decorations: false,
+                    hiddenTitle: true,
+                    transparent: true,
+                });
+                webview.once("tauri://error", (err) =>
+                    console.error("Failed to open markdown reference window:", err)
+                );
+            }
+        );
         return () => {
             unlisten.then((fn) => fn());
         };

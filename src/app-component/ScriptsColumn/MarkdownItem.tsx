@@ -1,11 +1,3 @@
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeHighlight from "rehype-highlight";
-import rehypeMathjax from "rehype-mathjax";
-import rehypeStringify from "rehype-stringify";
-import remarkParse from "remark-parse";
-import remarkRehype from "remark-rehype";
-import { unified } from "unified";
 import "highlight.js/styles/github-dark.css";
 import { ScriptsFolderResponse, ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
@@ -35,8 +27,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, FileText, Edit, FolderInput, Folder } from "lucide-react";
-import markdownHTMLTemplate from "./markdownHTMLTemplate";
+import { Trash2, FileText, Edit, FolderInput, Folder, Link } from "lucide-react";
 
 export default function MarkdownItem({
     script,
@@ -121,6 +112,47 @@ export default function MarkdownItem({
         });
     }, []);
 
+    const handleViewClick = async () => {
+        try {
+            if (!script.id) {
+                console.error("Script ID is undefined. Cannot open markdown window.");
+                return;
+            }
+
+            const windowLabel = `markdown-${script.id}`;
+
+            const existing = await WebviewWindow.getByLabel(windowLabel);
+            if (existing) {
+                await existing.setFocus();
+                return;
+            }
+
+            const url = getSubwindowPaths.markdown(script.id, false);
+
+            const webview = new WebviewWindow(windowLabel, {
+                url,
+                title: script.name,
+                width: 1000,
+                height: 700,
+                minWidth: 800,
+                minHeight: 600,
+                skipTaskbar: false,
+                alwaysOnTop: false,
+                focus: true,
+                devtools: true,
+                decorations: false,
+                hiddenTitle: true,
+                transparent: true,
+            });
+
+            webview.once("tauri://error", (e) => {
+                console.error("Error creating markdown window:", e);
+            });
+        } catch (error) {
+            console.error("Failed to create webview window:", error);
+        }
+    };
+
     const handleEditClick = async () => {
         try {
             if (!script.id) {
@@ -149,7 +181,10 @@ export default function MarkdownItem({
                 skipTaskbar: false,
                 alwaysOnTop: false,
                 focus: true,
-                devtools: true, // Enable dev tools to see console errors
+                devtools: true,
+                decorations: false,
+                hiddenTitle: true,
+                transparent: true,
             });
 
             webview.once("tauri://error", (e) => {
@@ -157,45 +192,6 @@ export default function MarkdownItem({
             });
         } catch (error) {
             console.error("Failed to create webview window:", error);
-        }
-    };
-
-    const handleViewAsHtml = async () => {
-        try {
-            const imagesDir = imagesDirRef.current ?? "";
-
-            // Replace images/filename?width=N with the absolute path so the browser can open them
-            const resolvedMarkdown = (script.command || "").replace(
-                /!\[([^\]]*)\]\(images\/([^)]+)\)/g,
-                (_match, altText, rest) => {
-                    const filename = rest.replace(/\?width=\d+$/, "");
-                    const widthMatch = rest.match(/\?width=(\d+)/);
-                    const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : "";
-                    const src = `file://${imagesDir}/${filename}`;
-                    return `<a href="${src}" target="_blank" rel="noopener noreferrer"><img src="${src}" alt="${altText}"${widthAttr} style="max-width:100%" /></a>`;
-                }
-            );
-
-            const file = await unified()
-                .use(remarkParse)
-                .use(remarkGfm)
-                .use(remarkMath)
-                .use(remarkRehype, { allowDangerousHtml: true })
-                .use(rehypeHighlight)
-                .use(rehypeMathjax)
-                .use(rehypeStringify, { allowDangerousHtml: true })
-                .process(resolvedMarkdown);
-
-            const rawBodyHtml = String(file);
-            // Make all links pointing to image files open in a new tab
-            const bodyHtml = rawBodyHtml.replace(
-                /<a\s+(href="[^"]+\.(png|jpg|jpeg|gif|webp|svg|bmp|tiff|avif)(\?[^"]*)?")(\s[^>]*)?>([^<]*)<\/a>/gi,
-                '<a $1 target="_blank" rel="noopener noreferrer">$5</a>'
-            );
-            const html = markdownHTMLTemplate({ scriptName: script.name || "Untitled", bodyHtml });
-            await invoke("write_and_open_html", { html });
-        } catch (error) {
-            console.error("Failed to open as HTML:", error);
         }
     };
 
@@ -221,7 +217,7 @@ export default function MarkdownItem({
                         onMouseDown={() => setIsSelected(true)}
                         onMouseUp={() => setIsSelected(false)}
                         onMouseLeave={() => setIsSelected(false)}
-                        onDoubleClick={handleViewAsHtml}
+                        onDoubleClick={handleViewClick}
                     >
                         {parentFolderPath && (
                             <div className="px-3 pt-2 text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)]">
@@ -279,13 +275,20 @@ export default function MarkdownItem({
                         ></Box>
                     </div>
                 </ContextMenuTrigger>
-                <ContextMenuContent className="w-48 dark:bg-neutral-800 dark:border-neutral-700">
+                <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
                     <ContextMenuItem
                         onClick={handleEditClick}
                         className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
                     >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
+                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
+                    >
+                        <Link className="w-4 h-4 mr-2"/>
+                        Copy as Markdown Reference
                     </ContextMenuItem>
                     <ContextMenuSub>
                         <ContextMenuSubTrigger className="cursor-pointer dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200">

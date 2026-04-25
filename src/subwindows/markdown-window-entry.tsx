@@ -7,6 +7,7 @@ import { appStateApi } from "../store/api/appStateApi";
 import { useAppSelector, useAppDispatch } from "../store/hooks";
 import configSlice from "../store/slices/configSlice";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import "../index.css";
 import { StyledEngineProvider } from "@mui/material/styles";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -52,7 +53,7 @@ function MarkdownWindowContent() {
     const darkMode = appState?.darkMode ?? false;
 
     useEffect(() => {
-        // Get scriptId from URL query parameter
+        // Get scriptId and editMode from URL query parameters
         const params = new URLSearchParams(window.location.search);
         const id = params.get("scriptId");
         if (id) {
@@ -60,23 +61,38 @@ function MarkdownWindowContent() {
         }
     }, []);
 
-    // Apply dark mode class to html element
+    // Apply macOS title bar flags for smooth fullscreen transitions.
+    // Must run before the window is revealed (html.ready) so any AppKit
+    // style-mask changes are invisible to the user.
+    useEffect(() => {
+        invoke("setup_subwindow_appearance", { label: getCurrentWindow().label }).catch(
+            console.error
+        );
+    }, []);
+
+    // Apply dark mode class to html element, and reveal window only after first paint
     useEffect(() => {
         if (darkMode) {
             document.documentElement.classList.add("dark");
         } else {
             document.documentElement.classList.remove("dark");
         }
+        // Remove dark placeholder bg from #root and reveal the window
+        const root = document.getElementById("root");
+        if (root) root.style.removeProperty("background");
+        document.documentElement.classList.add("ready");
     }, [darkMode]);
 
     return (
-        <>
-            {scriptId ? (
-                <MarkdownEditor scriptId={scriptId} />
-            ) : (
-                <div style={{ padding: "20px" }}>Waiting for script ID...</div>
-            )}
-        </>
+        <div className="h-screen w-screen flex flex-col bg-white dark:bg-neutral-800 rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-700">
+            <div className="flex-1 overflow-hidden">
+                {scriptId ? (
+                    <MarkdownEditor scriptId={scriptId} />
+                ) : (
+                    <div style={{ padding: "20px" }}>Waiting for script ID...</div>
+                )}
+            </div>
+        </div>
     );
 }
 

@@ -1,0 +1,14 @@
+{
+    "$schema": "../gen/schemas/desktop-schema.json",
+    "identifier": "markdown-windows",
+    "description": "Capability for markdown editor subwindows",
+    "windows": ["markdown-*"],
+    "permissions": [
+        "core:default",
+        "opener:default",
+        "core:webview:allow-create-webview-window",
+        "core:webview:allow-webview-close",
+        "core:window:allow-get-all-windows",
+        "core:window:allow-set-focus"
+    ]
+}
