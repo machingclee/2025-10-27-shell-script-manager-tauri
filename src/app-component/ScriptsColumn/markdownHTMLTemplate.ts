@@ -49,6 +49,30 @@ export default function markdownHTMLTemplate(props: { scriptName: string; bodyHt
     img { max-width: 100%; border-radius: 4px; }
     mjx-container { display: inline-block; vertical-align: middle; }
     mjx-container[display="true"] { display: block; text-align: center; margin: 1em 0; }
+    .cb-print {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px;
+      margin-top: -2px; margin-right: -1.5em; margin-left: 0;
+      border: 2px solid #999; border-radius: 3px;
+      background-color: transparent;
+      position: relative; left: -2em;
+      vertical-align: middle; flex-shrink: 0; box-sizing: border-box;
+      font-size: 11px; font-weight: 900; line-height: 1;
+      color: transparent;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    .cb-print.cb-checked {
+      border-color: rgb(59,130,246);
+      background-color: rgb(59,130,246);
+      color: white;
+    }
+    @media print {
+      body { font-size: 12px; }
+      input[type="checkbox"] {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -65,6 +89,34 @@ export default function markdownHTMLTemplate(props: { scriptName: string; bodyHt
       cb.style.backgroundPosition = 'center';
       cb.style.backgroundSize = '11px';
     }
+  });
+
+  // Print-safe checkboxes: swap <input> for <span> before printing,
+  // restore after. Unicode ✓ is plain text and always prints in Chrome PDF.
+  var _printBacks = [];
+  window.addEventListener('beforeprint', function() {
+    _printBacks = [];
+    document.querySelectorAll('input[type="checkbox"]').forEach(function(cb, i) {
+      var isChecked = cb.checked || cb.hasAttribute('checked');
+      var span = document.createElement('span');
+      span.className = 'cb-print' + (isChecked ? ' cb-checked' : '');
+      span.textContent = isChecked ? '\u2713' : '';
+      span.dataset.printIdx = String(i);
+      _printBacks.push({ node: cb, parent: cb.parentNode, next: cb.nextSibling });
+      cb.parentNode.replaceChild(span, cb);
+    });
+  });
+  window.addEventListener('afterprint', function() {
+    document.querySelectorAll('span.cb-print').forEach(function(span) {
+      var idx = parseInt(span.dataset.printIdx || '0', 10);
+      var orig = _printBacks[idx];
+      if (orig && orig.parent) {
+        if (orig.next) { orig.parent.insertBefore(orig.node, orig.next); }
+        else { orig.parent.appendChild(orig.node); }
+        span.parentNode && span.parentNode.removeChild(span);
+      }
+    });
+    _printBacks = [];
   });
 </script>
 </html>`;
