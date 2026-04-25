@@ -265,6 +265,32 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                     return `<img src="file://${imagesDir}/${filename}" alt="${altText}"${widthAttr} style="max-width:100%" />`;
                 }
             );
+
+            // Pre-fetch all referenced scripts so we can render styled chips in the HTML.
+            type ScriptMeta = { name: string; isMarkdown: boolean };
+            const itemRefMatches = [...resolvedMarkdown.matchAll(/\[item#(\d+)\]/g)];
+            const scriptMetaMap = new Map<number, ScriptMeta>();
+            if (itemRefMatches.length > 0) {
+                const uniqueIds = [...new Set(itemRefMatches.map((m) => parseInt(m[1], 10)))];
+                await Promise.all(
+                    uniqueIds.map(async (id) => {
+                        try {
+                            const result = await dispatch(
+                                scriptApi.endpoints.getScriptById.initiate(id)
+                            );
+                            if (result.data) {
+                                scriptMetaMap.set(id, {
+                                    name: result.data.name,
+                                    isMarkdown: result.data.isMarkdown,
+                                });
+                            }
+                        } catch {
+                            // leave as-is if lookup fails
+                        }
+                    })
+                );
+            }
+
             const file = await unified()
                 .use(remarkParse)
                 .use(remarkGfm)
@@ -274,7 +300,22 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                 .use(rehypeMathjax)
                 .use(rehypeStringify, { allowDangerousHtml: true })
                 .process(resolvedMarkdown);
-            const bodyHtml = String(file);
+
+            // Replace [item#ID] tokens in the final HTML with styled chips that
+            // mirror the ItemReference React component (icon + name).
+            const FILE_TEXT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;flex-shrink:0"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>`;
+            const TERMINAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;flex-shrink:0"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>`;
+
+            const bodyHtml = String(file).replace(/\[item#(\d+)\]/g, (_m, idStr) => {
+                const id = parseInt(idStr, 10);
+                const meta = scriptMetaMap.get(id);
+                if (!meta) {
+                    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:500;background:rgba(127,29,29,0.3);color:#f87171;border:1px solid rgba(185,28,28,0.5)">[item#${id}]</span>`;
+                }
+                const icon = meta.isMarkdown ? FILE_TEXT_SVG : TERMINAL_SVG;
+                return `<span style="display:inline-flex;align-items:center;gap:6px;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:500;background:rgba(64,64,64,0.4);color:#d4d4d4;border:1px solid rgba(115,115,115,0.6)">${icon}${meta.name}</span>`;
+            });
+
             const html = markdownHTMLTemplate({ scriptName: script.name, bodyHtml });
             await invoke("write_and_open_html", { html });
         } catch (error) {

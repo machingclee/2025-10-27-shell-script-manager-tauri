@@ -2,11 +2,16 @@ import { scriptApi } from "@/store/api/scriptApi";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { FileText, Terminal } from "lucide-react";
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 /**
  * Renders an [item#ID] cross-reference chip inside a markdown preview.
- * - Markdown items: click opens the markdown editor window.
- * - Shell script items: click executes the script.
+ * Right-click to open a context menu with actions (open / execute).
  */
 export default function ItemReference({ id }: { id?: string }) {
     const scriptId = id ? parseInt(id, 10) : undefined;
@@ -14,14 +19,10 @@ export default function ItemReference({ id }: { id?: string }) {
         skip: scriptId == null || isNaN(scriptId ?? NaN),
     });
 
-    const handleClick = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleOpen = async () => {
         if (!script) return;
-
         try {
             if (script.isMarkdown) {
-                // Emit to main window, which has window-creation permissions.
-                // Direct WebviewWindow creation from a subwindow is blocked by capabilities.
                 await emit("open-markdown-reference", {
                     scriptId: script.id,
                     scriptName: script.name,
@@ -34,7 +35,7 @@ export default function ItemReference({ id }: { id?: string }) {
                 }
             }
         } catch (err) {
-            console.error("ItemReference handleClick error:", err);
+            console.error("ItemReference action error:", err);
         }
     };
 
@@ -59,21 +60,25 @@ export default function ItemReference({ id }: { id?: string }) {
     }
 
     return (
-        <span
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium border cursor-pointer select-none transition-colors ${
-                script.isMarkdown
-                    ? "bg-blue-900/30 text-blue-300 border-blue-700/50 hover:bg-blue-800/40"
-                    : "bg-green-900/30 text-green-300 border-green-700/50 hover:bg-green-800/40"
-            }`}
-            onClick={handleClick}
-            title={script.isMarkdown ? "Click to open markdown" : "Click to execute script"}
-        >
-            {script.isMarkdown ? (
-                <FileText className="w-3 h-3 flex-shrink-0" />
-            ) : (
-                <Terminal className="w-3 h-3 flex-shrink-0" />
-            )}
-            {script.name}
-        </span>
+        <ContextMenu>
+            <ContextMenuTrigger asChild>
+                <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-sm font-medium border cursor-context-menu select-none transition-colors bg-neutral-700/80 text-neutral-300 border-neutral-600/60 hover:bg-neutral-600/50"
+                    title="Right-click for actions"
+                >
+                    {script.isMarkdown ? (
+                        <FileText className="w-4 h-4 flex-shrink-0" />
+                    ) : (
+                        <Terminal className="w-4 h-4 flex-shrink-0" />
+                    )}
+                    {script.name}
+                </span>
+            </ContextMenuTrigger>
+            <ContextMenuContent>
+                <ContextMenuItem onClick={handleOpen}>
+                    {script.isMarkdown ? "Open in new window" : "Execute script"}
+                </ContextMenuItem>
+            </ContextMenuContent>
+        </ContextMenu>
     );
 }

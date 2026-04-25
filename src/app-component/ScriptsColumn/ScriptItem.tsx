@@ -85,8 +85,10 @@ export default function ScriptItem({
             return (
                 <ContextMenuSub key={folder.id}>
                     <ContextMenuSubTrigger className={isCurrent ? disabledClass : enabledClass}>
-                        <Folder className="w-4 h-4 mr-2" />
-                        {folder.name}
+                        <div className="flex items-center mr-2">
+                            <Folder className="w-4 h-4 mr-2" />
+                            {folder.name}
+                        </div>
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
                         <ContextMenuItem
@@ -419,13 +421,7 @@ export default function ScriptItem({
                     <Play className="w-4 h-4 mr-2" />
                     Execute
                 </ContextMenuItem>
-                <ContextMenuItem
-                    onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
-                    className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
-                >
-                    <Link className="w-4 h-4 mr-2" />
-                    Copy as Markdown Reference
-                </ContextMenuItem>
+
                 {!historyVersion && !locked && (
                     <>
                         <ContextMenuItem
@@ -440,11 +436,20 @@ export default function ScriptItem({
                                 <FolderInput className="w-4 h-4 mr-2" />
                                 Move to Folder
                             </ContextMenuSubTrigger>
+                            <ContextMenuItem
+                                onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
+                                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 pr-4"
+                            >
+                                <Link className="w-4 h-4 mr-2" />
+                                Copy as Markdown Reference
+                            </ContextMenuItem>
                             <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
                                 {workspaces.map((workspace) => (
                                     <ContextMenuSub key={workspace.id}>
                                         <ContextMenuSubTrigger className="cursor-pointer dark:hover:bg-neutral-700 dark:text-neutral-200">
-                                            {workspace.name}
+                                            <div className="flex items-center mr-2">
+                                                {workspace.name}
+                                            </div>
                                         </ContextMenuSubTrigger>
                                         <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
                                             {workspace.folders.map((folder) =>

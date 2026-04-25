@@ -58,8 +58,10 @@ export default function MarkdownItem({
             return (
                 <ContextMenuSub key={folder.id}>
                     <ContextMenuSubTrigger className={isCurrent ? disabledClass : enabledClass}>
-                        <Folder className="w-4 h-4 mr-2" />
-                        {folder.name}
+                        <div className="flex items-center mr-2">
+                            <Folder className="w-4 h-4 mr-2" />
+                            {folder.name}
+                        </div>
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
                         <ContextMenuItem
@@ -283,13 +285,7 @@ export default function MarkdownItem({
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                     </ContextMenuItem>
-                    <ContextMenuItem
-                        onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
-                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
-                    >
-                        <Link className="w-4 h-4 mr-2"/>
-                        Copy as Markdown Reference
-                    </ContextMenuItem>
+
                     <ContextMenuSub>
                         <ContextMenuSubTrigger className="cursor-pointer dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-neutral-200">
                             <FolderInput className="w-4 h-4 mr-2" />
@@ -299,7 +295,9 @@ export default function MarkdownItem({
                             {workspaces.map((workspace) => (
                                 <ContextMenuSub key={workspace.id}>
                                     <ContextMenuSubTrigger className="cursor-pointer dark:hover:bg-neutral-700 dark:text-neutral-200">
-                                        {workspace.name}
+                                        <div className="flex items-center mr-2">
+                                            {workspace.name}
+                                        </div>
                                     </ContextMenuSubTrigger>
                                     <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
                                         {workspace.folders.map((folder) =>
@@ -318,6 +316,13 @@ export default function MarkdownItem({
                             ))}
                         </ContextMenuSubContent>
                     </ContextMenuSub>
+                    <ContextMenuItem
+                        onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
+                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                    >
+                        <Link className="w-4 h-4 mr-2" />
+                        Copy as Markdown Reference
+                    </ContextMenuItem>
                     <ContextMenuSeparator className="dark:bg-neutral-700" />
                     <ContextMenuItem
                         onClick={handleDelete}
