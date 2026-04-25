@@ -165,15 +165,18 @@ function SearchBar({
     );
 }
 
-export default function MarkdownEditor({ scriptId }: { scriptId: number | undefined }) {
+export default function MarkdownEditor({
+    port,
+    scriptId,
+}: {
+    port?: number;
+    scriptId: number | undefined;
+}) {
     const dispatch = useAppDispatch();
 
-    const { data: script, isLoading: scriptIsLoading } = scriptApi.endpoints.getScriptById.useQuery(
-        scriptId,
-        {
-            skip: !(scriptId != null),
-        }
-    );
+    const { data: script } = scriptApi.endpoints.getScriptById.useQuery(scriptId, {
+        skip: !(scriptId != null) || port === 0,
+    });
 
     // Read editMode from URL query parameter
     const urlParams = new URLSearchParams(window.location.search);
@@ -436,7 +439,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             // the latest saved content from the server.
             latestContentRef.current = content;
         }
-    }, [script]);
+    }, [script, editorReady]);
 
     // Undo/redo via capture-phase native listener so it beats WKWebView's NSUndoManager
     const editorWrapperRef = useRef<HTMLDivElement>(null);
@@ -1206,13 +1209,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
 
             {/* Content */}
             <div className="flex-1 overflow-hidden">
-                {scriptIsLoading || (isEditMode && !editorReady) ? (
-                    <div className="flex items-center justify-center h-full">
-                        <div className="text-gray-500 dark:text-gray-400">
-                            Loading script data...
-                        </div>
-                    </div>
-                ) : isEditMode ? (
+                {isEditMode ? (
                     editViewMode === "plain" ? (
                         <div className="relative h-full">
                             {editorSearchOpen && (
@@ -1670,7 +1667,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 padding: "24px",
                                 ".dark &": {
                                     backgroundColor: "rgba(255, 255, 255, 0.05) !important",
-                                    color: "rgb(212, 212, 212) !important",
+                                    color: "rgb(220, 220, 220) !important",
                                 },
                                 "& h1": {
                                     fontSize: "2em",

@@ -11,6 +11,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import "../index.css";
 import { StyledEngineProvider } from "@mui/material/styles";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import clsx from "clsx";
 
 // Intercept all link clicks and open them in the default browser
 document.addEventListener("click", (e) => {
@@ -29,6 +30,14 @@ function MarkdownWindowContent() {
     const dispatch = useAppDispatch();
     const [scriptId, setScriptId] = useState<number | undefined>(undefined);
     const backendPort = useAppSelector((s) => s.config.backendPort);
+    const [animationStarted, setAnimationStarted] = useState(false);
+
+    useEffect(() => {
+        setTimeout(() => {
+            console.log("Starting window animation");
+            setAnimationStarted(true);
+        }, 50);
+    }, []);
 
     // Fetch backend port on mount (only in production, dev uses default 7070)
     useEffect(() => {
@@ -84,10 +93,17 @@ function MarkdownWindowContent() {
     }, [darkMode]);
 
     return (
-        <div className="h-screen w-screen flex flex-col bg-white dark:bg-neutral-800 rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-700">
+        <div
+            className={clsx(
+                "h-screen w-screen flex flex-col bg-white dark:bg-neutral-800 rounded-xl overflow-hidden border border-gray-200 dark:border-neutral-700",
+                {
+                    "window-fade-in": animationStarted,
+                }
+            )}
+        >
             <div className="flex-1 overflow-hidden">
-                {scriptId ? (
-                    <MarkdownEditor scriptId={scriptId} />
+                {animationStarted && scriptId ? (
+                    <MarkdownEditor scriptId={scriptId} port={backendPort} />
                 ) : (
                     <div style={{ padding: "20px" }}>Waiting for script ID...</div>
                 )}

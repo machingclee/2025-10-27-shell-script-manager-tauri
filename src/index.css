@@ -95,6 +95,19 @@
     background-color: rgba(115, 115, 115, 0.7);
 }
 
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.window-fade-in {
+    animation: fade-in 0.25s ease-out;
+}
+
 @keyframes preview-flash {
     0% {
         background-color: transparent;
@@ -128,4 +141,3 @@ mark.editor-search-mark {
 mark.editor-search-mark.active {
     background-color: rgba(255, 160, 0, 0.6);
 }
-
