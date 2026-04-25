@@ -11,6 +11,14 @@ export interface MarkdownShortcutOptions {
     onFind?: () => void;
     /** Cmd/Ctrl + Enter */
     onSubmit?: () => void;
+    /** Escape (bare, no modifier) */
+    onEscape?: () => void;
+    /** Cmd/Ctrl + = or + */
+    onZoomIn?: () => void;
+    /** Cmd/Ctrl + - */
+    onZoomOut?: () => void;
+    /** Cmd/Ctrl + 0 */
+    onZoomReset?: () => void;
 }
 
 /**
@@ -27,11 +35,21 @@ export function useMarkdownShortcuts({
     onClose,
     onFind,
     onSubmit,
+    onEscape,
+    onZoomIn,
+    onZoomOut,
+    onZoomReset,
 }: MarkdownShortcutOptions) {
     useEffect(() => {
         if (!enabled) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape" && !e.metaKey && !e.ctrlKey && !e.altKey && onEscape) {
+                e.preventDefault();
+                onEscape();
+                return;
+            }
+
             if (!(e.metaKey || e.ctrlKey)) return;
 
             if (e.key === "s" && onSave) {
@@ -55,10 +73,29 @@ export function useMarkdownShortcuts({
             if (e.key === "Enter" && onSubmit) {
                 e.preventDefault();
                 onSubmit();
+                return;
+            }
+
+            if ((e.key === "=" || e.key === "+") && onZoomIn) {
+                e.preventDefault();
+                onZoomIn();
+                return;
+            }
+
+            if (e.key === "-" && onZoomOut) {
+                e.preventDefault();
+                onZoomOut();
+                return;
+            }
+
+            if (e.key === "0" && onZoomReset) {
+                e.preventDefault();
+                onZoomReset();
+                return;
             }
         };
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [enabled, onSave, onClose, onFind, onSubmit]);
+    }, [enabled, onSave, onClose, onFind, onSubmit, onEscape, onZoomIn, onZoomOut, onZoomReset]);
 }

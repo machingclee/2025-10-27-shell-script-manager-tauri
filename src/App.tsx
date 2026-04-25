@@ -18,6 +18,7 @@ import configSlice from "./store/slices/configSlice";
 import { folderApi } from "./store/api/folderApi";
 import HistoryButton from "./app-component/History/HistoryButton";
 import HistoryPanel from "./app-component/History/HistoryPanel";
+import QuickNavDropdown from "./app-component/ScriptsColumn/QuickNavDropdown";
 import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
 // import AIProfileButton from "./app-component/AIProfile/AIProfileButton";
@@ -26,6 +27,11 @@ function App() {
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const isHistoryOpen = useAppSelector((s) => s.history.isOpen);
+    const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
+    const notifyScriptExecutedRef = useRef(notifyScriptExecuted);
+    useEffect(() => {
+        notifyScriptExecutedRef.current = notifyScriptExecuted;
+    }, [notifyScriptExecuted]);
 
     // Only fetch when backend port is available
     const { data: appState } = appStateApi.endpoints.getAppState.useQuery(undefined, {
@@ -159,6 +165,77 @@ function App() {
             unlisten.then((fn) => fn());
         };
     }, []);
+
+    // Handle QuickNavDropdown actions emitted from any window (including markdown subwindows)
+    useEffect(() => {
+        const unlisten = listen<{ scriptId: number; editMode: boolean; scriptName: string }>(
+            "quick-nav-open-markdown",
+            async ({ payload }) => {
+                const windowLabel = `markdown-${payload.scriptId}`;
+                const existing = await WebviewWindow.getByLabel(windowLabel);
+                if (existing) {
+                    await existing.setFocus();
+                    return;
+                }
+                const url = getSubwindowPaths.markdown(payload.scriptId, payload.editMode);
+                const webview = new WebviewWindow(windowLabel, {
+                    url,
+                    title: payload.editMode ? `Edit: ${payload.scriptName}` : payload.scriptName,
+                    width: 1000,
+                    height: 700,
+                    minWidth: 800,
+                    minHeight: 600,
+                    skipTaskbar: false,
+                    alwaysOnTop: false,
+                    focus: true,
+                    devtools: true,
+                    decorations: false,
+                    hiddenTitle: true,
+                    transparent: true,
+                });
+                webview.once("tauri://error", (e) =>
+                    console.error("Error creating markdown window from QuickNav:", e)
+                );
+            }
+        );
+        return () => {
+            unlisten.then((fn) => fn());
+        };
+    }, []);
+
+    useEffect(() => {
+        const unlisten = listen<{ scriptId: number; command: string; showShell: boolean }>(
+            "quick-nav-execute-script",
+            async ({ payload }) => {
+                dispatch(
+                    rootFolderSlice.actions.setExecutingScript({
+                        script_id: payload.scriptId,
+                        loading: true,
+                    })
+                );
+                try {
+                    if (payload.showShell) {
+                        await invoke("execute_command_in_shell", { command: payload.command });
+                    } else {
+                        await invoke("execute_command", { command: payload.command });
+                    }
+                    await notifyScriptExecutedRef.current({ scriptId: payload.scriptId });
+                } catch (err) {
+                    console.error("Failed to execute script via QuickNav:", err);
+                } finally {
+                    dispatch(
+                        rootFolderSlice.actions.setExecutingScript({
+                            script_id: payload.scriptId,
+                            loading: false,
+                        })
+                    );
+                }
+            }
+        );
+        return () => {
+            unlisten.then((fn) => fn());
+        };
+    }, [dispatch]);
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -340,9 +417,10 @@ function App() {
                             {isMaximized ? "−" : "+"}
                         </span>
                     </button>
+                    <QuickNavDropdown />
                 </div>
 
-                {/* History button (right side) */}
+                {/* Right-side controls */}
                 <div className="absolute right-4 z-10 flex items-center gap-2">
                     {/* <AIProfileButton /> */}
                     <HistoryButton />

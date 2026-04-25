@@ -9,6 +9,7 @@ import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback } fr
 import { Box } from "@mui/material";
 import { Button } from "@/components/ui/button";
 import { Edit, Eye, AlignLeft, Columns2, Globe } from "lucide-react";
+import QuickNavDropdown from "./QuickNavDropdown";
 import { useAppDispatch } from "@/store/hooks";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
@@ -26,6 +27,7 @@ import ItemReference from "./ItemReference";
 import { generateScriptHtml } from "@/lib/generateScriptHtml";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
+const DEFAULT_FONT_SIZE = 18;
 
 // Rehype plugin: annotate block elements with their source line number
 function rehypeAddSourceLines() {
@@ -189,6 +191,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     // Prevents SimpleEditor from mounting with an empty string and letting
     // WKWebView's NSUndoManager record "" → content as an undoable action.
     const [editorReady, setEditorReady] = useState(false);
+    const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
     const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
     const latestContentRef = useRef("");
@@ -243,6 +246,11 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const undoStackRef = useRef<string[]>([]);
     const undoIndexRef = useRef(-1);
     const isUndoingRef = useRef(false);
+
+    // Cursor position navigation history (Alt+Arrow)
+    const cursorHistoryRef = useRef<number[]>([]);
+    const cursorHistoryIdxRef = useRef(-1);
+    const isNavigatingCursorHistoryRef = useRef(false);
 
     const pushHistory = useCallback((content: string) => {
         if (isUndoingRef.current) return; // ignore changes triggered by our own undo/redo
@@ -330,6 +338,15 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                 setTimeout(() => previewSearchInputRef.current?.focus(), 0);
             }
         },
+        onEscape: () => {
+            setEditorSearchOpen(false);
+            setEditorSearchQuery("");
+            setPreviewSearchOpen(false);
+            setPreviewSearchQuery("");
+        },
+        onZoomIn: () => setFontSize((s) => Math.min(s + 1, 36)),
+        onZoomOut: () => setFontSize((s) => Math.max(s - 1, 8)),
+        onZoomReset: () => setFontSize(DEFAULT_FONT_SIZE),
     });
 
     const handleCancelEdit = () => {
@@ -465,7 +482,66 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         };
         textarea.addEventListener("input", nativeUndoInputHandler, true);
 
+        const scrollToPos = (pos: number) => {
+            const content = latestContentRef.current;
+            const lineNum = content.slice(0, pos).split("\n").length - 1;
+            const wrapper = editorWrapperRef.current;
+            if (wrapper) {
+                const LINE_HEIGHT = 15 * 1.5;
+                const lineTop = 16 + lineNum * LINE_HEIGHT;
+                wrapper.scrollTop = Math.max(
+                    0,
+                    lineTop - wrapper.clientHeight / 2 + LINE_HEIGHT / 2
+                );
+            }
+        };
+
         const handler = (e: KeyboardEvent) => {
+            // Alt+ArrowLeft / Alt+ArrowRight — cursor position history navigation
+            if (
+                e.altKey &&
+                !e.metaKey &&
+                !e.ctrlKey &&
+                (e.key === "ArrowLeft" || e.key === "ArrowRight")
+            ) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                isNavigatingCursorHistoryRef.current = true;
+                if (e.key === "ArrowLeft") {
+                    // Snapshot the current position before going back so Alt+Right can return here
+                    const currentPos = textarea.selectionStart;
+                    const history = cursorHistoryRef.current;
+                    const idx = cursorHistoryIdxRef.current;
+                    const lastRecorded = idx >= 0 ? history[idx] : undefined;
+                    if (currentPos !== lastRecorded) {
+                        const newHistory = history.slice(0, idx + 1);
+                        newHistory.push(currentPos);
+                        if (newHistory.length > 200) newHistory.shift();
+                        cursorHistoryRef.current = newHistory;
+                        cursorHistoryIdxRef.current = newHistory.length - 1;
+                    }
+                    const newIdx = cursorHistoryIdxRef.current;
+                    if (newIdx > 0) {
+                        cursorHistoryIdxRef.current = newIdx - 1;
+                        const pos = cursorHistoryRef.current[cursorHistoryIdxRef.current];
+                        textarea.setSelectionRange(pos, pos);
+                        scrollToPos(pos);
+                    }
+                } else if (e.key === "ArrowRight") {
+                    const idx = cursorHistoryIdxRef.current;
+                    if (idx < cursorHistoryRef.current.length - 1) {
+                        cursorHistoryIdxRef.current = idx + 1;
+                        const pos = cursorHistoryRef.current[cursorHistoryIdxRef.current];
+                        textarea.setSelectionRange(pos, pos);
+                        scrollToPos(pos);
+                    }
+                }
+                setTimeout(() => {
+                    isNavigatingCursorHistoryRef.current = false;
+                }, 0);
+                return;
+            }
+
             if (!(e.metaKey || e.ctrlKey)) return;
             if (e.key === "z" && !e.shiftKey) {
                 e.preventDefault();
@@ -503,6 +579,59 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             textarea.removeEventListener("keydown", handler, true);
             textarea.removeEventListener("beforeinput", beforeInputHandler, true);
             textarea.removeEventListener("input", nativeUndoInputHandler, true);
+        };
+    }, [isEditMode, editorReady]);
+
+    // Record cursor positions for Alt+Arrow history navigation
+    useEffect(() => {
+        if (!isEditMode || !editorReady) return;
+        const container = editorWrapperRef.current;
+        if (!container) return;
+        const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
+        if (!textarea) return;
+
+        const recordPos = () => {
+            if (isNavigatingCursorHistoryRef.current) return;
+            const pos = textarea.selectionStart;
+            const history = cursorHistoryRef.current;
+            const idx = cursorHistoryIdxRef.current;
+            const current = idx >= 0 ? history[idx] : undefined;
+            if (current === pos) return;
+            const newHistory = history.slice(0, idx + 1);
+            newHistory.push(pos);
+            if (newHistory.length > 200) newHistory.shift();
+            cursorHistoryRef.current = newHistory;
+            cursorHistoryIdxRef.current = newHistory.length - 1;
+        };
+
+        let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+        const scheduleRecord = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(recordPos, 300);
+        };
+
+        const handleMouseUp = () => setTimeout(recordPos, 10);
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.altKey) return; // Alt+Arrow is handled by the keydown listener
+            const navKeys = [
+                "ArrowLeft",
+                "ArrowRight",
+                "ArrowUp",
+                "ArrowDown",
+                "Home",
+                "End",
+                "PageUp",
+                "PageDown",
+            ];
+            if (navKeys.includes(e.key)) scheduleRecord();
+        };
+
+        textarea.addEventListener("mouseup", handleMouseUp);
+        textarea.addEventListener("keyup", handleKeyUp);
+        return () => {
+            textarea.removeEventListener("mouseup", handleMouseUp);
+            textarea.removeEventListener("keyup", handleKeyUp);
+            if (debounceTimer) clearTimeout(debounceTimer);
         };
     }, [isEditMode, editorReady]);
 
@@ -611,10 +740,17 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         const lineNum = editContent.slice(0, match).split("\n").length - 1;
         const wrapper = editorWrapperRef.current;
         if (wrapper) {
-            const lineTop = 16 + lineNum * 22.5;
-            wrapper.scrollTop = Math.max(0, lineTop - wrapper.clientHeight / 2 + 11);
+            const lineTop = 16 + lineNum * (fontSize * 1.5);
+            wrapper.scrollTop = Math.max(0, lineTop - wrapper.clientHeight / 2 + fontSize * 0.75);
         }
-    }, [editorSearchIdx, editorSearchMatches, editorSearchQuery, editorSearchOpen, editContent]);
+    }, [
+        editorSearchIdx,
+        editorSearchMatches,
+        editorSearchQuery,
+        editorSearchOpen,
+        editContent,
+        fontSize,
+    ]);
 
     // ── Preview search ─────────────────────────────────────────────────────────
     // After ReactMarkdown commits (with marks already injected by the rehype plugin),
@@ -710,10 +846,11 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             const lineNum = editContent.slice(0, pos).split("\n").length;
             scrollPreviewToLine(lineNum, flash);
         },
-        [editContent, scrollPreviewToLine]
+        [editContent, scrollPreviewToLine, fontSize]
     );
 
     const handlePreviewDoubleClick = useCallback(
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         (e: React.MouseEvent) => {
             let el = e.target as HTMLElement | null;
             while (el) {
@@ -733,8 +870,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                         // Scroll the editor wrapper so the target line is centred in view
                         const wrapper = editorWrapperRef.current;
                         if (wrapper) {
-                            const FONT_SIZE = 15;
-                            const LINE_HEIGHT = FONT_SIZE * 1.5; // matches SimpleEditor style
+                            const LINE_HEIGHT = fontSize * 1.5; // matches SimpleEditor style
                             const PADDING = 16;
                             const lineTop = PADDING + lineNum * LINE_HEIGHT;
                             const centredScrollTop =
@@ -862,9 +998,9 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                         src={imgSrc}
                         alt={alt ?? ""}
                         style={{
-                            maxWidth: "100%",
+                            maxWidth: width ? `${width}px` : "100%",
+                            width: "100%",
                             borderRadius: "4px",
-                            ...(width ? { width: `${width}px` } : {}),
                         }}
                     />
                 );
@@ -951,6 +1087,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 −
                             </span>
                         </button>
+
                         <button
                             onClick={async () => {
                                 const next = !isFullscreen;
@@ -964,15 +1101,11 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 {isFullscreen ? "↙" : "↗"}
                             </span>
                         </button>
+                        <QuickNavDropdown />
                     </div>
 
                     {/* Icon + title/name input */}
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {isEditMode ? (
-                            <Edit className="w-4 h-4 text-black dark:text-white flex-shrink-0" />
-                        ) : (
-                            <Eye className="w-4 h-4 text-black dark:text-white flex-shrink-0" />
-                        )}
                         {isEditMode ? (
                             <input
                                 type="text"
@@ -1118,7 +1251,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                             padding: "16px",
                                             fontFamily:
                                                 '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                            fontSize: "15px",
+                                            fontSize: `${fontSize}px`,
                                             lineHeight: "1.5",
                                             color: "transparent",
                                             pointerEvents: "none",
@@ -1147,7 +1280,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     style={{
                                         fontFamily:
                                             '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                        fontSize: 15,
+                                        fontSize: fontSize,
                                         lineHeight: 1.5,
                                         minHeight: "100%",
                                         backgroundColor: "#1e1e1e",
@@ -1211,7 +1344,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                                 padding: "16px",
                                                 fontFamily:
                                                     '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                                fontSize: "15px",
+                                                fontSize: `${fontSize}px`,
                                                 lineHeight: "1.5",
                                                 color: "transparent",
                                                 pointerEvents: "none",
@@ -1242,7 +1375,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                         style={{
                                             fontFamily:
                                                 '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                            fontSize: 15,
+                                            fontSize: fontSize,
                                             lineHeight: 1.5,
                                             minHeight: "100%",
                                             backgroundColor: "#1e1e1e",
@@ -1301,6 +1434,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     style={{ width: "100%" }}
                                     onDoubleClick={handlePreviewDoubleClick}
                                     sx={{
+                                        fontSize: `${fontSize}px`,
                                         height: "100%",
                                         userSelect: "text",
                                         cursor: "text",
@@ -1473,13 +1607,15 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                         },
                                     }}
                                 >
-                                    <ReactMarkdown
-                                        remarkPlugins={remarkPluginsWithItemRef}
-                                        rehypePlugins={rehypePluginsMixedPreview}
-                                        components={markdownComponents}
-                                    >
-                                        {editContent}
-                                    </ReactMarkdown>
+                                    <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+                                        <ReactMarkdown
+                                            remarkPlugins={remarkPluginsWithItemRef}
+                                            rehypePlugins={rehypePluginsMixedPreview}
+                                            components={markdownComponents}
+                                        >
+                                            {editContent}
+                                        </ReactMarkdown>
+                                    </div>
                                 </Box>
                             </div>
                         </div>
@@ -1512,6 +1648,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                             ref={viewBoxRef}
                             className="markdown-preview"
                             sx={{
+                                fontSize: `${fontSize}px`,
                                 height: "100%",
                                 userSelect: "text",
                                 cursor: "text",
@@ -1685,14 +1822,16 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                             }}
                             onDoubleClick={handleEnableEdit}
                         >
-                            <ReactMarkdown
-                                key={script?.command}
-                                remarkPlugins={remarkPluginsWithItemRef}
-                                rehypePlugins={rehypePluginsViewPreview}
-                                components={markdownComponents}
-                            >
-                                {script?.command || ""}
-                            </ReactMarkdown>
+                            <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+                                <ReactMarkdown
+                                    key={script?.command}
+                                    remarkPlugins={remarkPluginsWithItemRef}
+                                    rehypePlugins={rehypePluginsViewPreview}
+                                    components={markdownComponents}
+                                >
+                                    {script?.command || ""}
+                                </ReactMarkdown>
+                            </div>
                         </Box>
                     </div>
                 )}
