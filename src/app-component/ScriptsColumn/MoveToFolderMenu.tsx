@@ -9,6 +9,7 @@ import {
     ContextMenuSubTrigger,
 } from "@/components/ui/context-menu";
 import { Folder, FolderInput } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
 
 function containsFolder(folder: ScriptsFolderResponse, targetId: number): boolean {
     if (folder.id === targetId) return true;
@@ -85,7 +86,10 @@ export default function MoveToFolderMenu({
     scriptId: number;
     currentFolderId: number;
 }) {
-    const { data: workspaces = [] } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined);
+    const port = useAppSelector((s) => s.config.backendPort);
+    const { data: workspaces } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined, {
+        skip: port === 0,
+    });
     const [moveScriptIntoFolder] = scriptApi.endpoints.moveScriptIntoFolder.useMutation();
 
     const handleMove = (folderId: number, rootFolderId: number) => {
@@ -99,7 +103,7 @@ export default function MoveToFolderMenu({
                 Move to Folder
             </ContextMenuSubTrigger>
             <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
-                {workspaces.map((workspace) => (
+                {(workspaces || []).map((workspace) => (
                     <ContextMenuSub key={workspace.id}>
                         <ContextMenuSubTrigger className="cursor-pointer dark:hover:bg-neutral-700 dark:text-neutral-200">
                             <div className="flex items-center mr-2">{workspace.name}</div>

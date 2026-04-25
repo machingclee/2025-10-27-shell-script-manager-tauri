@@ -9,6 +9,7 @@ import { AiScriptedToolDTO, AIProfileDTO } from "@/types/dto";
 import { workspaceApi } from "@/store/api/workspaceApi";
 import dayjs from "dayjs";
 import { Edit, Plus, Trash2 } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
 
 interface AIScriptedToolsColumnProps {
     selectedProfile: AIProfileDTO | null;
@@ -25,7 +26,10 @@ export const AIScriptedToolsColumn = ({
     onCreateTool,
     onDeleteTool,
 }: AIScriptedToolsColumnProps) => {
-    const { data: workspaces } = workspaceApi.endpoints.getAllWorkspaces.useQuery();
+    const port = useAppSelector((s) => s.config.backendPort);
+    const { data: workspaces } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined, {
+        skip: port === 0,
+    });
 
     const findScriptDetails = (scriptId: number) => {
         if (!workspaces) return null;

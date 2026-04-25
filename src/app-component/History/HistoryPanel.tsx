@@ -1,9 +1,13 @@
 import { scriptApi } from "@/store/api/scriptApi";
 import GenericScriptItem from "../ScriptsColumn/GenericScriptItem";
 import dayjs from "dayjs";
+import { useAppSelector } from "@/store/hooks";
 
 export default function HistoryPanel() {
-    const { data: histories } = scriptApi.endpoints.getScriptHistories.useQuery();
+    const backendPort = useAppSelector((s) => s.config.backendPort);
+    const { data: histories } = scriptApi.endpoints.getScriptHistories.useQuery(undefined, {
+        skip: backendPort === 0,
+    });
 
     return (
         <div className="h-full flex flex-col bg-white dark:bg-neutral-800 border-l border-gray-200 dark:border-neutral-700">

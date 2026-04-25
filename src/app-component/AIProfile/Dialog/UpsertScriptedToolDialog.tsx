@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { AiScriptedToolDTO, ScriptsFolderResponse } from "@/types/dto";
 import { workspaceApi } from "@/store/api/workspaceApi";
 import { useState, useEffect, useMemo } from "react";
+import { useAppSelector } from "@/store/hooks";
 
 export const UpsertScriptedToolDialog = (props: {
     isOpen: boolean;
@@ -30,8 +31,10 @@ export const UpsertScriptedToolDialog = (props: {
     existingTools?: AiScriptedToolDTO[];
 }) => {
     const { isOpen, setIsOpen, scriptedTool, onSave, existingTools = [] } = props;
-
-    const { data: workspaces } = workspaceApi.endpoints.getAllWorkspaces.useQuery();
+    const port = useAppSelector((s) => s.config.backendPort);
+    const { data: workspaces } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined, {
+        skip: port === 0,
+    });
 
     const [name, setName] = useState("");
     const [toolDescription, setToolDescription] = useState("");

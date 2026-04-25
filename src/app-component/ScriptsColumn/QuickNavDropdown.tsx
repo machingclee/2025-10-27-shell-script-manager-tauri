@@ -42,6 +42,7 @@ import {
     Link,
     Building2,
 } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
 
 // ─── Script right-click context actions ───────────────────────────────────────
 function ScriptContextActions({
@@ -196,7 +197,10 @@ function FolderNode({
 
 // ─── Main QuickNavDropdown ─────────────────────────────────────────────────────
 export default function QuickNavDropdown() {
-    const { data: workspaces = [] } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined);
+    const port = useAppSelector((s) => s.config.backendPort);
+    const { data: workspaces } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined, {
+        skip: port === 0,
+    });
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
 
     const [pendingDelete, setPendingDelete] = useState<{
@@ -230,12 +234,12 @@ export default function QuickNavDropdown() {
                     className="dark:bg-neutral-800 dark:border-neutral-700"
                     align="end"
                 >
-                    {workspaces.length === 0 && (
+                    {(workspaces || []).length === 0 && (
                         <DropdownMenuItem disabled className="dark:text-neutral-500">
                             No workspaces
                         </DropdownMenuItem>
                     )}
-                    {workspaces.map((workspace) => (
+                    {(workspaces || []).map((workspace) => (
                         <DropdownMenuSub key={workspace.id}>
                             <DropdownMenuSubTrigger className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700 dark:hover:bg-neutral-700">
                                 <Building2 className="w-4 h-4 mr-2" />

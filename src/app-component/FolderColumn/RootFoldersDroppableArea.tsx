@@ -4,6 +4,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import clsx from "clsx";
 import SortableFolderItem from "./SortableFolderItem";
 import { workspaceApi } from "@/store/api/workspaceApi";
+import { useAppSelector } from "@/store/hooks";
 
 export default function RootFoldersDroppableArea({
     folders,
@@ -22,7 +23,10 @@ export default function RootFoldersDroppableArea({
     handleDelete: (id: number) => Promise<void>;
     handleCreateSubfolder: (parentId: number, subfolderName: string) => Promise<void>;
 }) {
-    const workspaces = workspaceApi.endpoints.getAllWorkspaces.useQuery();
+    const port = useAppSelector((s) => s.config.backendPort);
+    const { data: workspaces } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined, {
+        skip: port === 0,
+    });
 
     const { setNodeRef, isOver } = useDroppable({
         id: "root-folders-area",
@@ -42,8 +46,8 @@ export default function RootFoldersDroppableArea({
                 "min-h-[100px] rounded-md transition-colors mt-",
                 isOver && "bg-neutral-300 dark:bg-neutral-600",
                 {
-                    "py-4": (workspaces.data?.length || 0) > 0,
-                    "py-0": (workspaces.data?.length || 0) === 0,
+                    "py-4": ((workspaces || [])?.length || 0) > 0,
+                    "py-0": ((workspaces || [])?.length || 0) === 0,
                 }
             )}
         >

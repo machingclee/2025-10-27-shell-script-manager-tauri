@@ -304,7 +304,7 @@ class OneTransactionCommandInvoker(
                 val invariantAnnotation = method.getAnnotation(Invariant::class.java)
 
                 val fromEvent = method.parameterTypes.firstOrNull()
-                    ?.takeIf { it != PlaceholderEvent::class.java }
+                    ?.takeIf { it != ToBeArrangedEvent::class.java }
                     ?.simpleName
                 val toCommand = nextCommand?.value?.simpleName
                 val invariant = invariantAnnotation?.value?.firstOrNull()
