@@ -18,7 +18,8 @@
                 "width": 1300,
                 "height": 800,
                 "titleBarStyle": "Overlay",
-                "hiddenTitle": true
+                "hiddenTitle": true,
+                "devtools": true
             }
         ],
         "security": {
@@ -45,7 +46,9 @@
                         "core:webview:allow-create-webview-window",
                         "core:webview:allow-webview-close",
                         "core:webview:allow-webview-position",
-                        "core:webview:allow-webview-size"
+                        "core:webview:allow-webview-size",
+                        "core:webview:allow-internal-toggle-devtools",
+                        "deep-link:default"
                     ]
                 },
                 {
@@ -81,5 +84,12 @@
             "icons/icon.ico"
         ],
         "resources": ["resources/backend-spring/backend-native"]
+    },
+    "plugins": {
+        "deep-link": {
+            "desktop": {
+                "schemes": ["tauri-shellscript-manager"]
+            }
+        }
     }
 }

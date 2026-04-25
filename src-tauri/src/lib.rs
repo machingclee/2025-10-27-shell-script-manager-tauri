@@ -47,8 +47,7 @@ fn raise_subwindows(app: tauri::AppHandle) {
         }
 
         // Ask NSApp for the current front-to-back window order.
-        let ns_app: cocoa::base::id =
-            msg_send![class!(NSApplication), sharedApplication];
+        let ns_app: cocoa::base::id = msg_send![class!(NSApplication), sharedApplication];
         let ordered: cocoa::base::id = msg_send![ns_app, orderedWindows];
         let count: usize = msg_send![ordered, count];
 
@@ -349,6 +348,7 @@ async fn write_and_open_html(html: String) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             close_subwindow,
             raise_subwindows,
@@ -1172,7 +1172,8 @@ async fn setup_subwindow_appearance(app: tauri::AppHandle, label: String) -> Res
             // Cocoa wrapper types are not.
             let ns_window_ptr = window
                 .ns_window()
-                .map_err(|e| format!("ns_window failed: {:?}", e))? as id as usize;
+                .map_err(|e| format!("ns_window failed: {:?}", e))?
+                as id as usize;
 
             // AppKit APIs MUST run on the main thread. Async Tauri commands run
             // on Tokio worker threads, so we dispatch back to the main thread.
@@ -1192,16 +1193,14 @@ async fn setup_subwindow_appearance(app: tauri::AppHandle, label: String) -> Res
                         ns_window.setStyleMask_(style_mask);
 
                         ns_window.setTitlebarAppearsTransparent_(YES);
-                        ns_window.setTitleVisibility_(
-                            NSWindowTitleVisibility::NSWindowTitleHidden,
-                        );
+                        ns_window.setTitleVisibility_(NSWindowTitleVisibility::NSWindowTitleHidden);
 
-                        let close = ns_window
-                            .standardWindowButton_(NSWindowButton::NSWindowCloseButton);
+                        let close =
+                            ns_window.standardWindowButton_(NSWindowButton::NSWindowCloseButton);
                         let mini = ns_window
                             .standardWindowButton_(NSWindowButton::NSWindowMiniaturizeButton);
-                        let zoom = ns_window
-                            .standardWindowButton_(NSWindowButton::NSWindowZoomButton);
+                        let zoom =
+                            ns_window.standardWindowButton_(NSWindowButton::NSWindowZoomButton);
 
                         if close != nil {
                             let _: () = msg_send![close, setHidden: YES];
@@ -1344,6 +1343,31 @@ fn setup_app_delegate() {
         decl.add_method(
             sel!(applicationShouldTerminate:),
             should_terminate as extern "C" fn(&Object, Sel, id) -> usize,
+        );
+
+        // Forward application:openURLs: so deep links still work after we replace tao's delegate
+        extern "C" fn open_urls(_this: &Object, _cmd: Sel, _app: id, urls: id) {
+            use cocoa::foundation::NSString;
+            let mut url_strings: Vec<String> = Vec::new();
+            unsafe {
+                let count: usize = msg_send![urls, count];
+                for i in 0..count {
+                    let url: id = msg_send![urls, objectAtIndex: i];
+                    let ns_string: id = msg_send![url, absoluteString];
+                    let c_str = NSString::UTF8String(ns_string);
+                    if let Ok(s) = std::ffi::CStr::from_ptr(c_str).to_str() {
+                        url_strings.push(s.to_string());
+                    }
+                }
+            }
+            if let Some(app_handle) = APP_HANDLE.get() {
+                let _ = app_handle.emit("deep-link://new-url", url_strings);
+            }
+        }
+
+        decl.add_method(
+            sel!(application:openURLs:),
+            open_urls as extern "C" fn(&Object, Sel, id, id),
         );
 
         let delegate_class = decl.register();

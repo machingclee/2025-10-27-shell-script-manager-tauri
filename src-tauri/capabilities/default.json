@@ -12,6 +12,7 @@
         "core:webview:allow-webview-position",
         "core:webview:allow-webview-size",
         "core:window:allow-get-all-windows",
-        "core:window:allow-set-focus"
+        "core:window:allow-set-focus",
+        "deep-link:default"
     ]
 }

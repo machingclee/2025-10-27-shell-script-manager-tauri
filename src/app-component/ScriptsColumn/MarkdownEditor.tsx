@@ -2,12 +2,8 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import remarkParse from "remark-parse";
-import remarkRehype from "remark-rehype";
 import rehypeHighlight from "rehype-highlight";
 import rehypeMathjax from "rehype-mathjax";
-import rehypeStringify from "rehype-stringify";
-import { unified } from "unified";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Box } from "@mui/material";
@@ -23,11 +19,11 @@ import SimpleEditor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs";
 import "prismjs/components/prism-markdown";
 import "prismjs/themes/prism-tomorrow.css";
-import markdownHTMLTemplate from "./markdownHTMLTemplate";
 import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
 import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
 import { remarkItemReference } from "@/lib/remarkItemReference";
 import ItemReference from "./ItemReference";
+import { generateScriptHtml } from "@/lib/generateScriptHtml";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 
@@ -78,7 +74,9 @@ function makeRehypeSearchHighlight(query: string) {
                             type: "element",
                             tagName: "mark",
                             properties: { className: ["search-mark"] },
-                            children: [{ type: "text", value: node.value.slice(found, found + q.length) }],
+                            children: [
+                                { type: "text", value: node.value.slice(found, found + q.length) },
+                            ],
                         });
                         pos = found + q.length;
                     }
@@ -136,8 +134,14 @@ function SearchBar({
                 value={query}
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={(e) => {
-                    if (e.key === "Enter") { e.preventDefault(); onAdvance(); }
-                    if (e.key === "Escape") { e.preventDefault(); onClose(); }
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        onAdvance();
+                    }
+                    if (e.key === "Escape") {
+                        e.preventDefault();
+                        onClose();
+                    }
                 }}
                 placeholder="Search…"
                 className="bg-transparent text-white text-sm outline-none w-44 placeholder-neutral-500"
@@ -146,7 +150,10 @@ function SearchBar({
                 {query.trim() ? (matchCount > 0 ? `${matchIdx + 1}/${matchCount}` : "0/0") : ""}
             </span>
             <button
-                onMouseDown={(e) => { e.preventDefault(); onClose(); }}
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    onClose();
+                }}
                 className="text-neutral-400 hover:text-white leading-none"
                 aria-label="Close search"
             >
@@ -205,7 +212,6 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     const previewSearchInputRef = useRef<HTMLInputElement>(null);
     const viewBoxRef = useRef<HTMLDivElement>(null);
 
-
     useEffect(() => {
         invoke<string>("get_images_dir").then((dir) => {
             imagesDirRef.current = dir;
@@ -253,70 +259,9 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     };
 
     const handleViewAsHtml = async () => {
-        if (!script) return;
+        if (!script?.id) return;
         try {
-            const imagesDir = imagesDirRef.current ?? "";
-            const resolvedMarkdown = (script.command || "").replace(
-                /!\[([^\]]*)\]\(images\/([^)]+)\)/g,
-                (_match, altText, rest) => {
-                    const filename = rest.replace(/\?width=\d+$/, "");
-                    const widthMatch = rest.match(/\?width=(\d+)/);
-                    const widthAttr = widthMatch ? ` width="${widthMatch[1]}"` : "";
-                    return `<img src="file://${imagesDir}/${filename}" alt="${altText}"${widthAttr} style="max-width:100%" />`;
-                }
-            );
-
-            // Pre-fetch all referenced scripts so we can render styled chips in the HTML.
-            type ScriptMeta = { name: string; isMarkdown: boolean };
-            const itemRefMatches = [...resolvedMarkdown.matchAll(/\[item#(\d+)\]/g)];
-            const scriptMetaMap = new Map<number, ScriptMeta>();
-            if (itemRefMatches.length > 0) {
-                const uniqueIds = [...new Set(itemRefMatches.map((m) => parseInt(m[1], 10)))];
-                await Promise.all(
-                    uniqueIds.map(async (id) => {
-                        try {
-                            const result = await dispatch(
-                                scriptApi.endpoints.getScriptById.initiate(id)
-                            );
-                            if (result.data) {
-                                scriptMetaMap.set(id, {
-                                    name: result.data.name,
-                                    isMarkdown: result.data.isMarkdown,
-                                });
-                            }
-                        } catch {
-                            // leave as-is if lookup fails
-                        }
-                    })
-                );
-            }
-
-            const file = await unified()
-                .use(remarkParse)
-                .use(remarkGfm)
-                .use(remarkMath)
-                .use(remarkRehype, { allowDangerousHtml: true })
-                .use(rehypeHighlight)
-                .use(rehypeMathjax)
-                .use(rehypeStringify, { allowDangerousHtml: true })
-                .process(resolvedMarkdown);
-
-            // Replace [item#ID] tokens in the final HTML with styled chips that
-            // mirror the ItemReference React component (icon + name).
-            const FILE_TEXT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;flex-shrink:0"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>`;
-            const TERMINAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;flex-shrink:0"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>`;
-
-            const bodyHtml = String(file).replace(/\[item#(\d+)\]/g, (_m, idStr) => {
-                const id = parseInt(idStr, 10);
-                const meta = scriptMetaMap.get(id);
-                if (!meta) {
-                    return `<span style="display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:500;background:rgba(127,29,29,0.3);color:#f87171;border:1px solid rgba(185,28,28,0.5)">[item#${id}]</span>`;
-                }
-                const icon = meta.isMarkdown ? FILE_TEXT_SVG : TERMINAL_SVG;
-                return `<span style="display:inline-flex;align-items:center;gap:6px;padding:1px 8px;border-radius:4px;font-size:12px;font-weight:500;background:rgba(64,64,64,0.4);color:#d4d4d4;border:1px solid rgba(115,115,115,0.6)">${icon}${meta.name}</span>`;
-            });
-
-            const html = markdownHTMLTemplate({ scriptName: script.name, bodyHtml });
+            const html = await generateScriptHtml(script.id, dispatch, imagesDirRef.current ?? "");
             await invoke("write_and_open_html", { html });
         } catch (error) {
             console.error("Failed to open as HTML:", error);
@@ -475,8 +420,6 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             latestContentRef.current = content;
         }
     }, [script]);
-
-
 
     // Undo/redo via capture-phase native listener so it beats WKWebView's NSUndoManager
     const editorWrapperRef = useRef<HTMLDivElement>(null);
@@ -681,20 +624,30 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             setPreviewSearchCount(0);
             return;
         }
-        const container = (isEditMode ? previewBoxRef.current : viewBoxRef.current) as HTMLElement | null;
+        const container = (
+            isEditMode ? previewBoxRef.current : viewBoxRef.current
+        ) as HTMLElement | null;
         if (!container) return;
         const marks = Array.from(container.querySelectorAll<HTMLElement>("mark.search-mark"));
         setPreviewSearchCount(marks.length);
         if (marks.length === 0) return;
         const idx = previewSearchIdx % marks.length;
         marks.forEach((m, i) => {
-            m.style.backgroundColor = i === idx ? "rgba(255, 160, 0, 0.7)" : "rgba(255, 210, 0, 0.35)";
+            m.style.backgroundColor =
+                i === idx ? "rgba(255, 160, 0, 0.7)" : "rgba(255, 210, 0, 0.35)";
             m.style.color = "inherit";
             m.style.borderRadius = "2px";
             m.style.padding = "1px 0";
         });
         marks[idx].scrollIntoView({ block: "center" });
-    }, [previewSearchIdx, previewSearchOpen, previewSearchQuery, isEditMode, editContent, script?.command]);
+    }, [
+        previewSearchIdx,
+        previewSearchOpen,
+        previewSearchQuery,
+        isEditMode,
+        editContent,
+        script?.command,
+    ]);
 
     const scrollPreviewToLine = useCallback((lineNum: number, flash = false) => {
         const preview = previewBoxRef.current;
@@ -788,7 +741,6 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 lineTop - wrapper.clientHeight / 2 + LINE_HEIGHT / 2;
                             wrapper.scrollTop = Math.max(0, centredScrollTop);
                         }
-
                     }
                     break;
                 }
@@ -798,15 +750,12 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
         [editContent]
     );
 
-    const handleEditorKeyDown = useMarkdownWrap(
-        editContent,
-        (newContent) => {
-            setEditContent(newContent);
-            pushHistory(newContent);
-            setHasChanges(true);
-            setEdited(false);
-        }
-    );
+    const handleEditorKeyDown = useMarkdownWrap(editContent, (newContent) => {
+        setEditContent(newContent);
+        pushHistory(newContent);
+        setHasChanges(true);
+        setEdited(false);
+    });
 
     // Rehype plugin that highlights all preview occurrences of the search query
     const rehypeSearchHighlightPlugin = useMemo(
@@ -815,7 +764,13 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
     );
     // Stable plugin arrays so ReactMarkdown doesn't recompile on unrelated re-renders
     const rehypePluginsMixedPreview = useMemo(
-        () => [rehypeHighlight, rehypeMathjax, rehypeAddSourceLines, rehypeSearchHighlightPlugin] as any[],
+        () =>
+            [
+                rehypeHighlight,
+                rehypeMathjax,
+                rehypeAddSourceLines,
+                rehypeSearchHighlightPlugin,
+            ] as any[],
         [rehypeSearchHighlightPlugin]
     );
     const rehypePluginsViewPreview = useMemo(
@@ -841,17 +796,35 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             const found = lower.indexOf(q, pos);
             if (found === -1) break;
             if (found > last) {
-                parts.push(editContent.slice(last, found).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+                parts.push(
+                    editContent
+                        .slice(last, found)
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                );
             }
             const isActive = matchNum === editorSearchIdx;
-            const chunk = editContent.slice(found, found + q.length).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-            parts.push(`<mark class="editor-search-mark${isActive ? " active" : ""}">${chunk}</mark>`);
+            const chunk = editContent
+                .slice(found, found + q.length)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+            parts.push(
+                `<mark class="editor-search-mark${isActive ? " active" : ""}">${chunk}</mark>`
+            );
             last = found + q.length;
             matchNum++;
             pos = found + 1;
         }
         if (last < editContent.length) {
-            parts.push(editContent.slice(last).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+            parts.push(
+                editContent
+                    .slice(last)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+            );
         }
         return parts.join("");
     }, [editorSearchQuery, editContent, editorSearchOpen, editorSearchIdx]);
@@ -956,27 +929,40 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
             >
                 <div className="flex items-center gap-2">
                     {/* Traffic-light buttons */}
-                    <div className="flex gap-1.5 items-center flex-shrink-0 mr-2" onDoubleClick={(e) => e.stopPropagation()}>
+                    <div
+                        className="flex gap-1.5 items-center flex-shrink-0 mr-2"
+                        onDoubleClick={(e) => e.stopPropagation()}
+                    >
                         <button
                             onClick={() => getCurrentWindow().close()}
                             className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group"
                             aria-label="Close"
                         >
-                            <span className="hidden group-hover:block text-red-900 text-[9px] leading-none">×</span>
+                            <span className="hidden group-hover:block text-red-900 text-[9px] leading-none">
+                                ×
+                            </span>
                         </button>
                         <button
                             onClick={() => getCurrentWindow().minimize()}
                             className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center group"
                             aria-label="Minimize"
                         >
-                            <span className="hidden group-hover:block text-yellow-900 text-[9px] leading-none">−</span>
+                            <span className="hidden group-hover:block text-yellow-900 text-[9px] leading-none">
+                                −
+                            </span>
                         </button>
                         <button
-                            onClick={async () => { const next = !isFullscreen; await getCurrentWindow().setFullscreen(next); setIsFullscreen(next); }}
+                            onClick={async () => {
+                                const next = !isFullscreen;
+                                await getCurrentWindow().setFullscreen(next);
+                                setIsFullscreen(next);
+                            }}
                             className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center group"
                             aria-label="Full Screen"
                         >
-                            <span className="hidden group-hover:block text-green-900 text-[9px] leading-none">{isFullscreen ? "↙" : "↗"}</span>
+                            <span className="hidden group-hover:block text-green-900 text-[9px] leading-none">
+                                {isFullscreen ? "↙" : "↗"}
+                            </span>
                         </button>
                     </div>
 
@@ -1002,7 +988,10 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                         ) : (
                             <h2
                                 className="text-sm font-semibold text-black dark:text-white cursor-pointer truncate"
-                                onDoubleClick={(e) => { e.stopPropagation(); handleEnableEdit(); }}
+                                onDoubleClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEnableEdit();
+                                }}
                             >
                                 {script?.name}
                             </h2>
@@ -1101,8 +1090,17 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     matchIdx={editorSearchIdx}
                                     // @ts-ignore
                                     inputRef={editorSearchInputRef}
-                                    onAdvance={() => setEditorSearchIdx((i) => editorSearchMatches.length === 0 ? 0 : (i + 1) % editorSearchMatches.length)}
-                                    onClose={() => { setEditorSearchOpen(false); setEditorSearchQuery(""); }}
+                                    onAdvance={() =>
+                                        setEditorSearchIdx((i) =>
+                                            editorSearchMatches.length === 0
+                                                ? 0
+                                                : (i + 1) % editorSearchMatches.length
+                                        )
+                                    }
+                                    onClose={() => {
+                                        setEditorSearchOpen(false);
+                                        setEditorSearchQuery("");
+                                    }}
                                 />
                             )}
                             <div
@@ -1118,7 +1116,8 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                             left: 0,
                                             right: 0,
                                             padding: "16px",
-                                            fontFamily: '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                            fontFamily:
+                                                '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
                                             fontSize: "15px",
                                             lineHeight: "1.5",
                                             color: "transparent",
@@ -1136,6 +1135,7 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                     value={editContent}
                                     onValueChange={(code) => {
                                         setEditContent(code);
+                                        latestContentRef.current = code;
                                         setHasChanges(true);
                                         setEdited(false);
                                         pushHistory(code);
@@ -1180,8 +1180,20 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                         matchIdx={editorSearchIdx}
                                         // @ts-ignore
                                         inputRef={editorSearchInputRef}
-                                        onAdvance={() => setEditorSearchIdx((i) => editorSearchMatches.length === 0 ? 0 : (i + 1) % editorSearchMatches.length)}
-                                        onClose={() => { setEditorSearchOpen(false); setEditorSearchQuery(""); setPreviewSearchOpen(false); setPreviewSearchQuery(""); setPreviewSearchIdx(0); }}
+                                        onAdvance={() =>
+                                            setEditorSearchIdx((i) =>
+                                                editorSearchMatches.length === 0
+                                                    ? 0
+                                                    : (i + 1) % editorSearchMatches.length
+                                            )
+                                        }
+                                        onClose={() => {
+                                            setEditorSearchOpen(false);
+                                            setEditorSearchQuery("");
+                                            setPreviewSearchOpen(false);
+                                            setPreviewSearchQuery("");
+                                            setPreviewSearchIdx(0);
+                                        }}
                                     />
                                 )}
                                 <div
@@ -1197,7 +1209,8 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                                 left: 0,
                                                 right: 0,
                                                 padding: "16px",
-                                                fontFamily: '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                                fontFamily:
+                                                    '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
                                                 fontSize: "15px",
                                                 lineHeight: "1.5",
                                                 color: "transparent",
@@ -1208,13 +1221,16 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                                 zIndex: 2,
                                                 userSelect: "none",
                                             }}
-                                            dangerouslySetInnerHTML={{ __html: editorHighlightHtml }}
+                                            dangerouslySetInnerHTML={{
+                                                __html: editorHighlightHtml,
+                                            }}
                                         />
                                     )}
                                     <SimpleEditor
                                         value={editContent}
                                         onValueChange={(code) => {
                                             setEditContent(code);
+                                            latestContentRef.current = code;
                                             setHasChanges(true);
                                             setEdited(false);
                                             pushHistory(code);
@@ -1263,196 +1279,208 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                         matchIdx={previewSearchIdx}
                                         // @ts-ignore
                                         inputRef={previewSearchInputRef}
-                                        onAdvance={() => setPreviewSearchIdx((i) => previewSearchCount === 0 ? 0 : (i + 1) % previewSearchCount)}
-                                        onClose={() => { setPreviewSearchOpen(false); setPreviewSearchQuery(""); setPreviewSearchIdx(0); setEditorSearchOpen(false); setEditorSearchQuery(""); }}
+                                        onAdvance={() =>
+                                            setPreviewSearchIdx((i) =>
+                                                previewSearchCount === 0
+                                                    ? 0
+                                                    : (i + 1) % previewSearchCount
+                                            )
+                                        }
+                                        onClose={() => {
+                                            setPreviewSearchOpen(false);
+                                            setPreviewSearchQuery("");
+                                            setPreviewSearchIdx(0);
+                                            setEditorSearchOpen(false);
+                                            setEditorSearchQuery("");
+                                        }}
                                     />
                                 )}
-                            <Box
-                                ref={previewBoxRef}
-                                className="markdown-preview"
-                                style={{ width: "100%" }}
-                                onDoubleClick={handlePreviewDoubleClick}
-                                sx={{
-                                    height: "100%",
-                                    userSelect: "text",
-                                    cursor: "text",
-                                    overflowY: "auto",
-                                    backgroundColor: "rgb(209, 213, 219)",
-                                    padding: "24px",
-                                    ".dark &": {
-                                        backgroundColor: "rgba(255, 255, 255, 0.05) !important",
-                                        color: "rgb(212, 212, 212) !important",
-                                    },
-                                    "& h1": {
-                                        fontSize: "2em",
-                                        fontWeight: "700",
-                                        marginTop: "0.67em",
-                                        marginBottom: "0.67em",
-                                        borderBottom: "2px solid rgba(255, 255, 255, 0.2)",
-                                        paddingBottom: "0.3em",
-                                        color: "rgb(255, 255, 255)",
-                                    },
-                                    "& h2": {
-                                        fontSize: "1.75em",
-                                        fontWeight: "700",
-                                        marginTop: "0.75em",
-                                        marginBottom: "0.5em",
-                                        borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
-                                        paddingBottom: "0.3em",
-                                        color: "rgb(255, 255, 255)",
-                                    },
-                                    "& h3": {
-                                        fontSize: "1.5em",
-                                        fontWeight: "600",
-                                        marginTop: "0.75em",
-                                        marginBottom: "0.5em",
-                                        color: "rgb(245, 245, 245)",
-                                    },
-                                    "& h4": {
-                                        fontSize: "1.25em",
-                                        fontWeight: "600",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                        color: "rgb(245, 245, 245)",
-                                    },
-                                    "& h5": {
-                                        fontSize: "1.1em",
-                                        fontWeight: "600",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                        color: "rgb(230, 230, 230)",
-                                    },
-                                    "& h6": {
-                                        fontSize: "1em",
-                                        fontWeight: "600",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                        color: "rgb(220, 220, 220)",
-                                    },
-                                    "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child":
-                                        {
-                                            marginTop: "0",
+                                <Box
+                                    ref={previewBoxRef}
+                                    className="markdown-preview"
+                                    style={{ width: "100%" }}
+                                    onDoubleClick={handlePreviewDoubleClick}
+                                    sx={{
+                                        height: "100%",
+                                        userSelect: "text",
+                                        cursor: "text",
+                                        overflowY: "auto",
+                                        backgroundColor: "rgb(209, 213, 219)",
+                                        padding: "24px",
+                                        ".dark &": {
+                                            backgroundColor: "rgba(255, 255, 255, 0.05) !important",
+                                            color: "rgb(212, 212, 212) !important",
                                         },
-                                    "& ul, & ol": {
-                                        paddingLeft: LIST_GUTTER_WIDTH,
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                    },
-                                    "& ul": {
-                                        listStyleType: "disc",
-                                    },
-                                    "& ol": {
-                                        listStyleType: "decimal",
-                                    },
-                                    "& li": {
-                                        display: "list-item",
-                                        paddingLeft: LIST_ITEM_PADDING,
-                                        lineHeight: LIST_ITEM_LINE_HEIGHT,
-                                    },
-                                    "& li.task-list-item": {
-                                        listStyleType: "none",
-                                        paddingLeft: "0",
-                                    },
-                                    "& input[type='checkbox']": {
-                                        appearance: "none !important",
-                                        WebkitAppearance: "none !important",
-                                        width: "16px",
-                                        height: "16px",
-                                        marginTop: "-2px",
-                                        marginRight: CHECKBOX_SPACING,
-                                        marginLeft: "0",
-                                        cursor: "pointer",
-                                        border: "2px solid rgba(255, 255, 255, 0.3)",
-                                        borderRadius: "3px",
-                                        backgroundColor: "transparent",
-                                        position: "relative",
-                                        left: `-${LIST_GUTTER_WIDTH}`,
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        verticalAlign: "middle",
-                                        flexShrink: 0,
-                                        "&:checked": {
-                                            backgroundColor: "rgb(59, 130, 246)",
-                                            borderColor: "rgb(59, 130, 246)",
-                                            "&::after": {
-                                                content: '"✓"',
-                                                color: "white",
-                                                fontSize: "12px",
-                                                fontWeight: "bold",
-                                                lineHeight: "1",
+                                        "& h1": {
+                                            fontSize: "2em",
+                                            fontWeight: "700",
+                                            marginTop: "0.67em",
+                                            marginBottom: "0.67em",
+                                            borderBottom: "2px solid rgba(255, 255, 255, 0.2)",
+                                            paddingBottom: "0.3em",
+                                            color: "rgb(255, 255, 255)",
+                                        },
+                                        "& h2": {
+                                            fontSize: "1.75em",
+                                            fontWeight: "700",
+                                            marginTop: "0.75em",
+                                            marginBottom: "0.5em",
+                                            borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
+                                            paddingBottom: "0.3em",
+                                            color: "rgb(255, 255, 255)",
+                                        },
+                                        "& h3": {
+                                            fontSize: "1.5em",
+                                            fontWeight: "600",
+                                            marginTop: "0.75em",
+                                            marginBottom: "0.5em",
+                                            color: "rgb(245, 245, 245)",
+                                        },
+                                        "& h4": {
+                                            fontSize: "1.25em",
+                                            fontWeight: "600",
+                                            marginTop: "0.5em",
+                                            marginBottom: "0.5em",
+                                            color: "rgb(245, 245, 245)",
+                                        },
+                                        "& h5": {
+                                            fontSize: "1.1em",
+                                            fontWeight: "600",
+                                            marginTop: "0.5em",
+                                            marginBottom: "0.5em",
+                                            color: "rgb(230, 230, 230)",
+                                        },
+                                        "& h6": {
+                                            fontSize: "1em",
+                                            fontWeight: "600",
+                                            marginTop: "0.5em",
+                                            marginBottom: "0.5em",
+                                            color: "rgb(220, 220, 220)",
+                                        },
+                                        "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child":
+                                            {
+                                                marginTop: "0",
+                                            },
+                                        "& ul, & ol": {
+                                            paddingLeft: LIST_GUTTER_WIDTH,
+                                            marginTop: "0.5em",
+                                            marginBottom: "0.5em",
+                                        },
+                                        "& ul": {
+                                            listStyleType: "disc",
+                                        },
+                                        "& ol": {
+                                            listStyleType: "decimal",
+                                        },
+                                        "& li": {
+                                            display: "list-item",
+                                            paddingLeft: LIST_ITEM_PADDING,
+                                            lineHeight: LIST_ITEM_LINE_HEIGHT,
+                                        },
+                                        "& li.task-list-item": {
+                                            listStyleType: "none",
+                                            paddingLeft: "0",
+                                        },
+                                        "& input[type='checkbox']": {
+                                            appearance: "none !important",
+                                            WebkitAppearance: "none !important",
+                                            width: "16px",
+                                            height: "16px",
+                                            marginTop: "-2px",
+                                            marginRight: CHECKBOX_SPACING,
+                                            marginLeft: "0",
+                                            cursor: "pointer",
+                                            border: "2px solid rgba(255, 255, 255, 0.3)",
+                                            borderRadius: "3px",
+                                            backgroundColor: "transparent",
+                                            position: "relative",
+                                            left: `-${LIST_GUTTER_WIDTH}`,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            verticalAlign: "middle",
+                                            flexShrink: 0,
+                                            "&:checked": {
+                                                backgroundColor: "rgb(59, 130, 246)",
+                                                borderColor: "rgb(59, 130, 246)",
+                                                "&::after": {
+                                                    content: '"✓"',
+                                                    color: "white",
+                                                    fontSize: "12px",
+                                                    fontWeight: "bold",
+                                                    lineHeight: "1",
+                                                },
                                             },
                                         },
-                                    },
-                                    "& p": {
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                    },
-                                    "& code:not(pre code)": {
-                                        fontSize: "0.95em",
-                                        backgroundColor: LIGHT_WHITE_BG,
-                                        padding: "2px 6px",
-                                        borderRadius: "4px",
-                                    },
-                                    "& pre": {
-                                        backgroundColor: "rgba(0, 0, 0, 0.3)",
-                                        borderRadius: "4px",
-                                        padding: "12px",
-                                        overflow: "auto",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                    },
-                                    "& pre code": {
-                                        backgroundColor: "transparent",
-                                        padding: "0",
-                                        fontSize: "0.9em",
-                                    },
-                                    "& blockquote": {
-                                        borderLeft: "4px solid rgba(255, 255, 255, 0.3)",
-                                        paddingLeft: "1em",
-                                        marginLeft: "0",
-                                        color: "rgba(255, 255, 255, 0.8)",
-                                    },
-                                    "& a": {
-                                        color: "rgb(96, 165, 250)",
-                                        textDecoration: "underline",
-                                        "&:hover": {
-                                            color: "rgb(147, 197, 253)",
+                                        "& p": {
+                                            marginTop: "0.5em",
+                                            marginBottom: "0.5em",
                                         },
-                                    },
-                                    "& table": {
-                                        borderCollapse: "collapse",
-                                        width: "100%",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                    },
-                                    "& th, & td": {
-                                        border: "1px solid rgba(255, 255, 255, 0.2)",
-                                        padding: "8px",
-                                    },
-                                    "& th": {
-                                        backgroundColor: "rgba(0, 0, 0, 0.3)",
-                                        fontWeight: "600",
-                                    },
-                                    "& mjx-container": {
-                                        display: "inline-block",
-                                        verticalAlign: "middle",
-                                    },
-                                    "& mjx-container[display='true']": {
-                                        display: "block",
-                                        textAlign: "center",
-                                        margin: "1em 0",
-                                    },
-                                }}
-                            >
-                                <ReactMarkdown
-                                    remarkPlugins={remarkPluginsWithItemRef}
-                                    rehypePlugins={rehypePluginsMixedPreview}
-                                    components={markdownComponents}
+                                        "& code:not(pre code)": {
+                                            fontSize: "0.95em",
+                                            backgroundColor: LIGHT_WHITE_BG,
+                                            padding: "2px 6px",
+                                            borderRadius: "4px",
+                                        },
+                                        "& pre": {
+                                            backgroundColor: "rgba(0, 0, 0, 0.3)",
+                                            borderRadius: "4px",
+                                            padding: "12px",
+                                            overflow: "auto",
+                                            marginTop: "0.5em",
+                                            marginBottom: "0.5em",
+                                        },
+                                        "& pre code": {
+                                            backgroundColor: "transparent",
+                                            padding: "0",
+                                            fontSize: "0.9em",
+                                        },
+                                        "& blockquote": {
+                                            borderLeft: "4px solid rgba(255, 255, 255, 0.3)",
+                                            paddingLeft: "1em",
+                                            marginLeft: "0",
+                                            color: "rgba(255, 255, 255, 0.8)",
+                                        },
+                                        "& a": {
+                                            color: "rgb(96, 165, 250)",
+                                            textDecoration: "underline",
+                                            "&:hover": {
+                                                color: "rgb(147, 197, 253)",
+                                            },
+                                        },
+                                        "& table": {
+                                            borderCollapse: "collapse",
+                                            width: "100%",
+                                            marginTop: "0.5em",
+                                            marginBottom: "0.5em",
+                                        },
+                                        "& th, & td": {
+                                            border: "1px solid rgba(255, 255, 255, 0.2)",
+                                            padding: "8px",
+                                        },
+                                        "& th": {
+                                            backgroundColor: "rgba(0, 0, 0, 0.3)",
+                                            fontWeight: "600",
+                                        },
+                                        "& mjx-container": {
+                                            display: "inline-block",
+                                            verticalAlign: "middle",
+                                        },
+                                        "& mjx-container[display='true']": {
+                                            display: "block",
+                                            textAlign: "center",
+                                            margin: "1em 0",
+                                        },
+                                    }}
                                 >
-                                    {editContent}
-                                </ReactMarkdown>
-                            </Box>
+                                    <ReactMarkdown
+                                        remarkPlugins={remarkPluginsWithItemRef}
+                                        rehypePlugins={rehypePluginsMixedPreview}
+                                        components={markdownComponents}
+                                    >
+                                        {editContent}
+                                    </ReactMarkdown>
+                                </Box>
                             </div>
                         </div>
                     )
@@ -1466,8 +1494,18 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                 matchIdx={previewSearchIdx}
                                 // @ts-ignore
                                 inputRef={previewSearchInputRef}
-                                onAdvance={() => setPreviewSearchIdx((i) => previewSearchCount === 0 ? 0 : (i + 1) % previewSearchCount)}
-                                onClose={() => { setPreviewSearchOpen(false); setPreviewSearchQuery(""); setPreviewSearchIdx(0); setEditorSearchOpen(false); setEditorSearchQuery(""); }}
+                                onAdvance={() =>
+                                    setPreviewSearchIdx((i) =>
+                                        previewSearchCount === 0 ? 0 : (i + 1) % previewSearchCount
+                                    )
+                                }
+                                onClose={() => {
+                                    setPreviewSearchOpen(false);
+                                    setPreviewSearchQuery("");
+                                    setPreviewSearchIdx(0);
+                                    setEditorSearchOpen(false);
+                                    setEditorSearchQuery("");
+                                }}
                             />
                         )}
                         <Box

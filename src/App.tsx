@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { onOpenUrl, getCurrent } from "@tauri-apps/plugin-deep-link";
+import { generateScriptHtml } from "@/lib/generateScriptHtml";
 import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import FolderColumn from "./app-component/FolderColumn/FolderColumn";
@@ -48,22 +50,6 @@ function App() {
                 }
             };
             fetchBackendPort();
-        }
-    }, [dispatch]);
-
-    // Fetch Python backend port on mount (only in production, dev uses default 8000)
-    useEffect(() => {
-        if (!import.meta.env.DEV) {
-            const fetchPythonPort = async () => {
-                try {
-                    const port = await invoke<number>("get_python_port");
-                    dispatch(configSlice.actions.setPythonPort(port)); // Save to Redux
-                    console.log("Python backend running on port:", port);
-                } catch (error) {
-                    console.error("Failed to get Python port:", error);
-                }
-            };
-            fetchPythonPort();
         }
     }, [dispatch]);
 
@@ -173,6 +159,95 @@ function App() {
             unlisten.then((fn) => fn());
         };
     }, []);
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.metaKey && e.altKey && e.key === "i") {
+                import("@tauri-apps/api/webviewWindow").then(({ getCurrentWebviewWindow }) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    (getCurrentWebviewWindow() as any).openDevtools();
+                });
+            }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, []);
+
+    // Handle deep links: tauri-shellscript-manager://open?scriptId=ID
+    // Fired when the user clicks a markdown chip in an exported HTML file.
+    // Opens the linked script as a new HTML page in the browser.
+    useEffect(() => {
+        const openMarkdownAsHtml = async (scriptId: number) => {
+            console.log("[deep-link] openMarkdownAsHtml called with scriptId:", scriptId);
+            try {
+                const imagesDir = await invoke<string>("get_images_dir");
+                console.log("[deep-link] imagesDir:", imagesDir);
+                const html = await generateScriptHtml(scriptId, dispatch, imagesDir);
+                console.log("[deep-link] html generated, length:", html.length);
+                await invoke("write_and_open_html", { html });
+                console.log("[deep-link] write_and_open_html invoked successfully");
+            } catch (e) {
+                console.error("[deep-link] Failed to open markdown as HTML via deep link:", e);
+            }
+        };
+
+        let cleanup: (() => void) | undefined;
+
+        const handleUrls = (urls: string[]) => {
+            console.log("[deep-link] handleUrls called with:", urls);
+            for (const url of urls) {
+                try {
+                    const withoutScheme = url.replace(
+                        /^[a-z][a-z0-9+.-]*:\/\//i,
+                        "http://placeholder/"
+                    );
+                    const parsed = new URL(withoutScheme);
+                    console.log(
+                        "[deep-link] parsed pathname:",
+                        parsed.pathname,
+                        "scriptId param:",
+                        parsed.searchParams.get("scriptId")
+                    );
+                    if (parsed.pathname === "/open") {
+                        const scriptId = parseInt(parsed.searchParams.get("scriptId") ?? "", 10);
+                        if (!isNaN(scriptId)) {
+                            openMarkdownAsHtml(scriptId);
+                        } else {
+                            console.warn("[deep-link] scriptId is NaN for url:", url);
+                        }
+                    } else {
+                        console.warn("[deep-link] unexpected pathname:", parsed.pathname);
+                    }
+                } catch (e) {
+                    console.error("[deep-link] Failed to parse deep link URL:", url, e);
+                }
+            }
+        };
+
+        // Handle cold-start deep link (app was not running when the link was clicked)
+        getCurrent()
+            .then((urls) => {
+                console.log("[deep-link] getCurrent() returned:", urls);
+                if (urls && urls.length > 0) {
+                    handleUrls(urls);
+                }
+            })
+            .catch((e) => console.error("[deep-link] getCurrent() failed:", e));
+
+        onOpenUrl((urls) => {
+            console.log("[deep-link] onOpenUrl fired with:", urls);
+            handleUrls(urls);
+        })
+            .then((unlisten) => {
+                console.log("[deep-link] onOpenUrl listener registered");
+                cleanup = unlisten;
+            })
+            .catch((e) => console.error("[deep-link] onOpenUrl registration failed:", e));
+
+        return () => {
+            cleanup?.();
+        };
+    }, [dispatch]);
 
     // Listen for markdown updates from subwindows and invalidate cache
     useEffect(() => {

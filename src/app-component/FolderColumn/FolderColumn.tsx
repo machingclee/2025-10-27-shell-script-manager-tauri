@@ -69,11 +69,8 @@ export default function FolderColumn() {
     const selectedFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const backendPort = useAppSelector((s) => s.config.backendPort);
-    // const pythonPort = useAppSelector((s) => s.config.pythonPort);
     const [openingBackend, setOpeningBackend] = useState(false);
-    // const [openingPython, setOpeningPython] = useState(false);
     const [isBackendClicked, setIsBackendClicked] = useState(false);
-    // const [isPythonClicked, setIsPythonClicked] = useState(false);
 
     // Track active dragging item for DragOverlay
     const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceResponse | null>(null);
@@ -402,35 +399,6 @@ export default function FolderColumn() {
         }
     };
 
-    // const handleOpenPythonDocs = async () => {
-    //     if (!pythonPort) return; // Don't open if not started
-
-    //     // Trigger click animation
-    //     setIsPythonClicked(true);
-    //     setTimeout(() => setIsPythonClicked(false), 200);
-
-    //     const url = `http://localhost:${pythonPort}/docs`;
-    //     try {
-    //         const isMac = navigator.userAgent.includes("Mac");
-    //         const isWindows = navigator.userAgent.includes("Windows");
-
-    //         let command: string;
-    //         if (isMac) {
-    //             command = `open "${url}"`;
-    //         } else if (isWindows) {
-    //             command = `start "${url}"`;
-    //         } else {
-    //             command = `xdg-open "${url}"`;
-    //         }
-    //         setOpeningPython(true);
-    //         await invoke("execute_command", { command });
-    //     } catch (error) {
-    //         console.error("Failed to open Python docs:", error);
-    //     } finally {
-    //         setOpeningPython(false);
-    //     }
-    // };
-
     const getWorkspaceDroppableId = (workspace: WorkspaceResponse) => {
         return `workspace-${workspace.id}`;
     };
@@ -570,30 +538,6 @@ export default function FolderColumn() {
                     </span>
                 )}
             </div>
-
-            {/* Python Backend Port Info */}
-            {/* <div
-                className={`relative border-t border-gray-400 dark:border-neutral-600 p-2 text-xs text-neutral-500 dark:text-neutral-400 text-center transition-all duration-200 select-none ${
-                    pythonPort
-                        ? "cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700"
-                        : "cursor-not-allowed opacity-50"
-                } ${
-                    isPythonClicked
-                        ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                        : ""
-                }`}
-                onClick={pythonPort ? handleOpenPythonDocs : undefined}
-                title={
-                    pythonPort ? "Click to open Python FastAPI docs" : "Python backend not started"
-                }
-            >
-                <span>Python: localhost:{pythonPort || "not started"}</span>
-                {openingPython && pythonPort && (
-                    <span className="absolute top-1/2 right-4 -translate-y-1/2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                    </span>
-                )}
-            </div> */}
 
             {/* Create Folder Dialog */}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
