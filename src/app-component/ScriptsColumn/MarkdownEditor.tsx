@@ -8,7 +8,7 @@ import { scriptApi } from "@/store/api/scriptApi";
 import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Box } from "@mui/material";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye, AlignLeft, Columns2, Globe } from "lucide-react";
+import { Edit, AlignLeft, Columns2, Globe } from "lucide-react";
 import QuickNavDropdown from "./QuickNavDropdown";
 import { useAppDispatch } from "@/store/hooks";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -1383,7 +1383,20 @@ export default function MarkdownEditor({ scriptId }: { scriptId: number | undefi
                                         }}
                                         textareaClassName="focus:outline-none"
                                         onKeyDown={handleEditorKeyDown}
-                                        onKeyUp={() => handleEditorCursorChange(false)}
+                                        onKeyUp={(e) => {
+                                            const CURSOR_KEYS = new Set([
+                                                "ArrowUp",
+                                                "ArrowDown",
+                                                "ArrowLeft",
+                                                "ArrowRight",
+                                                "Home",
+                                                "End",
+                                                "PageUp",
+                                                "PageDown",
+                                            ]);
+                                            if (CURSOR_KEYS.has(e.key))
+                                                handleEditorCursorChange(false);
+                                        }}
                                         onDoubleClick={() => handleEditorCursorChange(true)}
                                     />
                                 </div>

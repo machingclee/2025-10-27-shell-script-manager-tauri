@@ -1,4 +1,3 @@
-import React from "react";
 import { ScriptsFolderResponse } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
 import { workspaceApi } from "@/store/api/workspaceApi";
