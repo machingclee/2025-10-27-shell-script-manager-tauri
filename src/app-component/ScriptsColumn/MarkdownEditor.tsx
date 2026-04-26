@@ -1219,7 +1219,7 @@ export default function MarkdownEditor({
                 );
             },
             itemref: ({ id }: { id?: string }) => (
-                <ItemReference id={id} darkMode={previewDarkMode} />
+                <ItemReference id={id} darkMode={previewDarkMode} fontSize={fontSize} />
             ),
             input: ({ node, checked, disabled, ...props }: any) => {
                 if (props.type === "checkbox") {
@@ -1253,7 +1253,7 @@ export default function MarkdownEditor({
                 return <input {...props} />;
             },
         };
-    }, [script?.command, imagesDir, previewDarkMode]);
+    }, [script?.command, imagesDir, previewDarkMode, fontSize]);
 
     const handleWindowDragStart = (e: React.MouseEvent) => {
         if (e.button !== 0) return;
