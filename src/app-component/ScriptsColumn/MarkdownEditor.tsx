@@ -591,6 +591,8 @@ export default function MarkdownEditor({
         onZoomIn: () => dispatch(setFontSize(Math.min(fontSize + 4, 40))),
         onZoomOut: () => dispatch(setFontSize(Math.max(fontSize - 4, 8))),
         onZoomReset: () => dispatch(setFontSize(BASE_FONT_SIZE)),
+        onToggleView: () =>
+            patch({ editViewMode: editViewMode === "preview" ? "mixed" : "preview" }),
     });
 
     const handleCheckboxToggle = async (checkboxIndex: number) => {

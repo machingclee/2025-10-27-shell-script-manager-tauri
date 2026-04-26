@@ -19,6 +19,8 @@ export interface MarkdownShortcutOptions {
     onZoomOut?: () => void;
     /** Cmd/Ctrl + 0 */
     onZoomReset?: () => void;
+    /** Cmd/Ctrl + B — toggle between mixed and preview mode */
+    onToggleView?: () => void;
 }
 
 /**
@@ -39,6 +41,7 @@ export function useMarkdownShortcuts({
     onZoomIn,
     onZoomOut,
     onZoomReset,
+    onToggleView,
 }: MarkdownShortcutOptions) {
     useEffect(() => {
         if (!enabled) return;
@@ -93,9 +96,26 @@ export function useMarkdownShortcuts({
                 onZoomReset();
                 return;
             }
+
+            if (e.key === "b" && onToggleView) {
+                e.preventDefault();
+                onToggleView();
+                return;
+            }
         };
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [enabled, onSave, onClose, onFind, onSubmit, onEscape, onZoomIn, onZoomOut, onZoomReset]);
+    }, [
+        enabled,
+        onSave,
+        onClose,
+        onFind,
+        onSubmit,
+        onEscape,
+        onZoomIn,
+        onZoomOut,
+        onZoomReset,
+        onToggleView,
+    ]);
 }
