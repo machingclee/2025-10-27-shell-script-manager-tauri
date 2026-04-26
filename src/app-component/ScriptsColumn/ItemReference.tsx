@@ -24,7 +24,13 @@ import { Button } from "@/components/ui/button";
  * Left-click: markdown → open subwindow; shell → confirmation dialog then execute.
  * Right-click to open a context menu with the same actions.
  */
-export default function ItemReference({ id }: { id?: string }) {
+export default function ItemReference({
+    id,
+    darkMode = true,
+}: {
+    id?: string;
+    darkMode?: boolean;
+}) {
     const scriptId = id ? parseInt(id, 10) : undefined;
     const { data: script, isLoading } = scriptApi.endpoints.getScriptById.useQuery(scriptId, {
         skip: scriptId == null || isNaN(scriptId ?? NaN),
@@ -68,8 +74,18 @@ export default function ItemReference({ id }: { id?: string }) {
 
     if (isLoading) {
         return (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-neutral-700/50 text-neutral-400 border border-neutral-600">
-                <span className="w-3 h-3 rounded-full bg-neutral-500 animate-pulse" />
+            <span
+                style={{
+                    background: darkMode ? "rgba(64,64,64,0.5)" : "#e5e7eb",
+                    color: darkMode ? "#a3a3a3" : "#6b7280",
+                    border: `1px solid ${darkMode ? "#525252" : "#d1d5db"}`,
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
+            >
+                <span
+                    style={{ background: darkMode ? "#737373" : "#9ca3af" }}
+                    className="w-3 h-3 rounded-full animate-pulse"
+                />
                 ...
             </span>
         );
@@ -78,7 +94,12 @@ export default function ItemReference({ id }: { id?: string }) {
     if (!script) {
         return (
             <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-900/30 text-red-400 border border-red-700/50"
+                style={{
+                    background: darkMode ? "rgba(127,29,29,0.3)" : "#fee2e2",
+                    color: darkMode ? "#f87171" : "#dc2626",
+                    border: `1px solid ${darkMode ? "rgba(185,28,28,0.5)" : "#fca5a5"}`,
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
                 title={`Unknown item #${id}`}
             >
                 [item#{id}]
@@ -131,7 +152,12 @@ export default function ItemReference({ id }: { id?: string }) {
                         <TooltipTrigger asChild>
                             <span
                                 onClick={handleChipClick}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-sm font-medium border cursor-pointer select-none transition-colors bg-neutral-700/80 text-neutral-300 border-neutral-600/60 hover:bg-neutral-600/50"
+                                style={{
+                                    background: darkMode ? "rgba(64,64,64,0.8)" : "#ffffff",
+                                    color: darkMode ? "#d4d4d4" : "#404040",
+                                    border: `1px solid ${darkMode ? "rgba(82,82,82,0.6)" : "#d1d5db"}`,
+                                }}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-sm font-medium cursor-pointer select-none transition-colors"
                             >
                                 {script.isMarkdown ? (
                                     <FileText className="w-4 h-4 flex-shrink-0" />

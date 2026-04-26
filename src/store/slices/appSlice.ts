@@ -26,6 +26,8 @@ interface TabState {
     tabStates: Record<number, MarkdownTabState>;
     /** Shared across all tabs — zoom in/out affects every open tab. */
     fontSize: number;
+    /** Shared across all tabs — dark/light preview mode toggle. */
+    previewDarkMode: boolean;
 }
 
 interface AppState {
@@ -40,6 +42,7 @@ const initialState: AppState = {
         activeTabId: HOME_TAB_ID,
         tabStates: {},
         fontSize: DEFAULT_FONT_SIZE,
+        previewDarkMode: true,
     },
 };
 
@@ -82,7 +85,7 @@ const appSlice = createSlice({
             } else {
                 state.tab.tabStates[tabId] = {
                     isEditMode: false,
-                    editViewMode: "mixed",
+                    editViewMode: "preview",
                     editContent: "",
                     editName: "",
                     hasChanges: false,
@@ -94,18 +97,29 @@ const appSlice = createSlice({
                 };
             }
         },
-        renameTab(state, action: PayloadAction<{ tabId: number; scriptName: string }>) {
-            const tab = state.tab.tabs.find((t) => t.scriptId === action.payload.tabId);
-            if (tab && tab.type === "markdown") {
-                tab.scriptName = action.payload.scriptName;
-            }
-        },
         setFontSize(state, action: PayloadAction<number>) {
             state.tab.fontSize = action.payload;
+        },
+        setPreviewDarkMode(state, action: PayloadAction<boolean>) {
+            state.tab.previewDarkMode = action.payload;
+        },
+        reorderTabs(state, action: PayloadAction<{ fromIndex: number; toIndex: number }>) {
+            const { fromIndex, toIndex } = action.payload;
+            if (fromIndex === toIndex) return;
+            const [tab] = state.tab.tabs.splice(fromIndex, 1);
+            state.tab.tabs.splice(toIndex, 0, tab);
         },
     },
 });
 
-export const { openMarkdownTab, closeTab, setActiveTab, saveTabState, patchTabState, renameTab, setFontSize } =
-    appSlice.actions;
+export const {
+    openMarkdownTab,
+    closeTab,
+    setActiveTab,
+    saveTabState,
+    patchTabState,
+    setFontSize,
+    setPreviewDarkMode,
+    reorderTabs,
+} = appSlice.actions;
 export default appSlice;

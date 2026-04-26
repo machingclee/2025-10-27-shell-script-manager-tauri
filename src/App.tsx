@@ -5,8 +5,21 @@ import {
     openMarkdownTab,
     closeTab,
     setActiveTab,
+    reorderTabs,
     HOME_TAB_ID,
 } from "./store/slices/appSlice";
+import {
+    DndContext,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+    DragStartEvent,
+    DragOverlay,
+    closestCenter,
+} from "@dnd-kit/core";
+import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -39,94 +52,49 @@ function TabPill({
     isActive,
     onActivate,
     onClose,
-    onDetach,
 }: {
     tab: AppTab;
     isActive: boolean;
     onActivate: () => void;
     onClose?: () => void;
-    onDetach?: () => void;
 }) {
-    // Track the Y coordinate where the drag began so we can measure how far
-    // down the user dragged when the drag ends.
-    const dragStartYRef = useRef<number | null>(null);
-
-    // const script = scriptApi.endpoints.getScriptById.useQueryState(tab.scriptId, {
-    //     skip: tab.type === "home",
-    // }).data;
-
     const { data: script } = scriptApi.endpoints.getScriptById.useQuery(tab.scriptId, {
         skip: tab.type === "home",
     });
 
-    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
-        dragStartYRef.current = e.clientY;
+    const hasChanges = useAppSelector(
+        (s) => tab.type === "markdown" && (s.app.tab.tabStates[tab.scriptId]?.hasChanges ?? false)
+    );
 
-        // Build an off-screen styled element that the OS uses as the drag image.
-        // Because this goes through the browser's native DnD API, the image is
-        // rendered by the OS compositor and is visible outside the app window —
-        // unlike a DOM ghost div which is clipped to the webview bounds.
-        const ghost = document.createElement("div");
-        ghost.style.cssText = [
-            "position:fixed",
-            "top:-9999px",
-            "left:-9999px",
-            "display:flex",
-            "align-items:center",
-            "padding:0 12px",
-            "height:32px",
-            "font-size:12px",
-            "border-radius:6px",
-            "border:1px solid #525252",
-            "background:#262626",
-            "color:#fff",
-            "white-space:nowrap",
-            "box-shadow:0 4px 16px rgba(0,0,0,0.6)",
-            "opacity:0.9",
-        ].join(";");
-        ghost.textContent = tab.type === "home" ? "Home" : (script?.name ?? tab.scriptName);
-        document.body.appendChild(ghost);
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: tab.scriptId,
+    });
 
-        // Anchor the drag image at the exact point the user grabbed.
-        const rect = e.currentTarget.getBoundingClientRect();
-        e.dataTransfer.setDragImage(ghost, e.clientX - rect.left, e.clientY - rect.top);
-        e.dataTransfer.effectAllowed = "move";
-
-        // The browser captures the image synchronously before the next frame,
-        // so it's safe to remove the element immediately after.
-        requestAnimationFrame(() => ghost.remove());
-    };
-
-    const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
-        if (dragStartYRef.current === null) return;
-        const deltaY = e.clientY - dragStartYRef.current;
-        dragStartYRef.current = null;
-
-        if (deltaY > 80 && onDetach) {
-            onDetach();
-        } else {
-            // Drag ended without crossing the detach threshold — treat as activation.
-            onActivate();
-        }
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0 : 1,
+        zIndex: isDragging ? 10 : undefined,
     };
 
     return (
         <div
-            draggable={!!onDetach}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
             onClick={onActivate}
             className={cn(
-                "flex items-center gap-1.5 px-3 h-8 text-xs select-none cursor-pointer rounded-t border-t border-l border-r transition-colors",
+                "flex items-center gap-1.5 px-3 h-8 select-none cursor-grab active:cursor-grabbing rounded-t border-t border-l border-r transition-colors",
                 isActive
-                    ? "bg-neutral-800 text-white border-neutral-600"
+                    ? "bg-neutral-700 text-white border-neutral-600"
                     : "bg-transparent text-neutral-500 border-transparent hover:text-neutral-200 hover:bg-neutral-800/40"
             )}
         >
             {tab.type === "home" ? (
-                <Home className="w-3 h-3 flex-shrink-0" />
+                <Home className="w-4 h-4 flex-shrink-0" />
             ) : (
-                <FileText className="w-3 h-3 flex-shrink-0" />
+                <FileText className="w-4 h-4 flex-shrink-0" />
             )}
             <span className="max-w-[140px] truncate">
                 {tab.type === "home" ? "Home" : (script?.name ?? tab.scriptName)}
@@ -134,12 +102,17 @@ function TabPill({
             {onClose && (
                 <button
                     className="ml-0.5 p-0.5 rounded hover:bg-neutral-600 text-neutral-500 hover:text-white"
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                         e.stopPropagation();
                         onClose();
                     }}
                 >
-                    <X className="w-2.5 h-2.5" />
+                    {hasChanges ? (
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-400 block" />
+                    ) : (
+                        <X className="w-3 h-3 text-white" />
+                    )}
                 </button>
             )}
         </div>
@@ -157,6 +130,62 @@ function App() {
     const tabs = useAppSelector((s) => s.app.tab.tabs);
     const activeTabId = useAppSelector((s) => s.app.tab.activeTabId);
 
+    const [activeDragId, setActiveDragId] = useState<number | null>(null);
+    const activeDragTab =
+        activeDragId !== null ? tabs.find((t) => t.scriptId === activeDragId) : null;
+
+    const tabSensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    );
+
+    const handleTabDragStart = useCallback((event: DragStartEvent) => {
+        setActiveDragId(event.active.id as number);
+    }, []);
+
+    const handleTabDragEnd = useCallback(
+        (event: DragEndEvent) => {
+            const { active, over, delta } = event;
+
+            // Dragged far enough downward → detach markdown tab into a subwindow
+            if (delta.y > 80) {
+                const tab = tabs.find((t) => t.scriptId === active.id);
+                if (tab?.type === "markdown") {
+                    const windowLabel = `markdown-${tab.scriptId}`;
+                    const url = getSubwindowPaths.markdown(tab.scriptId, false);
+                    const webview = new WebviewWindow(windowLabel, {
+                        url,
+                        width: 1000,
+                        height: 700,
+                        minWidth: 800,
+                        minHeight: 600,
+                        skipTaskbar: false,
+                        alwaysOnTop: false,
+                        focus: true,
+                        devtools: true,
+                        decorations: false,
+                        hiddenTitle: true,
+                        transparent: true,
+                    });
+                    webview.once("tauri://error", (err) =>
+                        console.error("Failed to detach markdown tab:", err)
+                    );
+                    dispatch(closeTab(tab.scriptId));
+                }
+                setActiveDragId(null);
+                return;
+            }
+
+            if (!over || active.id === over.id) return;
+            const fromIdx = tabs.findIndex((t) => t.scriptId === active.id);
+            const toIdx = tabs.findIndex((t) => t.scriptId === over.id);
+            if (fromIdx !== -1 && toIdx !== -1) {
+                dispatch(reorderTabs({ fromIndex: fromIdx, toIndex: toIdx }));
+            }
+            setActiveDragId(null);
+        },
+        [tabs, dispatch]
+    );
+
     const openMarkdownTabDispatch = useCallback(
         (scriptId: number, scriptName: string) => {
             dispatch(openMarkdownTab({ scriptId, scriptName }));
@@ -172,32 +201,6 @@ function App() {
     const closeTabDispatch = useCallback(
         (tabId: number) => {
             dispatch(closeTab(tabId));
-        },
-        [dispatch]
-    );
-
-    const detachTab = useCallback(
-        (tab: AppTab & { type: "markdown" }) => {
-            const windowLabel = `markdown-${tab.scriptId}`;
-            const url = getSubwindowPaths.markdown(tab.scriptId, false);
-            const webview = new WebviewWindow(windowLabel, {
-                url,
-                width: 1000,
-                height: 700,
-                minWidth: 800,
-                minHeight: 600,
-                skipTaskbar: false,
-                alwaysOnTop: false,
-                focus: true,
-                devtools: true,
-                decorations: false,
-                hiddenTitle: true,
-                transparent: true,
-            });
-            webview.once("tauri://error", (err) =>
-                console.error("Failed to detach markdown tab:", err)
-            );
-            dispatch(closeTab(tab.scriptId));
         },
         [dispatch]
     );
@@ -618,27 +621,58 @@ function App() {
                 )}
             </div>
             {/* Tab bar */}
-            <div
-                className="flex-shrink-0 flex items-end gap-0.5 px-2 bg-neutral-900 border-b border-neutral-700 overflow-x-auto"
-                style={{ height: 36 }}
+            <DndContext
+                sensors={tabSensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleTabDragStart}
+                onDragEnd={handleTabDragEnd}
             >
-                {tabs.map((tab) => (
-                    <TabPill
-                        key={tab.scriptId}
-                        tab={tab}
-                        isActive={tab.scriptId === activeTabId}
-                        onActivate={() => dispatch(setActiveTab(tab.scriptId))}
-                        onClose={
-                            tab.type !== "home" ? () => closeTabDispatch(tab.scriptId) : undefined
-                        }
-                        onDetach={
-                            tab.type === "markdown"
-                                ? () => detachTab(tab as AppTab & { type: "markdown" })
-                                : undefined
-                        }
-                    />
-                ))}
-            </div>
+                <SortableContext
+                    items={tabs.map((t) => t.scriptId)}
+                    strategy={horizontalListSortingStrategy}
+                >
+                    <div
+                        className="flex-shrink-0 flex items-end gap-0.5 px-2 bg-neutral-800 border-b border-neutral-700 overflow-x-auto"
+                        style={{ height: 36 }}
+                    >
+                        {tabs.map((tab) => (
+                            <TabPill
+                                key={tab.scriptId}
+                                tab={tab}
+                                isActive={tab.scriptId === activeTabId}
+                                onActivate={() => dispatch(setActiveTab(tab.scriptId))}
+                                onClose={
+                                    tab.type !== "home"
+                                        ? () => closeTabDispatch(tab.scriptId)
+                                        : undefined
+                                }
+                            />
+                        ))}
+                    </div>
+                </SortableContext>
+                <DragOverlay dropAnimation={null}>
+                    {activeDragTab ? (
+                        <div
+                            className={cn(
+                                "flex items-center gap-1.5 px-3 h-8 select-none rounded-t border-t border-l border-r",
+                                activeDragTab.scriptId === activeTabId
+                                    ? "bg-neutral-700 text-white border-neutral-600"
+                                    : "bg-neutral-800 text-neutral-200 border-neutral-600",
+                                "shadow-lg opacity-90"
+                            )}
+                        >
+                            {activeDragTab.type === "home" ? (
+                                <Home className="w-3 h-3 flex-shrink-0" />
+                            ) : (
+                                <FileText className="w-3 h-3 flex-shrink-0" />
+                            )}
+                            <span className="max-w-[140px] truncate">
+                                {activeDragTab.type === "home" ? "Home" : activeDragTab.scriptName}
+                            </span>
+                        </div>
+                    ) : null}
+                </DragOverlay>
+            </DndContext>
             {/* Main content */}
             <div className="flex-1 overflow-hidden flex flex-row">
                 {activeTabId === HOME_TAB_ID ? (

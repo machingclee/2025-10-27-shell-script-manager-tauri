@@ -10,7 +10,7 @@ import { Box } from "@mui/material";
 import QuickNavDropdown from "./QuickNavDropdown";
 import MarkdownEditorToolbar from "./MarkdownEditorToolbar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { patchTabState, setFontSize } from "@/store/slices/appSlice";
+import { patchTabState, setFontSize, setPreviewDarkMode } from "@/store/slices/appSlice";
 import type { MarkdownTabState } from "@/store/slices/appSlice";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
@@ -25,9 +25,10 @@ import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
 import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
 import { remarkItemReference } from "@/lib/remarkItemReference";
 import ItemReference from "./ItemReference";
+import { Sun, Moon } from "lucide-react";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
-const DEFAULT_FONT_SIZE = 18;
+const BASE_FONT_SIZE = 18;
 
 // Rehype plugin: annotate block elements with their source line number
 function rehypeAddSourceLines() {
@@ -47,8 +48,6 @@ function rehypeAddSourceLines() {
 
 // List spacing constants for alignment calibration
 const LIST_GUTTER_WIDTH = "2em";
-const LIST_ITEM_PADDING = "0.5em";
-const CHECKBOX_SPACING = "-1.25em";
 const LIST_ITEM_LINE_HEIGHT = "1.4";
 
 // Rehype plugin: wrap text matching `query` in <mark class="search-mark">
@@ -221,7 +220,7 @@ function ResizableImage({
                 borderRadius: "4px",
                 outline: hovered ? "3px solid #3e6df1" : "3px solid transparent",
                 transition: "outline-color 0.15s",
-                cursor: hovered ? "nwse-resize" : undefined,
+                cursor: hovered ? "nesw-resize" : undefined,
             }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
@@ -268,11 +267,11 @@ export default function MarkdownEditor({
     const [isFullscreen, setIsFullscreen] = useState(false);
     // ─── Redux-backed tab state (live-synced; survives tab switches) ─────────
     const ts = savedState; // shorthand; undefined on first open
-    const isEditMode: boolean = ts?.isEditMode ?? editModeFromUrl;
     const editName: string = ts?.editName ?? "";
     const splitRatio: number = ts?.splitRatio ?? 50;
-    const editViewMode: "plain" | "mixed" | "preview" = ts?.editViewMode ?? "mixed";
-    // fontSize is global — shared by all tabs so zoom in/out affects every open tab.
+    const editViewMode: "plain" | "mixed" | "preview" =
+        ts?.editViewMode ?? (editModeFromUrl ? "mixed" : "preview");
+    // fontSize is an integer px value; zoom ratio is derived locally only where needed.
     const fontSize: number = useAppSelector((s) => s.app.tab.fontSize);
     /** Dispatch a partial update for this tab's persisted state. */
     const patch = useCallback(
@@ -310,14 +309,14 @@ export default function MarkdownEditor({
     const [editorSearchIdx, setEditorSearchIdx] = useState(0);
     const editorSearchInputRef = useRef<HTMLInputElement>(null);
 
+    // Preview dark mode — shared via Redux
+    const previewDarkMode = useAppSelector((s) => s.app.tab.previewDarkMode);
     // Preview search
     const [previewSearchOpen, setPreviewSearchOpen] = useState(false);
     const [previewSearchQuery, setPreviewSearchQuery] = useState("");
     const [previewSearchIdx, setPreviewSearchIdx] = useState(0);
     const [previewSearchCount, setPreviewSearchCount] = useState(0);
     const previewSearchInputRef = useRef<HTMLInputElement>(null);
-    const viewBoxRef = useRef<HTMLDivElement>(null);
-
     useEffect(() => {
         invoke<string>("get_images_dir").then((dir) => {
             setImagesDir(dir);
@@ -325,24 +324,15 @@ export default function MarkdownEditor({
     }, []);
 
     // ─── Tab state persistence ───────────────────────────────────────────────
-    // isEditMode and other persisted fields are live in Redux (patched on every change).
-    // On unmount we only flush editContent (hot-path local state) + scroll positions
+    // On unmount we flush editContent (hot-path local state) + scroll positions
     // (DOM values that can't be live-synced to Redux).
-    // isEditModeRef keeps a fresh value for the cleanup without causing re-renders.
-    const isEditModeRef = useRef(isEditMode);
-    isEditModeRef.current = isEditMode;
     const dispatchRef = useRef(dispatch);
     dispatchRef.current = dispatch;
     // ⚠️ Must be useLayoutEffect — useEffect cleanup runs AFTER React nulls out DOM refs,
     // so editorWrapperRef.current and previewBoxRef.current would already be null.
     useLayoutEffect(() => {
         return () => {
-            // Which preview container is in the DOM depends on isEditMode at unmount time.
-            // previewBoxRef is used in edit mode (mixed/preview), viewBoxRef in view-only mode.
-            const savedIsEditMode = isEditModeRef.current;
-            const previewScroll = savedIsEditMode
-                ? (previewBoxRef.current?.scrollTop ?? 0)
-                : (viewBoxRef.current?.scrollTop ?? 0);
+            const previewScroll = previewBoxRef.current?.scrollTop ?? 0;
             dispatchRef.current(
                 patchTabState({
                     tabId,
@@ -360,8 +350,6 @@ export default function MarkdownEditor({
     // Two nested RAFs ensure the browser has finished layout before we set scrollTop.
     const savedEditorScrollRef = useRef(savedState?.editorScrollTop ?? 0);
     const savedPreviewScrollRef = useRef(savedState?.previewScrollTop ?? 0);
-    // Capture which preview ref to restore to based on the saved isEditMode.
-    const savedIsEditModeRef = useRef(savedState?.isEditMode ?? editModeFromUrl);
     const hasRestoredScrollRef = useRef(false);
     useEffect(() => {
         if (hasRestoredScrollRef.current || !editorReady) return;
@@ -376,11 +364,7 @@ export default function MarkdownEditor({
                     editorWrapperRef.current.scrollTop = savedEditor;
                 }
                 if (savedPreview) {
-                    // previewBoxRef is in DOM in edit mode (mixed/preview);
-                    // viewBoxRef is in DOM in view-only mode.
-                    const previewEl = savedIsEditModeRef.current
-                        ? previewBoxRef.current
-                        : viewBoxRef.current;
+                    const previewEl = previewBoxRef.current;
                     if (previewEl) previewEl.scrollTop = savedPreview;
                 }
             });
@@ -433,12 +417,12 @@ export default function MarkdownEditor({
         undoIndexRef.current = stack.length - 1;
     }, []);
 
-    // Initialize editName when script loads if starting in edit mode
+    // Initialize editName when script loads (first time or when switching scripts)
     useEffect(() => {
-        if (editModeFromUrl && script) {
+        if (script && !ts?.editName) {
             patch({ editName: script.name || "" });
         }
-    }, [script, editModeFromUrl, patch]);
+    }, [script, ts?.editName, patch]);
 
     // Debounce-sync editContent to Redux so the toolbar component can read it for saving.
     useEffect(() => {
@@ -447,37 +431,21 @@ export default function MarkdownEditor({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editContent]);
 
-    // When edit mode ends (cancel or save), reset local editContent to the saved script content.
-    const prevIsEditModeRef = useRef(isEditMode);
-    useEffect(() => {
-        if (prevIsEditModeRef.current && !isEditMode) {
-            setEditContent(script?.command || "");
-        }
-        prevIsEditModeRef.current = isEditMode;
-    }, [isEditMode, script?.command]);
+    const handleSaveEdit = useCallback(async () => {
+        if (!script) return;
 
-    const handleSaveEdit = useCallback(
-        async (closeEditMode: boolean = true) => {
-            if (!script) return;
+        await updateMarkdown({
+            ...script,
+            name: editName,
+            command: editContent,
+        }).unwrap();
 
-            await updateMarkdown({
-                ...script,
-                name: editName,
-                command: editContent,
-            }).unwrap();
+        patch({ hasChanges: false, edited: true });
+        setTimeout(() => dispatch(patchTabState({ tabId, edited: false })), 2000);
 
-            patch({ hasChanges: false, edited: true });
-            setTimeout(() => dispatch(patchTabState({ tabId, edited: false })), 2000);
-
-            if (closeEditMode) {
-                patch({ isEditMode: false });
-            }
-
-            dispatch(scriptApi.util.invalidateTags([{ type: "Script", id: script.id }]));
-            await emit("markdown-updated", { scriptId: script.id });
-        },
-        [script, editName, editContent, updateMarkdown, dispatch, patch, tabId]
-    );
+        dispatch(scriptApi.util.invalidateTags([{ type: "Script", id: script.id }]));
+        await emit("markdown-updated", { scriptId: script.id });
+    }, [script, editName, editContent, updateMarkdown, dispatch, patch, tabId]);
 
     // Keep ref updated with latest handleSaveEdit
     useEffect(() => {
@@ -487,7 +455,7 @@ export default function MarkdownEditor({
     // Shared window-level keyboard shortcuts
     useMarkdownShortcuts({
         onSave: () => {
-            if (isEditMode) handleSaveEdit(false);
+            handleSaveEdit();
         },
         onClose: () => {
             if (embedded) {
@@ -499,15 +467,10 @@ export default function MarkdownEditor({
             }
         },
         onFind: () => {
-            if (isEditMode) {
-                setEditorSearchOpen(true);
-                setTimeout(() => editorSearchInputRef.current?.focus(), 0);
-                if (editViewMode === "mixed" || editViewMode === "preview") {
-                    setPreviewSearchOpen(true);
-                }
-            } else {
+            setEditorSearchOpen(true);
+            setTimeout(() => editorSearchInputRef.current?.focus(), 0);
+            if (editViewMode === "mixed" || editViewMode === "preview") {
                 setPreviewSearchOpen(true);
-                setTimeout(() => previewSearchInputRef.current?.focus(), 0);
             }
         },
         onEscape: () => {
@@ -516,9 +479,9 @@ export default function MarkdownEditor({
             setPreviewSearchOpen(false);
             setPreviewSearchQuery("");
         },
-        onZoomIn: () => dispatch(setFontSize(Math.min(fontSize + 1, 36))),
-        onZoomOut: () => dispatch(setFontSize(Math.max(fontSize - 1, 8))),
-        onZoomReset: () => dispatch(setFontSize(DEFAULT_FONT_SIZE)),
+        onZoomIn: () => dispatch(setFontSize(Math.min(fontSize + 4, 40))),
+        onZoomOut: () => dispatch(setFontSize(Math.max(fontSize - 4, 8))),
+        onZoomReset: () => dispatch(setFontSize(BASE_FONT_SIZE)),
     });
 
     const handleCheckboxToggle = async (checkboxIndex: number) => {
@@ -542,12 +505,10 @@ export default function MarkdownEditor({
         latestContentRef.current = updatedContent;
 
         // Keep the editor state in sync so the mixed-mode preview re-renders immediately
-        if (isEditMode) {
-            setEditContent(updatedContent);
-            pushHistory(updatedContent);
-            patch({ hasChanges: true });
-            patch({ edited: false });
-        }
+        setEditContent(updatedContent);
+        pushHistory(updatedContent);
+        patch({ hasChanges: true });
+        patch({ edited: false });
 
         if (script) {
             await updateMarkdown({
@@ -569,10 +530,6 @@ export default function MarkdownEditor({
             undoStackRef.current = [content];
             undoIndexRef.current = 0;
             setEditorReady(true);
-        } else if (!isEditMode) {
-            // In read-only view keep the ref fresh so checkbox toggles read
-            // the latest saved content from the server.
-            latestContentRef.current = content;
         }
     }, [script, editorReady]);
 
@@ -580,7 +537,6 @@ export default function MarkdownEditor({
     const editorWrapperRef = useRef<HTMLDivElement>(null);
     const previewBoxRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
-        if (!isEditMode) return;
         const container = editorWrapperRef.current;
         if (!container) return;
         const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
@@ -718,11 +674,11 @@ export default function MarkdownEditor({
             textarea.removeEventListener("beforeinput", beforeInputHandler, true);
             textarea.removeEventListener("input", nativeUndoInputHandler, true);
         };
-    }, [isEditMode, editorReady]);
+    }, [editorReady]);
 
     // Record cursor positions for Alt+Arrow history navigation
     useEffect(() => {
-        if (!isEditMode || !editorReady) return;
+        if (!editorReady) return;
         const container = editorWrapperRef.current;
         if (!container) return;
         const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
@@ -771,11 +727,11 @@ export default function MarkdownEditor({
             textarea.removeEventListener("keyup", handleKeyUp);
             if (debounceTimer) clearTimeout(debounceTimer);
         };
-    }, [isEditMode, editorReady]);
+    }, [editorReady]);
 
     // Paste image from clipboard
     useEffect(() => {
-        if (!isEditMode || !editorReady) return;
+        if (!editorReady) return;
         const container = editorWrapperRef.current;
         if (!container) return;
         const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
@@ -837,7 +793,7 @@ export default function MarkdownEditor({
 
         textarea.addEventListener("paste", handlePaste);
         return () => textarea.removeEventListener("paste", handlePaste);
-    }, [isEditMode, editorReady, editContent, pushHistory]);
+    }, [editorReady, editContent, pushHistory]);
 
     // ── Editor search ──────────────────────────────────────────────────────────
     // Recompute match list whenever the query or editor content changes
@@ -898,9 +854,7 @@ export default function MarkdownEditor({
             setPreviewSearchCount(0);
             return;
         }
-        const container = (
-            isEditMode ? previewBoxRef.current : viewBoxRef.current
-        ) as HTMLElement | null;
+        const container = previewBoxRef.current as HTMLElement | null;
         if (!container) return;
         const marks = Array.from(container.querySelectorAll<HTMLElement>("mark.search-mark"));
         setPreviewSearchCount(marks.length);
@@ -914,14 +868,7 @@ export default function MarkdownEditor({
             m.style.padding = "1px 0";
         });
         marks[idx].scrollIntoView({ block: "center" });
-    }, [
-        previewSearchIdx,
-        previewSearchOpen,
-        previewSearchQuery,
-        isEditMode,
-        editContent,
-        script?.command,
-    ]);
+    }, [previewSearchIdx, previewSearchOpen, previewSearchQuery, editContent, script?.command]);
 
     const scrollPreviewToLine = useCallback((lineNum: number, flash = false) => {
         const preview = previewBoxRef.current;
@@ -1047,11 +994,6 @@ export default function MarkdownEditor({
             ] as any[],
         [rehypeSearchHighlightPlugin]
     );
-    const rehypePluginsViewPreview = useMemo(
-        () => [rehypeHighlight, rehypeMathjax, rehypeSearchHighlightPlugin] as any[],
-        [rehypeSearchHighlightPlugin]
-    );
-
     const remarkPluginsWithItemRef = useMemo(
         () => [remarkGfm, remarkMath, remarkItemReference] as any[],
         []
@@ -1139,13 +1081,9 @@ export default function MarkdownEditor({
                         `$1?width=${newWidth}$2`
                     );
                     latestContentRef.current = updated;
-                    if (isEditMode) {
-                        setEditContent(updated);
-                        pushHistory(updated);
-                        patch({ hasChanges: true });
-                    } else if (script) {
-                        updateMarkdown({ ...script, command: updated });
-                    }
+                    setEditContent(updated);
+                    pushHistory(updated);
+                    patch({ hasChanges: true });
                 };
 
                 return (
@@ -1157,7 +1095,9 @@ export default function MarkdownEditor({
                     />
                 );
             },
-            itemref: ({ id }: { id?: string }) => <ItemReference id={id} />,
+            itemref: ({ id }: { id?: string }) => (
+                <ItemReference id={id} darkMode={previewDarkMode} />
+            ),
             input: ({ node, checked, disabled, ...props }: any) => {
                 if (props.type === "checkbox") {
                     return (
@@ -1190,7 +1130,7 @@ export default function MarkdownEditor({
                 return <input {...props} />;
             },
         };
-    }, [script?.command, imagesDir]);
+    }, [script?.command, imagesDir, previewDarkMode]);
 
     const handleWindowDragStart = (e: React.MouseEvent) => {
         if (e.button !== 0) return;
@@ -1265,9 +1205,105 @@ export default function MarkdownEditor({
 
             {/* Content */}
             <div className="flex-1 overflow-hidden">
-                {isEditMode ? (
-                    editViewMode === "plain" ? (
-                        <div className="relative h-full">
+                {editViewMode === "plain" ? (
+                    <div className="relative h-full">
+                        {editorSearchOpen && (
+                            <SearchBar
+                                query={editorSearchQuery}
+                                onQueryChange={setEditorSearchQuery}
+                                matchCount={editorSearchMatches.length}
+                                matchIdx={editorSearchIdx}
+                                // @ts-ignore
+                                inputRef={editorSearchInputRef}
+                                onAdvance={() =>
+                                    setEditorSearchIdx((i) =>
+                                        editorSearchMatches.length === 0
+                                            ? 0
+                                            : (i + 1) % editorSearchMatches.length
+                                    )
+                                }
+                                onClose={() => {
+                                    setEditorSearchOpen(false);
+                                    setEditorSearchQuery("");
+                                }}
+                            />
+                        )}
+                        <div
+                            ref={editorWrapperRef}
+                            className="h-full overflow-auto bg-[#1e1e1e] relative"
+                        >
+                            {editorSearchOpen && editorSearchQuery.trim() && (
+                                <div
+                                    aria-hidden="true"
+                                    style={{
+                                        position: "absolute",
+                                        top: 0,
+                                        left: 0,
+                                        right: 0,
+                                        padding: "16px",
+                                        fontFamily:
+                                            '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                        fontSize: `${fontSize}px`,
+                                        lineHeight: "1.5",
+                                        color: "transparent",
+                                        pointerEvents: "none",
+                                        whiteSpace: "pre-wrap",
+                                        overflowWrap: "break-word",
+                                        overflow: "hidden",
+                                        zIndex: 2,
+                                        userSelect: "none",
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: editorHighlightHtml }}
+                                />
+                            )}
+                            <SimpleEditor
+                                value={editContent}
+                                onValueChange={(code) => {
+                                    setEditContent(code);
+                                    latestContentRef.current = code;
+                                    patch({ hasChanges: true });
+                                    patch({ edited: false });
+                                    pushHistory(code);
+                                }}
+                                highlight={(code) =>
+                                    highlight(code, languages.markdown, "markdown")
+                                }
+                                padding={16}
+                                style={{
+                                    fontFamily:
+                                        '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                    fontSize: fontSize,
+                                    lineHeight: 1.5,
+                                    minHeight: "100%",
+                                    backgroundColor: "#1e1e1e",
+                                    color: "#d4d4d4",
+                                }}
+                                textareaClassName="focus:outline-none"
+                                onKeyDown={handleEditorKeyDown}
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <div
+                        className="flex h-full"
+                        style={{ userSelect: isDragging ? "none" : undefined }}
+                    >
+                        {/* Left: editor */}
+                        <div
+                            className="relative h-full flex-shrink-0"
+                            style={{
+                                width: editViewMode === "preview" ? "0" : `${splitRatio}%`,
+                                overflow: "hidden",
+                                pointerEvents:
+                                    editViewMode === "preview"
+                                        ? "none"
+                                        : isDragging
+                                          ? "none"
+                                          : undefined,
+                                userSelect: isDragging ? "none" : undefined,
+                                display: editViewMode === "preview" ? "none" : undefined,
+                            }}
+                        >
                             {editorSearchOpen && (
                                 <SearchBar
                                     query={editorSearchQuery}
@@ -1286,6 +1322,9 @@ export default function MarkdownEditor({
                                     onClose={() => {
                                         setEditorSearchOpen(false);
                                         setEditorSearchQuery("");
+                                        setPreviewSearchOpen(false);
+                                        setPreviewSearchQuery("");
+                                        setPreviewSearchIdx(0);
                                     }}
                                 />
                             )}
@@ -1314,7 +1353,9 @@ export default function MarkdownEditor({
                                             zIndex: 2,
                                             userSelect: "none",
                                         }}
-                                        dangerouslySetInnerHTML={{ __html: editorHighlightHtml }}
+                                        dangerouslySetInnerHTML={{
+                                            __html: editorHighlightHtml,
+                                        }}
                                     />
                                 )}
                                 <SimpleEditor
@@ -1341,588 +1382,340 @@ export default function MarkdownEditor({
                                     }}
                                     textareaClassName="focus:outline-none"
                                     onKeyDown={handleEditorKeyDown}
+                                    onKeyUp={(e) => {
+                                        const CURSOR_KEYS = new Set([
+                                            "ArrowUp",
+                                            "ArrowDown",
+                                            "ArrowLeft",
+                                            "ArrowRight",
+                                            "Home",
+                                            "End",
+                                            "PageUp",
+                                            "PageDown",
+                                        ]);
+                                        if (CURSOR_KEYS.has(e.key)) handleEditorCursorChange(false);
+                                    }}
+                                    onDoubleClick={() => handleEditorCursorChange(true)}
                                 />
                             </div>
                         </div>
-                    ) : (
+
+                        {/* Divider */}
                         <div
-                            className="flex h-full"
-                            style={{ userSelect: isDragging ? "none" : undefined }}
+                            className="w-1 cursor-col-resize bg-neutral-600 hover:bg-blue-500 flex-shrink-0 transition-colors"
+                            style={{ display: editViewMode === "preview" ? "none" : undefined }}
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                isDraggingRef.current = true;
+                                setIsDragging(true);
+                                document.body.style.userSelect = "none";
+                                document.body.style.cursor = "col-resize";
+                                window.getSelection()?.removeAllRanges();
+                            }}
+                        />
+
+                        {/* Right: live preview */}
+                        <div
+                            className="h-full relative"
+                            style={{
+                                width: editViewMode === "preview" ? "100%" : `${100 - splitRatio}%`,
+                            }}
                         >
-                            {/* Left: editor */}
-                            <div
-                                className="relative h-full flex-shrink-0"
+                            {/* Dark/Light mode toggle */}
+                            <button
+                                onClick={() => dispatch(setPreviewDarkMode(!previewDarkMode))}
+                                title={
+                                    previewDarkMode ? "Switch to light mode" : "Switch to dark mode"
+                                }
                                 style={{
-                                    width: editViewMode === "preview" ? "0" : `${splitRatio}%`,
-                                    overflow: "hidden",
-                                    pointerEvents:
-                                        editViewMode === "preview"
-                                            ? "none"
-                                            : isDragging
-                                              ? "none"
-                                              : undefined,
-                                    userSelect: isDragging ? "none" : undefined,
-                                    display: editViewMode === "preview" ? "none" : undefined,
+                                    position: "absolute",
+                                    top: 8,
+                                    right: 18,
+                                    zIndex: 10,
+                                    background: previewDarkMode
+                                        ? "rgba(255,255,255,0.12)"
+                                        : "rgba(0,0,0,0.10)",
+                                    border: "none",
+                                    borderRadius: 6,
+                                    padding: "4px 8px",
+                                    cursor: "pointer",
+                                    lineHeight: 1,
+                                    color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
                                 }}
                             >
-                                {editorSearchOpen && (
-                                    <SearchBar
-                                        query={editorSearchQuery}
-                                        onQueryChange={setEditorSearchQuery}
-                                        matchCount={editorSearchMatches.length}
-                                        matchIdx={editorSearchIdx}
-                                        // @ts-ignore
-                                        inputRef={editorSearchInputRef}
-                                        onAdvance={() =>
-                                            setEditorSearchIdx((i) =>
-                                                editorSearchMatches.length === 0
-                                                    ? 0
-                                                    : (i + 1) % editorSearchMatches.length
-                                            )
-                                        }
-                                        onClose={() => {
-                                            setEditorSearchOpen(false);
-                                            setEditorSearchQuery("");
-                                            setPreviewSearchOpen(false);
-                                            setPreviewSearchQuery("");
-                                            setPreviewSearchIdx(0);
-                                        }}
-                                    />
-                                )}
-                                <div
-                                    ref={editorWrapperRef}
-                                    className="h-full overflow-auto bg-[#1e1e1e] relative"
-                                >
-                                    {editorSearchOpen && editorSearchQuery.trim() && (
-                                        <div
-                                            aria-hidden="true"
-                                            style={{
+                                {previewDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+                            </button>
+                            {previewSearchOpen && (
+                                <SearchBar
+                                    query={previewSearchQuery}
+                                    onQueryChange={setPreviewSearchQuery}
+                                    matchCount={previewSearchCount}
+                                    matchIdx={previewSearchIdx}
+                                    // @ts-ignore
+                                    inputRef={previewSearchInputRef}
+                                    onAdvance={() =>
+                                        setPreviewSearchIdx((i) =>
+                                            previewSearchCount === 0
+                                                ? 0
+                                                : (i + 1) % previewSearchCount
+                                        )
+                                    }
+                                    onClose={() => {
+                                        setPreviewSearchOpen(false);
+                                        setPreviewSearchQuery("");
+                                        setPreviewSearchIdx(0);
+                                        setEditorSearchOpen(false);
+                                        setEditorSearchQuery("");
+                                    }}
+                                />
+                            )}
+                            <Box
+                                ref={previewBoxRef}
+                                className="markdown-preview"
+                                style={{ width: "100%" }}
+                                onDoubleClick={handlePreviewDoubleClick}
+                                sx={{
+                                    fontSize: `${fontSize}px`,
+                                    lineHeight: `${Math.round(fontSize * 1.6)}px`,
+                                    height: "100%",
+                                    userSelect: "text",
+                                    cursor: "text",
+                                    overflowY: "auto",
+                                    backgroundColor: previewDarkMode
+                                        ? "rgb(25, 25, 25)"
+                                        : "rgb(248, 249, 250)",
+                                    color: previewDarkMode
+                                        ? "rgb(212, 212, 212)"
+                                        : "rgb(30, 30, 30)",
+                                    padding: "24px",
+                                    "& h1": {
+                                        fontSize: "2em",
+                                        fontWeight: "700",
+                                        marginTop: "0.67em",
+                                        marginBottom: "0.67em",
+                                        borderBottom: previewDarkMode
+                                            ? "2px solid rgba(255, 255, 255, 0.2)"
+                                            : "2px solid rgba(0, 0, 0, 0.15)",
+                                        paddingBottom: "0.3em",
+                                        color: previewDarkMode
+                                            ? "rgb(255, 255, 255)"
+                                            : "rgb(20, 30, 70)",
+                                    },
+                                    "& h2": {
+                                        fontSize: "1.75em",
+                                        fontWeight: "700",
+                                        marginTop: "0.75em",
+                                        marginBottom: "0.5em",
+                                        borderBottom: previewDarkMode
+                                            ? "1px solid rgba(255, 255, 255, 0.15)"
+                                            : "1px solid rgba(0, 0, 0, 0.1)",
+                                        paddingBottom: "0.3em",
+                                        color: previewDarkMode
+                                            ? "rgb(255, 255, 255)"
+                                            : "rgb(20, 30, 70)",
+                                    },
+                                    "& h3": {
+                                        fontSize: "1.5em",
+                                        fontWeight: "600",
+                                        marginTop: "0.75em",
+                                        marginBottom: "0.5em",
+                                        color: previewDarkMode
+                                            ? "rgb(245, 245, 245)"
+                                            : "rgb(30, 40, 80)",
+                                    },
+                                    "& h4": {
+                                        fontSize: "1.25em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: previewDarkMode
+                                            ? "rgb(245, 245, 245)"
+                                            : "rgb(40, 40, 40)",
+                                    },
+                                    "& h5": {
+                                        fontSize: "1.1em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: previewDarkMode
+                                            ? "rgb(230, 230, 230)"
+                                            : "rgb(60, 60, 60)",
+                                    },
+                                    "& h6": {
+                                        fontSize: "1em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: previewDarkMode
+                                            ? "rgb(220, 220, 220)"
+                                            : "rgb(80, 80, 80)",
+                                    },
+                                    "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child":
+                                        {
+                                            marginTop: "0",
+                                        },
+                                    "& ul, & ol": {
+                                        paddingLeft: LIST_GUTTER_WIDTH,
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& ul": {
+                                        listStyleType: "disc",
+                                    },
+                                    "& ol": {
+                                        listStyleType: "decimal",
+                                    },
+                                    "& li": {
+                                        lineHeight: LIST_ITEM_LINE_HEIGHT,
+                                    },
+                                    "& ul > li:not(.task-list-item)": {
+                                        listStylePosition: "outside",
+                                        marginLeft: "-0.3em",
+                                        textIndent: "0.3em",
+                                    },
+                                    "& ul > li:not(.task-list-item)::marker": {
+                                        fontSize: "0.95em",
+                                    },
+                                    "& li.task-list-item": {
+                                        listStyleType: "none",
+                                    },
+                                    "& li.task-list-item input[type='checkbox']": {
+                                        appearance: "none !important",
+                                        WebkitAppearance: "none !important",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: "1em",
+                                        height: "1em",
+                                        margin: "0 0.5em 0 -1.75em",
+                                        verticalAlign: "text-bottom",
+                                        cursor: "pointer",
+                                        border: previewDarkMode
+                                            ? "2px solid rgba(255, 255, 255, 0.3)"
+                                            : "2px solid rgba(0, 0, 0, 0.3)",
+                                        borderRadius: "3px",
+                                        backgroundColor: "transparent",
+                                        position: "relative",
+                                        "&:checked": {
+                                            backgroundColor: "rgb(59, 130, 246)",
+                                            borderColor: "rgb(59, 130, 246)",
+                                            "&::after": {
+                                                content: '"✓"',
+                                                color: "white",
+                                                fontSize: "0.72em",
+                                                fontWeight: "bold",
+                                                lineHeight: 1,
                                                 position: "absolute",
-                                                top: 0,
-                                                left: 0,
-                                                right: 0,
-                                                padding: "16px",
-                                                fontFamily:
-                                                    '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                                fontSize: `${fontSize}px`,
-                                                lineHeight: "1.5",
-                                                color: "transparent",
-                                                pointerEvents: "none",
-                                                whiteSpace: "pre-wrap",
-                                                overflowWrap: "break-word",
-                                                overflow: "hidden",
-                                                zIndex: 2,
-                                                userSelect: "none",
-                                            }}
-                                            dangerouslySetInnerHTML={{
-                                                __html: editorHighlightHtml,
-                                            }}
-                                        />
-                                    )}
-                                    <SimpleEditor
-                                        value={editContent}
-                                        onValueChange={(code) => {
-                                            setEditContent(code);
-                                            latestContentRef.current = code;
-                                            patch({ hasChanges: true });
-                                            patch({ edited: false });
-                                            pushHistory(code);
-                                        }}
-                                        highlight={(code) =>
-                                            highlight(code, languages.markdown, "markdown")
-                                        }
-                                        padding={16}
-                                        style={{
-                                            fontFamily:
-                                                '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                            fontSize: fontSize,
-                                            lineHeight: 1.5,
-                                            minHeight: "100%",
-                                            backgroundColor: "#1e1e1e",
-                                            color: "#d4d4d4",
-                                        }}
-                                        textareaClassName="focus:outline-none"
-                                        onKeyDown={handleEditorKeyDown}
-                                        onKeyUp={(e) => {
-                                            const CURSOR_KEYS = new Set([
-                                                "ArrowUp",
-                                                "ArrowDown",
-                                                "ArrowLeft",
-                                                "ArrowRight",
-                                                "Home",
-                                                "End",
-                                                "PageUp",
-                                                "PageDown",
-                                            ]);
-                                            if (CURSOR_KEYS.has(e.key))
-                                                handleEditorCursorChange(false);
-                                        }}
-                                        onDoubleClick={() => handleEditorCursorChange(true)}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Divider */}
-                            <div
-                                className="w-1 cursor-col-resize bg-neutral-600 hover:bg-blue-500 flex-shrink-0 transition-colors"
-                                style={{ display: editViewMode === "preview" ? "none" : undefined }}
-                                onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    isDraggingRef.current = true;
-                                    setIsDragging(true);
-                                    document.body.style.userSelect = "none";
-                                    document.body.style.cursor = "col-resize";
-                                    window.getSelection()?.removeAllRanges();
-                                }}
-                            />
-
-                            {/* Right: live preview */}
-                            <div
-                                className="h-full"
-                                style={{
-                                    width:
-                                        editViewMode === "preview"
-                                            ? "100%"
-                                            : `${100 - splitRatio}%`,
+                                                top: "50%",
+                                                left: "50%",
+                                                transform: "translate(-50%, -50%)",
+                                            },
+                                        },
+                                    },
+                                    "& li.task-list-item > p": {
+                                        display: "inline",
+                                        marginTop: 0,
+                                        marginBottom: 0,
+                                    },
+                                    "& li.task-list-item > ul, & li.task-list-item > ol": {
+                                        marginTop: "0.4em",
+                                        marginBottom: "0.4em",
+                                    },
+                                    "& p": {
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& code:not(pre code)": {
+                                        fontSize: "0.95em",
+                                        backgroundColor: previewDarkMode
+                                            ? LIGHT_WHITE_BG
+                                            : "rgba(0, 0, 0, 0.07)",
+                                        color: previewDarkMode ? "inherit" : "rgb(190, 50, 50)",
+                                        padding: "2px 6px",
+                                        borderRadius: "4px",
+                                    },
+                                    "& pre": {
+                                        backgroundColor: previewDarkMode
+                                            ? "rgba(0, 0, 0, 0.3)"
+                                            : "rgb(240, 242, 244)",
+                                        borderRadius: "4px",
+                                        padding: "12px",
+                                        overflow: "auto",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& pre code": {
+                                        backgroundColor: "transparent",
+                                        color: previewDarkMode ? "inherit" : "rgb(30, 30, 30)",
+                                        padding: "0",
+                                        fontSize: "0.9em",
+                                    },
+                                    "& blockquote": {
+                                        borderLeft: previewDarkMode
+                                            ? "4px solid rgba(255, 255, 255, 0.3)"
+                                            : "4px solid rgba(0, 0, 0, 0.2)",
+                                        paddingLeft: "1em",
+                                        marginLeft: "0",
+                                        color: previewDarkMode
+                                            ? "rgba(255, 255, 255, 0.8)"
+                                            : "rgba(0, 0, 0, 0.6)",
+                                    },
+                                    "& a": {
+                                        color: previewDarkMode
+                                            ? "rgb(96, 165, 250)"
+                                            : "rgb(37, 99, 235)",
+                                        textDecoration: "underline",
+                                        "&:hover": {
+                                            color: previewDarkMode
+                                                ? "rgb(147, 197, 253)"
+                                                : "rgb(29, 78, 216)",
+                                        },
+                                    },
+                                    "& table": {
+                                        borderCollapse: "collapse",
+                                        width: "100%",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& th, & td": {
+                                        border: previewDarkMode
+                                            ? "1px solid rgba(255, 255, 255, 0.2)"
+                                            : "1px solid rgba(0, 0, 0, 0.15)",
+                                        padding: "8px",
+                                    },
+                                    "& th": {
+                                        backgroundColor: previewDarkMode
+                                            ? "rgba(0, 0, 0, 0.3)"
+                                            : "rgba(0, 0, 0, 0.05)",
+                                        fontWeight: "600",
+                                    },
+                                    "& mjx-container": {
+                                        display: "inline-block",
+                                        verticalAlign: "middle",
+                                    },
+                                    "& mjx-container[display='true']": {
+                                        display: "block",
+                                        textAlign: "center",
+                                        margin: "1em 0",
+                                    },
                                 }}
                             >
-                                {previewSearchOpen && (
-                                    <SearchBar
-                                        query={previewSearchQuery}
-                                        onQueryChange={setPreviewSearchQuery}
-                                        matchCount={previewSearchCount}
-                                        matchIdx={previewSearchIdx}
-                                        // @ts-ignore
-                                        inputRef={previewSearchInputRef}
-                                        onAdvance={() =>
-                                            setPreviewSearchIdx((i) =>
-                                                previewSearchCount === 0
-                                                    ? 0
-                                                    : (i + 1) % previewSearchCount
-                                            )
-                                        }
-                                        onClose={() => {
-                                            setPreviewSearchOpen(false);
-                                            setPreviewSearchQuery("");
-                                            setPreviewSearchIdx(0);
-                                            setEditorSearchOpen(false);
-                                            setEditorSearchQuery("");
-                                        }}
-                                    />
-                                )}
-                                <Box
-                                    ref={previewBoxRef}
-                                    className="markdown-preview"
-                                    style={{ width: "100%" }}
-                                    onDoubleClick={handlePreviewDoubleClick}
-                                    sx={{
-                                        fontSize: `${fontSize}px`,
-                                        height: "100%",
-                                        userSelect: "text",
-                                        cursor: "text",
-                                        overflowY: "auto",
-                                        backgroundColor: "rgb(209, 213, 219)",
-                                        padding: "24px",
-                                        ".dark &": {
-                                            backgroundColor: "rgba(255, 255, 255, 0.05) !important",
-                                            color: "rgb(212, 212, 212) !important",
-                                        },
-                                        "& h1": {
-                                            fontSize: "2em",
-                                            fontWeight: "700",
-                                            marginTop: "0.67em",
-                                            marginBottom: "0.67em",
-                                            borderBottom: "2px solid rgba(255, 255, 255, 0.2)",
-                                            paddingBottom: "0.3em",
-                                            color: "rgb(255, 255, 255)",
-                                        },
-                                        "& h2": {
-                                            fontSize: "1.75em",
-                                            fontWeight: "700",
-                                            marginTop: "0.75em",
-                                            marginBottom: "0.5em",
-                                            borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
-                                            paddingBottom: "0.3em",
-                                            color: "rgb(255, 255, 255)",
-                                        },
-                                        "& h3": {
-                                            fontSize: "1.5em",
-                                            fontWeight: "600",
-                                            marginTop: "0.75em",
-                                            marginBottom: "0.5em",
-                                            color: "rgb(245, 245, 245)",
-                                        },
-                                        "& h4": {
-                                            fontSize: "1.25em",
-                                            fontWeight: "600",
-                                            marginTop: "0.5em",
-                                            marginBottom: "0.5em",
-                                            color: "rgb(245, 245, 245)",
-                                        },
-                                        "& h5": {
-                                            fontSize: "1.1em",
-                                            fontWeight: "600",
-                                            marginTop: "0.5em",
-                                            marginBottom: "0.5em",
-                                            color: "rgb(230, 230, 230)",
-                                        },
-                                        "& h6": {
-                                            fontSize: "1em",
-                                            fontWeight: "600",
-                                            marginTop: "0.5em",
-                                            marginBottom: "0.5em",
-                                            color: "rgb(220, 220, 220)",
-                                        },
-                                        "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child":
-                                            {
-                                                marginTop: "0",
-                                            },
-                                        "& ul, & ol": {
-                                            paddingLeft: LIST_GUTTER_WIDTH,
-                                            marginTop: "0.5em",
-                                            marginBottom: "0.5em",
-                                        },
-                                        "& ul": {
-                                            listStyleType: "disc",
-                                        },
-                                        "& ol": {
-                                            listStyleType: "decimal",
-                                        },
-                                        "& li": {
-                                            display: "list-item",
-                                            paddingLeft: LIST_ITEM_PADDING,
-                                            lineHeight: LIST_ITEM_LINE_HEIGHT,
-                                        },
-                                        "& li:not(.task-list-item)": {
-                                            marginLeft: "-0.5em",
-                                        },
-                                        "& li.task-list-item": {
-                                            listStyleType: "none",
-                                            paddingLeft: "0",
-                                        },
-                                        "& input[type='checkbox']": {
-                                            appearance: "none !important",
-                                            WebkitAppearance: "none !important",
-                                            width: "16px",
-                                            height: "16px",
-                                            marginTop: "-2px",
-                                            marginRight: CHECKBOX_SPACING,
-                                            marginLeft: "0",
-                                            cursor: "pointer",
-                                            border: "2px solid rgba(255, 255, 255, 0.3)",
-                                            borderRadius: "3px",
-                                            backgroundColor: "transparent",
-                                            position: "relative",
-                                            left: `-${LIST_GUTTER_WIDTH}`,
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            verticalAlign: "middle",
-                                            flexShrink: 0,
-                                            "&:checked": {
-                                                backgroundColor: "rgb(59, 130, 246)",
-                                                borderColor: "rgb(59, 130, 246)",
-                                                "&::after": {
-                                                    content: '"✓"',
-                                                    color: "white",
-                                                    fontSize: "12px",
-                                                    fontWeight: "bold",
-                                                    lineHeight: "1",
-                                                },
-                                            },
-                                        },
-                                        "& p": {
-                                            marginTop: "0.5em",
-                                            marginBottom: "0.5em",
-                                        },
-                                        "& code:not(pre code)": {
-                                            fontSize: "0.95em",
-                                            backgroundColor: LIGHT_WHITE_BG,
-                                            padding: "2px 6px",
-                                            borderRadius: "4px",
-                                        },
-                                        "& pre": {
-                                            backgroundColor: "rgba(0, 0, 0, 0.3)",
-                                            borderRadius: "4px",
-                                            padding: "12px",
-                                            overflow: "auto",
-                                            marginTop: "0.5em",
-                                            marginBottom: "0.5em",
-                                        },
-                                        "& pre code": {
-                                            backgroundColor: "transparent",
-                                            padding: "0",
-                                            fontSize: "0.9em",
-                                        },
-                                        "& blockquote": {
-                                            borderLeft: "4px solid rgba(255, 255, 255, 0.3)",
-                                            paddingLeft: "1em",
-                                            marginLeft: "0",
-                                            color: "rgba(255, 255, 255, 0.8)",
-                                        },
-                                        "& a": {
-                                            color: "rgb(96, 165, 250)",
-                                            textDecoration: "underline",
-                                            "&:hover": {
-                                                color: "rgb(147, 197, 253)",
-                                            },
-                                        },
-                                        "& table": {
-                                            borderCollapse: "collapse",
-                                            width: "100%",
-                                            marginTop: "0.5em",
-                                            marginBottom: "0.5em",
-                                        },
-                                        "& th, & td": {
-                                            border: "1px solid rgba(255, 255, 255, 0.2)",
-                                            padding: "8px",
-                                        },
-                                        "& th": {
-                                            backgroundColor: "rgba(0, 0, 0, 0.3)",
-                                            fontWeight: "600",
-                                        },
-                                        "& mjx-container": {
-                                            display: "inline-block",
-                                            verticalAlign: "middle",
-                                        },
-                                        "& mjx-container[display='true']": {
-                                            display: "block",
-                                            textAlign: "center",
-                                            margin: "1em 0",
-                                        },
+                                <div
+                                    style={{
+                                        maxWidth: `${Math.round((860 * fontSize) / BASE_FONT_SIZE)}px`,
+                                        margin: "0 auto",
                                     }}
                                 >
-                                    <div style={{ maxWidth: "860px", margin: "0 auto" }}>
-                                        <ReactMarkdown
-                                            remarkPlugins={remarkPluginsWithItemRef}
-                                            rehypePlugins={rehypePluginsMixedPreview}
-                                            components={markdownComponents}
-                                        >
-                                            {editContent}
-                                        </ReactMarkdown>
-                                    </div>
-                                </Box>
-                            </div>
+                                    <ReactMarkdown
+                                        remarkPlugins={remarkPluginsWithItemRef}
+                                        rehypePlugins={rehypePluginsMixedPreview}
+                                        components={markdownComponents}
+                                    >
+                                        {editContent}
+                                    </ReactMarkdown>
+                                </div>
+                            </Box>
                         </div>
-                    )
-                ) : (
-                    <div className="h-full">
-                        {previewSearchOpen && (
-                            <SearchBar
-                                query={previewSearchQuery}
-                                onQueryChange={setPreviewSearchQuery}
-                                matchCount={previewSearchCount}
-                                matchIdx={previewSearchIdx}
-                                // @ts-ignore
-                                inputRef={previewSearchInputRef}
-                                onAdvance={() =>
-                                    setPreviewSearchIdx((i) =>
-                                        previewSearchCount === 0 ? 0 : (i + 1) % previewSearchCount
-                                    )
-                                }
-                                onClose={() => {
-                                    setPreviewSearchOpen(false);
-                                    setPreviewSearchQuery("");
-                                    setPreviewSearchIdx(0);
-                                    setEditorSearchOpen(false);
-                                    setEditorSearchQuery("");
-                                }}
-                            />
-                        )}
-                        <Box
-                            ref={viewBoxRef}
-                            className="markdown-preview"
-                            sx={{
-                                fontSize: `${fontSize}px`,
-                                height: "100%",
-                                userSelect: "text",
-                                cursor: "text",
-                                overflowY: "auto",
-                                backgroundColor: "rgb(209, 213, 219)",
-                                padding: "24px",
-                                ".dark &": {
-                                    backgroundColor: "rgba(255, 255, 255, 0.05) !important",
-                                    color: "rgb(220, 220, 220) !important",
-                                },
-                                "& h1": {
-                                    fontSize: "2em",
-                                    fontWeight: "700",
-                                    marginTop: "0.67em",
-                                    marginBottom: "0.67em",
-                                    borderBottom: "2px solid rgba(255, 255, 255, 0.2)",
-                                    paddingBottom: "0.3em",
-                                    color: "rgb(255, 255, 255)",
-                                },
-                                "& h2": {
-                                    fontSize: "1.75em",
-                                    fontWeight: "700",
-                                    marginTop: "0.75em",
-                                    marginBottom: "0.5em",
-                                    borderBottom: "1px solid rgba(255, 255, 255, 0.15)",
-                                    paddingBottom: "0.3em",
-                                    color: "rgb(255, 255, 255)",
-                                },
-                                "& h3": {
-                                    fontSize: "1.5em",
-                                    fontWeight: "600",
-                                    marginTop: "0.75em",
-                                    marginBottom: "0.5em",
-                                    color: "rgb(245, 245, 245)",
-                                },
-                                "& h4": {
-                                    fontSize: "1.25em",
-                                    fontWeight: "600",
-                                    marginTop: "0.5em",
-                                    marginBottom: "0.5em",
-                                    color: "rgb(245, 245, 245)",
-                                },
-                                "& h5": {
-                                    fontSize: "1.1em",
-                                    fontWeight: "600",
-                                    marginTop: "0.5em",
-                                    marginBottom: "0.5em",
-                                    color: "rgb(230, 230, 230)",
-                                },
-                                "& h6": {
-                                    fontSize: "1em",
-                                    fontWeight: "600",
-                                    marginTop: "0.5em",
-                                    marginBottom: "0.5em",
-                                    color: "rgb(220, 220, 220)",
-                                },
-                                "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child":
-                                    {
-                                        marginTop: "0",
-                                    },
-                                "& ul, & ol": {
-                                    paddingLeft: LIST_GUTTER_WIDTH,
-                                    marginTop: "0.5em",
-                                    marginBottom: "0.5em",
-                                },
-                                "& ul": {
-                                    listStyleType: "disc",
-                                },
-                                "& ol": {
-                                    listStyleType: "decimal",
-                                },
-                                "& li": {
-                                    display: "list-item",
-                                    paddingLeft: LIST_ITEM_PADDING,
-                                    lineHeight: LIST_ITEM_LINE_HEIGHT,
-                                },
-                                "& li:not(.task-list-item)": {
-                                    marginLeft: "-0.5em",
-                                },
-                                "& li.task-list-item": {
-                                    listStyleType: "none",
-                                    paddingLeft: "0",
-                                },
-                                "& input[type='checkbox']": {
-                                    appearance: "none !important",
-                                    WebkitAppearance: "none !important",
-                                    width: "16px",
-                                    height: "16px",
-                                    marginTop: "-2px",
-                                    marginRight: CHECKBOX_SPACING,
-                                    marginLeft: "0",
-                                    cursor: "pointer",
-                                    border: "2px solid rgba(255, 255, 255, 0.3)",
-                                    borderRadius: "3px",
-                                    backgroundColor: "transparent",
-                                    position: "relative",
-                                    left: `-${LIST_GUTTER_WIDTH}`,
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    verticalAlign: "middle",
-                                    flexShrink: 0,
-                                    "&:checked": {
-                                        backgroundColor: "rgb(59, 130, 246)",
-                                        borderColor: "rgb(59, 130, 246)",
-                                        "&::after": {
-                                            content: '"✓"',
-                                            color: "white",
-                                            fontSize: "12px",
-                                            fontWeight: "bold",
-                                            lineHeight: "1",
-                                        },
-                                    },
-                                },
-                                "& p": {
-                                    marginTop: "0.5em",
-                                    marginBottom: "0.5em",
-                                },
-                                "& code:not(pre code)": {
-                                    fontSize: "0.95em",
-                                    backgroundColor: LIGHT_WHITE_BG,
-                                    padding: "2px 6px",
-                                    borderRadius: "4px",
-                                },
-                                "& pre": {
-                                    backgroundColor: "rgba(0, 0, 0, 0.3)",
-                                    borderRadius: "4px",
-                                    padding: "12px",
-                                    overflow: "auto",
-                                    marginTop: "0.5em",
-                                    marginBottom: "0.5em",
-                                },
-                                "& pre code": {
-                                    backgroundColor: "transparent",
-                                    padding: "0",
-                                    fontSize: "0.9em",
-                                },
-                                "& blockquote": {
-                                    borderLeft: "4px solid rgba(255, 255, 255, 0.3)",
-                                    paddingLeft: "1em",
-                                    marginLeft: "0",
-                                    color: "rgba(255, 255, 255, 0.8)",
-                                },
-                                "& a": {
-                                    color: "rgb(96, 165, 250)",
-                                    textDecoration: "underline",
-                                    "&:hover": {
-                                        color: "rgb(147, 197, 253)",
-                                    },
-                                },
-                                "& table": {
-                                    borderCollapse: "collapse",
-                                    width: "100%",
-                                    marginTop: "0.5em",
-                                    marginBottom: "0.5em",
-                                },
-                                "& th, & td": {
-                                    border: "1px solid rgba(255, 255, 255, 0.2)",
-                                    padding: "8px",
-                                },
-                                "& th": {
-                                    backgroundColor: "rgba(0, 0, 0, 0.3)",
-                                    fontWeight: "600",
-                                },
-                                "& mjx-container": {
-                                    display: "inline-block",
-                                    verticalAlign: "middle",
-                                },
-                                "& mjx-container[display='true']": {
-                                    display: "block",
-                                    textAlign: "center",
-                                    margin: "1em 0",
-                                },
-                            }}
-                            onDoubleClick={() =>
-                                patch({ isEditMode: true, editName: script?.name || "" })
-                            }
-                        >
-                            <div style={{ maxWidth: "860px", margin: "0 auto" }}>
-                                <ReactMarkdown
-                                    key={script?.command}
-                                    remarkPlugins={remarkPluginsWithItemRef}
-                                    rehypePlugins={rehypePluginsViewPreview}
-                                    components={markdownComponents}
-                                >
-                                    {script?.command || ""}
-                                </ReactMarkdown>
-                            </div>
-                        </Box>
                     </div>
                 )}
             </div>

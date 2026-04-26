@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Edit, Eye } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 
@@ -54,14 +55,11 @@ export default function MarkdownDialog({
     // Track the latest markdown content for checkbox toggles
     const latestContentRef = useRef("");
 
-    const handleEditorKeyDown = useMarkdownWrap(
-        editContent,
-        (newContent) => {
-            setEditContent(newContent);
-            setHasChanges(true);
-            setEdited(false);
-        }
-    );
+    const handleEditorKeyDown = useMarkdownWrap(editContent, (newContent) => {
+        setEditContent(newContent);
+        setHasChanges(true);
+        setEdited(false);
+    });
 
     const handleEnableEdit = () => {
         setIsDialogEditMode(true);
@@ -168,6 +166,20 @@ export default function MarkdownDialog({
     // Memoize components to prevent re-creation on every render
     const markdownComponents = useMemo(() => {
         return {
+            a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+                <a
+                    href={href}
+                    onClick={(e) => {
+                        if (!href || href.startsWith("#")) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openUrl(href).catch(console.error);
+                    }}
+                    style={{ cursor: "pointer" }}
+                >
+                    {children}
+                </a>
+            ),
             input: ({ node, checked, disabled, ...props }: any) => {
                 if (props.type === "checkbox") {
                     return (

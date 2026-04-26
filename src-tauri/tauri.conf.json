@@ -47,7 +47,8 @@
                         "core:webview:allow-webview-position",
                         "core:webview:allow-webview-size",
                         "core:webview:allow-internal-toggle-devtools",
-                        "deep-link:default"
+                        "deep-link:default",
+                        "opener:default"
                     ]
                 },
                 {

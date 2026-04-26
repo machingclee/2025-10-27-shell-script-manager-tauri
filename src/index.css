@@ -5,13 +5,18 @@
 /* Prism.js Dark Theme for Code Editor */
 @import "prismjs/themes/prism-okaidia.css";
 
-/* Remove the default browser focus ring on all buttons globally */
-@layer base {
-    button:focus,
-    button:focus-visible {
-        outline: none;
-        box-shadow: none;
-    }
+/* Remove the default browser/WebKit focus ring on all interactive elements */
+button,
+button:focus,
+button:focus-visible,
+button:hover,
+button:active,
+[role="button"],
+[role="button"]:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    -webkit-tap-highlight-color: transparent !important;
 }
 
 @layer base {
