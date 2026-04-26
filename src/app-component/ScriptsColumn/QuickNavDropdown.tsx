@@ -43,16 +43,19 @@ import {
     Building2,
 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
+import ExecuteConfirmDialog from "./ExecuteConfirmDialog";
 
 // ─── Script right-click context actions ───────────────────────────────────────
 function ScriptContextActions({
     script,
     folderId,
     onDeleteRequest,
+    onExecuteRequest,
 }: {
     script: ShellScriptResponse;
     folderId: number;
     onDeleteRequest: (script: ShellScriptResponse, folderId: number) => void;
+    onExecuteRequest: (script: ShellScriptResponse) => void;
 }) {
     return (
         <>
@@ -88,13 +91,7 @@ function ScriptContextActions({
             ) : (
                 <ContextMenuItem
                     className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
-                    onClick={() =>
-                        emit("quick-nav-execute-script", {
-                            scriptId: script.id,
-                            command: script.command,
-                            showShell: script.showShell,
-                        })
-                    }
+                    onClick={() => onExecuteRequest(script)}
                 >
                     <Play className="w-4 h-4 mr-2" />
                     Execute
@@ -124,9 +121,11 @@ function ScriptContextActions({
 function FolderNode({
     folder,
     onDeleteRequest,
+    onExecuteRequest,
 }: {
     folder: ScriptsFolderResponse;
     onDeleteRequest: (script: ShellScriptResponse, folderId: number) => void;
+    onExecuteRequest: (script: ShellScriptResponse) => void;
 }) {
     const hasContent = folder.subfolders.length > 0 || folder.shellScripts.length > 0;
 
@@ -147,7 +146,12 @@ function FolderNode({
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700">
                 {folder.subfolders.map((sub) => (
-                    <FolderNode key={sub.id} folder={sub} onDeleteRequest={onDeleteRequest} />
+                    <FolderNode
+                        key={sub.id}
+                        folder={sub}
+                        onDeleteRequest={onDeleteRequest}
+                        onExecuteRequest={onExecuteRequest}
+                    />
                 ))}
                 {folder.subfolders.length > 0 && folder.shellScripts.length > 0 && (
                     <DropdownMenuSeparator className="dark:bg-neutral-700" />
@@ -165,11 +169,7 @@ function FolderNode({
                                             scriptName: script.name,
                                         });
                                     } else {
-                                        emit("quick-nav-execute-script", {
-                                            scriptId: script.id,
-                                            command: script.command,
-                                            showShell: script.showShell,
-                                        });
+                                        onExecuteRequest(script);
                                     }
                                 }}
                             >
@@ -186,6 +186,7 @@ function FolderNode({
                                 script={script}
                                 folderId={folder.id}
                                 onDeleteRequest={onDeleteRequest}
+                                onExecuteRequest={onExecuteRequest}
                             />
                         </ContextMenuContent>
                     </ContextMenu>
@@ -208,8 +209,14 @@ export default function QuickNavDropdown() {
         folderId: number;
     } | null>(null);
 
+    const [pendingExecute, setPendingExecute] = useState<ShellScriptResponse | null>(null);
+
     const handleDeleteRequest = (script: ShellScriptResponse, folderId: number) => {
         setPendingDelete({ script, folderId });
+    };
+
+    const handleExecuteRequest = (script: ShellScriptResponse) => {
+        setPendingExecute(script);
     };
 
     const confirmDelete = async () => {
@@ -256,6 +263,7 @@ export default function QuickNavDropdown() {
                                             key={folder.id}
                                             folder={folder}
                                             onDeleteRequest={handleDeleteRequest}
+                                            onExecuteRequest={handleExecuteRequest}
                                         />
                                     ))
                                 )}
@@ -287,6 +295,24 @@ export default function QuickNavDropdown() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <ExecuteConfirmDialog
+                open={pendingExecute !== null}
+                onOpenChange={(open) => {
+                    if (!open) setPendingExecute(null);
+                }}
+                scriptName={pendingExecute?.name ?? ""}
+                scriptCommand={pendingExecute?.command ?? ""}
+                onConfirm={() => {
+                    if (!pendingExecute) return;
+                    emit("quick-nav-execute-script", {
+                        scriptId: pendingExecute.id,
+                        command: pendingExecute.command,
+                        showShell: pendingExecute.showShell,
+                    });
+                    setPendingExecute(null);
+                }}
+            />
         </>
     );
 }

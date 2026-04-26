@@ -1061,6 +1061,20 @@ export default function MarkdownEditor({
                     {children}
                 </a>
             ),
+            // Paragraphs that contain only an image would produce invalid <p><div>…</div></p>
+            // (because ResizableImage is a <div>). Use the HAST node to reliably detect this
+            // and render a <div> wrapper instead, keeping correct block layout.
+            p: ({ children, node }: { children?: React.ReactNode; node?: any }) => {
+                const nodeChildren: any[] = node?.children ?? [];
+                const isOnlyImage =
+                    nodeChildren.length === 1 &&
+                    nodeChildren[0].type === "element" &&
+                    nodeChildren[0].tagName === "img";
+                if (isOnlyImage) {
+                    return <div style={{ margin: "0.75em 0" }}>{children}</div>;
+                }
+                return <p>{children}</p>;
+            },
             img: ({ src, alt }: { src?: string; alt?: string }) => {
                 // Parse optional ?width=N from the src
                 const widthMatch = src?.match(/\?width=(\d+)/);
@@ -1487,7 +1501,7 @@ export default function MarkdownEditor({
                                     color: previewDarkMode
                                         ? "rgb(212, 212, 212)"
                                         : "rgb(30, 30, 30)",
-                                    padding: "24px",
+                                    padding: "48px 24px 48px 24px",
                                     "& h1": {
                                         fontSize: "2em",
                                         fontWeight: "700",
