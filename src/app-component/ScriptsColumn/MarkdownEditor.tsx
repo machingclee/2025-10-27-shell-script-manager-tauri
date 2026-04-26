@@ -25,7 +25,7 @@ import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
 import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
 import { remarkItemReference } from "@/lib/remarkItemReference";
 import ItemReference from "./ItemReference";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Presentation, ChevronRight } from "lucide-react";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 const BASE_FONT_SIZE = 18;
@@ -311,6 +311,115 @@ export default function MarkdownEditor({
 
     // Preview dark mode — shared via Redux
     const previewDarkMode = useAppSelector((s) => s.app.tab.previewDarkMode);
+    // Presentation mode
+    const [presentationMode, setPresentationMode] = useState(false);
+    const [presentationIndex, setPresentationIndex] = useState(0);
+    const presentationContainerRef = useRef<HTMLDivElement>(null);
+    const presentationNodesRef = useRef<HTMLElement[][]>([]);
+    const previewScrollSaveRef = useRef<number | null>(null);
+    const endPresentation = useCallback(() => {
+        previewScrollSaveRef.current = previewBoxRef.current?.scrollTop ?? null;
+        setPresentationMode(false);
+        setPresentationIndex(0);
+    }, []);
+    // Collect DOM nodes and dim them on enter; remove inline styles on exit
+    useEffect(() => {
+        if (!presentationMode) {
+            for (const group of presentationNodesRef.current) {
+                for (const node of group) {
+                    node.style.opacity = "";
+                    node.style.transition = "";
+                }
+            }
+            presentationNodesRef.current = [];
+            return;
+        }
+        const container = presentationContainerRef.current;
+        if (!container) return;
+        const groups: HTMLElement[][] = [];
+        let pGroup: HTMLElement[] = [];
+        const collectList = (list: HTMLElement) => {
+            for (const li of Array.from(list.children) as HTMLElement[]) {
+                groups.push([li]);
+                for (const child of Array.from(li.children) as HTMLElement[]) {
+                    if (child.tagName === "UL" || child.tagName === "OL") {
+                        collectList(child);
+                    }
+                }
+            }
+        };
+        for (const child of Array.from(container.children) as HTMLElement[]) {
+            const tag = child.tagName;
+            if (tag === "UL" || tag === "OL") {
+                if (pGroup.length > 0) {
+                    groups.push(pGroup);
+                    pGroup = [];
+                }
+                collectList(child);
+            } else if (tag === "P") {
+                pGroup.push(child);
+            } else {
+                if (pGroup.length > 0) {
+                    groups.push(pGroup);
+                    pGroup = [];
+                }
+                groups.push([child]);
+            }
+        }
+        if (pGroup.length > 0) groups.push(pGroup);
+        presentationNodesRef.current = groups;
+        for (const group of groups) {
+            for (const node of group) {
+                node.style.transition = "opacity 0.4s ease";
+                node.style.opacity = "0.2";
+            }
+        }
+    }, [presentationMode]);
+    // Update opacity as index advances + scroll newly revealed node into view
+    useEffect(() => {
+        if (!presentationMode) return;
+        const groups = presentationNodesRef.current;
+        groups.forEach((group, i) => {
+            const opacity = i < presentationIndex ? "1" : "0.2";
+            for (const node of group) node.style.opacity = opacity;
+        });
+        if (presentationIndex > 0) {
+            const group = groups[presentationIndex - 1];
+            if (group && group.length > 0)
+                group[group.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }, [presentationIndex, presentationMode]);
+    // Restore scroll position after exiting presentation
+    useEffect(() => {
+        if (!presentationMode && previewScrollSaveRef.current !== null) {
+            const saved = previewScrollSaveRef.current;
+            previewScrollSaveRef.current = null;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (previewBoxRef.current) previewBoxRef.current.scrollTop = saved;
+                });
+            });
+        }
+    }, [presentationMode]);
+    // Enter key advances presentation
+    useEffect(() => {
+        if (!presentationMode) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                setPresentationIndex((idx) => {
+                    const next = idx + 1;
+                    if (next >= presentationNodesRef.current.length) {
+                        endPresentation();
+                        return 0;
+                    }
+                    return next;
+                });
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [presentationMode, endPresentation]);
     // Preview search
     const [previewSearchOpen, setPreviewSearchOpen] = useState(false);
     const [previewSearchQuery, setPreviewSearchQuery] = useState("");
@@ -1436,11 +1545,17 @@ export default function MarkdownEditor({
                             }}
                         >
                             {/* Dark/Light mode toggle */}
+                            <style>{`
+                                .preview-toolbar-btn:hover {
+                                    background: rgba(150,150,150,0.60) !important;
+                                }
+                            `}</style>
                             <button
                                 onClick={() => dispatch(setPreviewDarkMode(!previewDarkMode))}
                                 title={
                                     previewDarkMode ? "Switch to light mode" : "Switch to dark mode"
                                 }
+                                className="preview-toolbar-btn"
                                 style={{
                                     position: "absolute",
                                     top: 8,
@@ -1459,6 +1574,76 @@ export default function MarkdownEditor({
                             >
                                 {previewDarkMode ? <Sun size={15} /> : <Moon size={15} />}
                             </button>
+                            {/* Presentation mode toggle */}
+                            <button
+                                onClick={() => {
+                                    if (presentationMode) {
+                                        endPresentation();
+                                    } else {
+                                        setPresentationMode(true);
+                                        setPresentationIndex(0);
+                                    }
+                                }}
+                                title={
+                                    presentationMode
+                                        ? "End presentation"
+                                        : "Start presentation mode"
+                                }
+                                className="preview-toolbar-btn"
+                                style={{
+                                    position: "absolute",
+                                    top: 8,
+                                    right: 58,
+                                    zIndex: 10,
+                                    background: previewDarkMode
+                                        ? "rgba(255,255,255,0.12)"
+                                        : "rgba(0,0,0,0.10)",
+                                    border: presentationMode
+                                        ? "1px solid rgba(150,150,150,0.5)"
+                                        : "1px solid transparent",
+                                    borderRadius: 6,
+                                    padding: "4px 8px",
+                                    cursor: "pointer",
+                                    lineHeight: 1,
+                                    color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
+                                }}
+                            >
+                                <Presentation size={15} />
+                            </button>
+                            {/* Play / advance button (presentation mode only) */}
+                            {presentationMode && (
+                                <button
+                                    onClick={() => {
+                                        const next = presentationIndex + 1;
+                                        if (next >= presentationNodesRef.current.length) {
+                                            endPresentation();
+                                        } else {
+                                            setPresentationIndex(next);
+                                        }
+                                    }}
+                                    title="Reveal next"
+                                    className="preview-toolbar-btn"
+                                    style={{
+                                        position: "absolute",
+                                        top: 8,
+                                        right: 98,
+                                        zIndex: 10,
+                                        background: previewDarkMode
+                                            ? "rgba(255,255,255,0.12)"
+                                            : "rgba(0,0,0,0.10)",
+                                        border: "none",
+                                        borderRadius: 6,
+                                        padding: "4px 8px",
+                                        cursor: "pointer",
+                                        lineHeight: 1,
+                                        color: previewDarkMode
+                                            ? "rgb(212,212,212)"
+                                            : "rgb(50,50,50)",
+                                    }}
+                                >
+                                    <ChevronRight size={15} />
+                                </button>
+                            )}
                             {previewSearchOpen && (
                                 <SearchBar
                                     query={previewSearchQuery}
@@ -1715,6 +1900,7 @@ export default function MarkdownEditor({
                                 }}
                             >
                                 <div
+                                    ref={presentationContainerRef}
                                     style={{
                                         maxWidth: `${Math.round((860 * fontSize) / BASE_FONT_SIZE)}px`,
                                         margin: "0 auto",
