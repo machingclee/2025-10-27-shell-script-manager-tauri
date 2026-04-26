@@ -1,35 +1,12 @@
 import "./App.css";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-    AppTab,
-    openMarkdownTab,
-    closeTab,
-    setActiveTab,
-    reorderTabs,
-    HOME_TAB_ID,
-} from "./store/slices/appSlice";
-import {
-    DndContext,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent,
-    DragStartEvent,
-    DragOverlay,
-    closestCenter,
-} from "@dnd-kit/core";
-import { SortableContext, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { openMarkdownTab, closeTab, HOME_TAB_ID } from "./store/slices/appSlice";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { onOpenUrl, getCurrent } from "@tauri-apps/plugin-deep-link";
-import { Home, FileText, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 import MarkdownEditor from "./app-component/ScriptsColumn/MarkdownEditor";
 import MarkdownEditorToolbar from "./app-component/ScriptsColumn/MarkdownEditorToolbar";
 import { generateScriptHtml } from "@/lib/generateScriptHtml";
-import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import FolderColumn from "./app-component/FolderColumn/FolderColumn";
 import ScriptsColumn from "./app-component/ScriptsColumn/ScriptsColumn";
@@ -39,85 +16,13 @@ import { scriptApi } from "./store/api/scriptApi";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import rootFolderSlice from "./store/slices/rootFolderSlice";
 import configSlice from "./store/slices/configSlice";
-import { folderApi } from "./store/api/folderApi";
 import HistoryButton from "./app-component/History/HistoryButton";
 import HistoryPanel from "./app-component/History/HistoryPanel";
 import QuickNavDropdown from "./app-component/ScriptsColumn/QuickNavDropdown";
 import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
+import TabBar from "./components/TabBar";
 // import AIProfileButton from "./app-component/AIProfile/AIProfileButton";
-
-function TabPill({
-    tab,
-    isActive,
-    onActivate,
-    onClose,
-}: {
-    tab: AppTab;
-    isActive: boolean;
-    onActivate: () => void;
-    onClose?: () => void;
-}) {
-    const { data: script } = scriptApi.endpoints.getScriptById.useQuery(tab.scriptId, {
-        skip: tab.type === "home",
-    });
-
-    const hasChanges = useAppSelector(
-        (s) => tab.type === "markdown" && (s.app.tab.tabStates[tab.scriptId]?.hasChanges ?? false)
-    );
-
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-        id: tab.scriptId,
-    });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0 : 1,
-        zIndex: isDragging ? 10 : undefined,
-    };
-
-    return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            {...attributes}
-            {...listeners}
-            onClick={onActivate}
-            className={cn(
-                "flex items-center gap-1.5 px-3 h-8 select-none cursor-grab active:cursor-grabbing rounded-t border-t border-l border-r transition-colors",
-                isActive
-                    ? "bg-neutral-700 text-white border-neutral-600"
-                    : "bg-transparent text-neutral-500 border-transparent hover:text-neutral-200 hover:bg-neutral-800/40"
-            )}
-        >
-            {tab.type === "home" ? (
-                <Home className="w-4 h-4 flex-shrink-0" />
-            ) : (
-                <FileText className="w-4 h-4 flex-shrink-0" />
-            )}
-            <span className="max-w-[140px] truncate">
-                {tab.type === "home" ? "Home" : (script?.name ?? tab.scriptName)}
-            </span>
-            {onClose && (
-                <button
-                    className="ml-0.5 p-0.5 rounded hover:bg-neutral-600 text-neutral-500 hover:text-white"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onClose();
-                    }}
-                >
-                    {hasChanges ? (
-                        <span className="w-2.5 h-2.5 rounded-full bg-red-400 block" />
-                    ) : (
-                        <X className="w-3 h-3 text-white" />
-                    )}
-                </button>
-            )}
-        </div>
-    );
-}
 
 function App() {
     const dispatch = useAppDispatch();
@@ -129,62 +34,6 @@ function App() {
     // -----------------------------------------------------------------------
     const tabs = useAppSelector((s) => s.app.tab.tabs);
     const activeTabId = useAppSelector((s) => s.app.tab.activeTabId);
-
-    const [activeDragId, setActiveDragId] = useState<number | null>(null);
-    const activeDragTab =
-        activeDragId !== null ? tabs.find((t) => t.scriptId === activeDragId) : null;
-
-    const tabSensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-    );
-
-    const handleTabDragStart = useCallback((event: DragStartEvent) => {
-        setActiveDragId(event.active.id as number);
-    }, []);
-
-    const handleTabDragEnd = useCallback(
-        (event: DragEndEvent) => {
-            const { active, over, delta } = event;
-
-            // Dragged far enough downward → detach markdown tab into a subwindow
-            if (delta.y > 80) {
-                const tab = tabs.find((t) => t.scriptId === active.id);
-                if (tab?.type === "markdown") {
-                    const windowLabel = `markdown-${tab.scriptId}`;
-                    const url = getSubwindowPaths.markdown(tab.scriptId, false);
-                    const webview = new WebviewWindow(windowLabel, {
-                        url,
-                        width: 1000,
-                        height: 700,
-                        minWidth: 800,
-                        minHeight: 600,
-                        skipTaskbar: false,
-                        alwaysOnTop: false,
-                        focus: true,
-                        devtools: true,
-                        decorations: false,
-                        hiddenTitle: true,
-                        transparent: true,
-                    });
-                    webview.once("tauri://error", (err) =>
-                        console.error("Failed to detach markdown tab:", err)
-                    );
-                    dispatch(closeTab(tab.scriptId));
-                }
-                setActiveDragId(null);
-                return;
-            }
-
-            if (!over || active.id === over.id) return;
-            const fromIdx = tabs.findIndex((t) => t.scriptId === active.id);
-            const toIdx = tabs.findIndex((t) => t.scriptId === over.id);
-            if (fromIdx !== -1 && toIdx !== -1) {
-                dispatch(reorderTabs({ fromIndex: fromIdx, toIndex: toIdx }));
-            }
-            setActiveDragId(null);
-        },
-        [tabs, dispatch]
-    );
 
     const openMarkdownTabDispatch = useCallback(
         (scriptId: number, scriptName: string) => {
@@ -243,14 +92,6 @@ function App() {
             dispatch(rootFolderSlice.actions.setSelectedRootFolderId(appState.lastOpenedFolderId));
         }
     }, [appState, dispatch]);
-
-    const selectedFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
-    const { data: selectedFolder } = folderApi.endpoints.getAllFolders.useQueryState(undefined, {
-        selectFromResult: (result) => ({
-            data: result.data?.find((f) => f.id === selectedFolderId),
-        }),
-        skip: !selectedFolderId,
-    });
 
     // Listen for toggle dark mode event from menu
     // Use refs to avoid re-registering the listener on every state change
@@ -516,6 +357,7 @@ function App() {
     }, [dispatch]);
 
     const [isMaximized, setIsMaximized] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     const handleDragStart = (e: React.MouseEvent) => {
         // Only trigger on left click
@@ -533,9 +375,10 @@ function App() {
     };
 
     const handleMaximize = async () => {
-        const window = getCurrentWindow();
-        await window.toggleMaximize();
-        setIsMaximized(!isMaximized);
+        const win = getCurrentWindow();
+        const next = !isFullscreen;
+        await win.setFullscreen(next);
+        setIsFullscreen(next);
     };
 
     const handleClose = async () => {
@@ -556,7 +399,7 @@ function App() {
         <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-800 flex flex-col">
             {/* Custom title bar with window controls */}
             <div
-                className="h-12 flex-shrink-0 bg-transparent select-none dark:bg-[rgba(255,255,255,0.05)] flex items-center dark:text-white w-full relative z-[200] pointer-events-auto"
+                className="h-12 flex-shrink-0  dark:bg-neutral-800 select-none flex items-center dark:text-white w-full relative z-[200] pointer-events-auto"
                 onMouseDown={handleDragStart}
                 onDoubleClick={handleDoubleClick}
             >
@@ -583,13 +426,19 @@ function App() {
                     <button
                         onClick={handleMaximize}
                         className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center group"
-                        aria-label="Maximize"
+                        aria-label="Full Screen"
                     >
                         <span className="hidden group-hover:block text-green-900 text-xs leading-none">
-                            {isMaximized ? "−" : "+"}
+                            {isFullscreen ? "−" : "+"}
                         </span>
                     </button>
                     <QuickNavDropdown />
+                    <div
+                        className="flex items-center flex-1 "
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <TabBar />
+                    </div>
                 </div>
 
                 {/* Right-side controls */}
@@ -599,80 +448,24 @@ function App() {
                         <HistoryButton />
                     </div>
                 )}
-
-                {/* Window title / Markdown toolbar */}
-                {activeTabId !== HOME_TAB_ID && (
-                    <div className="flex-1 flex items-center h-full ">
-                        {activeTabId === HOME_TAB_ID ? (
-                            <span className="flex-1 text-center">{selectedFolder?.name}</span>
-                        ) : (
-                            (() => {
-                                const activeTab = tabs.find((t) => t.scriptId === activeTabId);
-                                if (!activeTab || activeTab.type !== "markdown") return null;
-                                return (
-                                    <MarkdownEditorToolbar
-                                        scriptId={activeTab.scriptId}
-                                        port={backendPort ?? null}
-                                    />
-                                );
-                            })()
-                        )}
-                    </div>
-                )}
             </div>
             {/* Tab bar */}
-            <DndContext
-                sensors={tabSensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleTabDragStart}
-                onDragEnd={handleTabDragEnd}
-            >
-                <SortableContext
-                    items={tabs.map((t) => t.scriptId)}
-                    strategy={horizontalListSortingStrategy}
-                >
-                    <div
-                        className="flex-shrink-0 flex items-end gap-0.5 px-2 bg-neutral-800 border-b border-neutral-700 overflow-x-auto"
-                        style={{ height: 36 }}
-                    >
-                        {tabs.map((tab) => (
-                            <TabPill
-                                key={tab.scriptId}
-                                tab={tab}
-                                isActive={tab.scriptId === activeTabId}
-                                onActivate={() => dispatch(setActiveTab(tab.scriptId))}
-                                onClose={
-                                    tab.type !== "home"
-                                        ? () => closeTabDispatch(tab.scriptId)
-                                        : undefined
-                                }
+
+            {/* Window title / Markdown toolbar */}
+            {activeTabId !== HOME_TAB_ID && (
+                <div className="flex-shrink-0 flex items-center bg-white dark:bg-neutral-800 border-b border-neutral-800">
+                    {(() => {
+                        const activeTab = tabs.find((t) => t.scriptId === activeTabId);
+                        if (!activeTab || activeTab.type !== "markdown") return null;
+                        return (
+                            <MarkdownEditorToolbar
+                                scriptId={activeTab.scriptId}
+                                port={backendPort ?? null}
                             />
-                        ))}
-                    </div>
-                </SortableContext>
-                <DragOverlay dropAnimation={null}>
-                    {activeDragTab ? (
-                        <div
-                            className={cn(
-                                "flex items-center gap-1.5 px-3 h-8 select-none rounded-t border-t border-l border-r",
-                                activeDragTab.scriptId === activeTabId
-                                    ? "bg-neutral-700 text-white border-neutral-600"
-                                    : "bg-neutral-800 text-neutral-200 border-neutral-600",
-                                "shadow-lg opacity-90"
-                            )}
-                        >
-                            {activeDragTab.type === "home" ? (
-                                <Home className="w-3 h-3 flex-shrink-0" />
-                            ) : (
-                                <FileText className="w-3 h-3 flex-shrink-0" />
-                            )}
-                            <span className="max-w-[140px] truncate">
-                                {activeDragTab.type === "home" ? "Home" : activeDragTab.scriptName}
-                            </span>
-                        </div>
-                    ) : null}
-                </DragOverlay>
-            </DndContext>
+                        );
+                    })()}
+                </div>
+            )}
             {/* Main content */}
             <div className="flex-1 overflow-hidden flex flex-row">
                 {activeTabId === HOME_TAB_ID ? (

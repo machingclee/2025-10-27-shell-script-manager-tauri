@@ -1239,6 +1239,13 @@ fn setup_macos_window(app: &tauri::App) {
                 style_mask |= NSWindowStyleMask::NSFullSizeContentViewWindowMask;
                 ns_window.setStyleMask_(style_mask);
 
+                // Allow the window to enter native macOS fullscreen (new Space).
+                // Without this flag setFullscreen() does nothing on a custom-decorated window.
+                let current_behavior: cocoa::foundation::NSUInteger =
+                    msg_send![ns_window, collectionBehavior];
+                let full_screen_primary: cocoa::foundation::NSUInteger = 1 << 7; // NSWindowCollectionBehaviorFullScreenPrimary
+                let _: () = msg_send![ns_window, setCollectionBehavior: current_behavior | full_screen_primary];
+
                 // Hide native traffic light buttons (we use custom ones)
                 let close_button =
                     ns_window.standardWindowButton_(NSWindowButton::NSWindowCloseButton);

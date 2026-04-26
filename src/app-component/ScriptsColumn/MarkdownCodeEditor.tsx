@@ -142,6 +142,11 @@ export default function MarkdownCodeEditor({
                     if (line != null) onScrollRef.current(line, true);
                 }
             });
+
+            // Force a layout pass after the window/dialog animation finishes so
+            // Monaco measures the correct container dimensions (fixes garbled text
+            // when opened in a subwindow or dialog while a CSS transition is active).
+            requestAnimationFrame(() => requestAnimationFrame(() => editorInstance.layout()));
         },
         // savedScrollTop and onScrollPreviewToLine are both stable at mount time
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -92,6 +92,13 @@ export const AddMarkdownDialog = (props: {
                                 value={markdownContent}
                                 theme="vs-dark"
                                 onChange={(value) => setMarkdownContent(value ?? "")}
+                                onMount={(editor) => {
+                                    // Dialog animation may not have finished — force a re-layout
+                                    // so Monaco measures the correct container dimensions.
+                                    requestAnimationFrame(() =>
+                                        requestAnimationFrame(() => editor.layout())
+                                    );
+                                }}
                                 options={{
                                     fontSize: 14,
                                     lineHeight: 21,

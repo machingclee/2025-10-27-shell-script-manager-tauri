@@ -22,7 +22,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, FileText, Edit, Link } from "lucide-react";
+import { Trash2, FileText, Link } from "lucide-react";
 import MoveToFolderMenu from "./MoveToFolderMenu";
 
 export default function MarkdownItem({
@@ -48,11 +48,6 @@ export default function MarkdownItem({
     }, []);
 
     const handleViewClick = async () => {
-        if (!script.id) return;
-        await emit("open-markdown-reference", { scriptId: script.id, scriptName: script.name });
-    };
-
-    const handleEditClick = async () => {
         if (!script.id) return;
         await emit("open-markdown-reference", { scriptId: script.id, scriptName: script.name });
     };
@@ -138,14 +133,6 @@ export default function MarkdownItem({
                     </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
-                    <ContextMenuItem
-                        onClick={handleEditClick}
-                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer"
-                    >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                    </ContextMenuItem>
-
                     <MoveToFolderMenu scriptId={script.id!} currentFolderId={parentFolderId} />
 
                     <ContextMenuItem

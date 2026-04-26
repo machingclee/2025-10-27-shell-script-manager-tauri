@@ -61,16 +61,9 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
     };
 
     return (
-        <div className="flex items-center gap-2 flex-1 min-w-0 px-4">
+        <div className="flex items-center gap-2 flex-1 min-w-0 px-4 py-1">
             {/* Title / name input */}
-            <div className="flex items-center gap-2 flex-1 min-w-0"></div>
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {edited ? "Saved" : hasChanges ? "Not Saved" : ""}
-                </span>
-
+            <div className="flex items-center gap-2 flex-1 min-w-0">
                 <input
                     type="text"
                     value={editName}
@@ -78,9 +71,16 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
                         patch({ editName: e.target.value, hasChanges: true, edited: false })
                     }
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="py-[5px] bg-transparent focus:outline-none dark:bg-neutral-700 text-black dark:border-neutral-600 dark:text-white px-3 rounded-md w-full max-w-[200px]"
+                    className="py-1 bg-transparent focus:outline-none dark:bg-[#303030] text-black dark:border-neutral-700 dark:text-white px-3 rounded-md w-96 max-w-96"
                     placeholder="Markdown name"
                 />
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {edited ? "Saved" : hasChanges ? "Not Saved" : ""}
+                </span>
 
                 <div className="flex items-center rounded-lg overflow-hidden border-0">
                     <button
