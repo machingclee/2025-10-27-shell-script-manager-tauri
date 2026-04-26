@@ -1,0 +1,1625 @@
+import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeHighlight from "rehype-highlight";
+import rehypeMathjax from "rehype-mathjax";
+import { scriptApi } from "@/store/api/scriptApi";
+import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback } from "react";
+import { Box } from "@mui/material";
+import QuickNavDropdown from "./QuickNavDropdown";
+import MarkdownEditorToolbar from "./MarkdownEditorToolbar";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+    patchTabState,
+    patchEditorState,
+    patchPreviewerState,
+    setFontSize,
+    setPreviewDarkMode,
+} from "@/store/slices/appSlice";
+import type { MarkdownTabState } from "@/store/slices/appSlice";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { emit } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import Editor, { loader } from "@monaco-editor/react";
+import type { editor as MonacoEditorNS } from "monaco-editor";
+import * as monaco from "monaco-editor";
+import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
+import { remarkItemReference } from "@/lib/remarkItemReference";
+import ItemReference from "./ItemReference";
+import { Sun, Moon, Presentation, ChevronRight } from "lucide-react";
+
+// Use the locally-installed monaco-editor (offline / Tauri)
+loader.config({ monaco });
+
+const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
+const BASE_FONT_SIZE = 18;
+
+// Rehype plugin: annotate block elements with their source line number
+function rehypeAddSourceLines() {
+    return (tree: any) => {
+        function walk(node: any) {
+            if (node.type === "element" && node.position?.start?.line != null) {
+                node.properties = node.properties ?? {};
+                node.properties["data-source-line"] = String(node.position.start.line);
+            }
+            if (node.children) {
+                for (const child of node.children) walk(child);
+            }
+        }
+        walk(tree);
+    };
+}
+
+// List spacing constants for alignment calibration
+const LIST_GUTTER_WIDTH = "2em";
+const LIST_ITEM_LINE_HEIGHT = "1.4";
+
+// Rehype plugin: wrap text matching `query` in <mark class="search-mark">
+function makeRehypeSearchHighlight(query: string) {
+    const q = query.trim().toLowerCase();
+    return function rehypeSearchHighlight() {
+        return function transformer(tree: any) {
+            if (!q) return;
+            function visitNode(node: any): any[] | null {
+                if (node.type === "text") {
+                    const lower: string = node.value.toLowerCase();
+                    if (!lower.includes(q)) return null;
+                    const parts: any[] = [];
+                    let pos = 0;
+                    while (true) {
+                        const found = lower.indexOf(q, pos);
+                        if (found === -1) {
+                            if (pos < node.value.length)
+                                parts.push({ type: "text", value: node.value.slice(pos) });
+                            break;
+                        }
+                        if (found > pos)
+                            parts.push({ type: "text", value: node.value.slice(pos, found) });
+                        parts.push({
+                            type: "element",
+                            tagName: "mark",
+                            properties: { className: ["search-mark"] },
+                            children: [
+                                { type: "text", value: node.value.slice(found, found + q.length) },
+                            ],
+                        });
+                        pos = found + q.length;
+                    }
+                    return parts;
+                }
+                if (node.children) {
+                    const newChildren: any[] = [];
+                    let changed = false;
+                    for (const child of node.children) {
+                        const result = visitNode(child);
+                        if (result !== null) {
+                            newChildren.push(...result);
+                            changed = true;
+                        } else {
+                            newChildren.push(child);
+                        }
+                    }
+                    if (changed) node.children = newChildren;
+                }
+                return null;
+            }
+            visitNode(tree);
+        };
+    };
+}
+
+function SearchBar({
+    query,
+    onQueryChange,
+    matchCount,
+    matchIdx,
+    inputRef,
+    onAdvance,
+    onClose,
+    bottomOffset = 16,
+}: {
+    query: string;
+    onQueryChange: (v: string) => void;
+    matchCount: number;
+    matchIdx: number;
+    inputRef: React.RefObject<HTMLInputElement>;
+    onAdvance: () => void;
+    onClose: () => void;
+    bottomOffset?: number;
+}) {
+    return (
+        <div
+            className="absolute right-4 z-50 flex items-center gap-2 bg-neutral-800/95 border border-neutral-500 rounded px-3 py-1.5 shadow-lg"
+            style={{ bottom: bottomOffset }}
+            onMouseDown={(e) => e.stopPropagation()}
+        >
+            <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        onAdvance();
+                    }
+                    if (e.key === "Escape") {
+                        e.preventDefault();
+                        onClose();
+                    }
+                }}
+                placeholder="Search…"
+                className="bg-transparent text-white text-sm outline-none w-44 placeholder-neutral-500"
+            />
+            <span className="text-neutral-400 text-xs min-w-[3rem] text-right select-none">
+                {query.trim() ? (matchCount > 0 ? `${matchIdx + 1}/${matchCount}` : "0/0") : ""}
+            </span>
+            <button
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    onClose();
+                }}
+                className="text-neutral-400 hover:text-white leading-none"
+                aria-label="Close search"
+            >
+                ✕
+            </button>
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Resizable image – drag the bottom-right handle to change width
+// ---------------------------------------------------------------------------
+function ResizableImage({
+    src,
+    alt,
+    initialWidth,
+    onWidthChange,
+}: {
+    src: string;
+    alt: string;
+    initialWidth?: number;
+    onWidthChange?: (width: number) => void;
+}) {
+    const [width, setWidth] = useState<number | undefined>(initialWidth);
+    const [hovered, setHovered] = useState(false);
+    const startRef = useRef<{ x: number; w: number } | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const onHandleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const currentW = width ?? containerRef.current?.getBoundingClientRect().width ?? 300;
+        startRef.current = { x: e.clientX, w: currentW };
+
+        const calcDelta = (ev: MouseEvent) =>
+            ev.clientX - startRef.current!.x - (ev.clientY - e.clientY);
+
+        const onMove = (ev: MouseEvent) => {
+            if (!startRef.current) return;
+            const newW = Math.max(50, Math.round(startRef.current.w + calcDelta(ev)));
+            setWidth(newW);
+        };
+        const onUp = (ev: MouseEvent) => {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+            if (!startRef.current) return;
+            const finalW = Math.max(50, Math.round(startRef.current.w + calcDelta(ev)));
+            startRef.current = null;
+            onWidthChange?.(finalW);
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+    };
+
+    return (
+        <div
+            ref={containerRef}
+            style={{
+                position: "relative",
+                display: "inline-block",
+                width: width ? `${width}px` : "100%",
+                maxWidth: "100%",
+                borderRadius: "4px",
+                outline: hovered ? "3px solid #3e6df1" : "3px solid transparent",
+                transition: "outline-color 0.15s",
+                cursor: hovered ? "nesw-resize" : undefined,
+            }}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            onMouseDown={onHandleMouseDown}
+            title={hovered ? "Drag to resize" : undefined}
+        >
+            <img
+                src={src}
+                alt={alt}
+                style={{ display: "block", width: "100%", borderRadius: "4px" }}
+                draggable={false}
+            />
+        </div>
+    );
+}
+
+export default function MarkdownEditor({
+    port,
+    scriptId,
+    embedded = false,
+    onClose,
+}: {
+    port?: number;
+    scriptId: number | undefined;
+    /** When true, hides traffic-light buttons and disables window drag (for in-app tab use). */
+    embedded?: boolean;
+    /** Called on Cmd+W when embedded; ignored in subwindow mode. */
+    onClose?: () => void;
+}) {
+    const dispatch = useAppDispatch();
+
+    // Saved state from the last time this tab was active (keyed by tab id)
+    const tabId = scriptId!;
+    const savedState = useAppSelector((s) => s.app.tab.tabStates[tabId]);
+    const savedEditorState = useAppSelector((s) => s.app.tab.editor[String(tabId)]);
+    const savedPreviewerState = useAppSelector((s) => s.app.tab.previewer[String(tabId)]);
+
+    const { data: script } = scriptApi.endpoints.getScriptById.useQuery(scriptId, {
+        skip: !(scriptId != null) || port === 0,
+    });
+
+    // Read editMode from URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const editModeFromUrl = urlParams.get("editMode") === "true";
+
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    // ─── Redux-backed tab state (live-synced; survives tab switches) ─────────
+    const ts = savedState; // shorthand; undefined on first open
+    const editName: string = ts?.editName ?? "";
+    const splitRatio: number = ts?.splitRatio ?? 50;
+    const editViewMode: "plain" | "mixed" | "preview" =
+        ts?.editViewMode ?? (editModeFromUrl ? "mixed" : "preview");
+    // fontSize is an integer px value; zoom ratio is derived locally only where needed.
+    const fontSize: number = useAppSelector((s) => s.app.tab.fontSize);
+    /** Dispatch a partial update for this tab's persisted state. */
+    const patch = useCallback(
+        (partial: Partial<MarkdownTabState>) => dispatch(patchTabState({ tabId, ...partial })),
+        [dispatch, tabId]
+    );
+    // ─────────────────────────────────────────────────────────────────────────
+    // editContent stays local — hot path; persisted to Redux (editor slice) on unmount.
+    const [editContent, setEditContent] = useState(
+        ts?.hasChanges ? (savedEditorState?.editContent ?? "") : ""
+    );
+    // Start editorReady=true when we have unsaved edits to restore, so the seeding
+    // useEffect doesn't overwrite editContent with the server's script.command.
+    const [editorReady, setEditorReady] = useState(() => ts?.hasChanges ?? false);
+    const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
+
+    // Fade-in when the tab is mounted (i.e. every time the user switches to this tab).
+    const [visible, setVisible] = useState(false);
+    useEffect(() => {
+        const t = setTimeout(() => setVisible(true), 1);
+        return () => clearTimeout(t);
+    }, []);
+
+    const latestContentRef = useRef(
+        savedState?.hasChanges ? (savedEditorState?.editContent ?? "") : ""
+    );
+    const handleSaveEditRef = useRef<((closeEditMode?: boolean) => Promise<void>) | null>(null);
+    // useState (not useRef) so that when get_images_dir resolves it triggers a
+    // re-render and the img renderer picks up the real path — otherwise images
+    // stay broken on remount (e.g. after switching tabs and returning).
+    const [imagesDir, setImagesDir] = useState<string | null>(null);
+    const isDraggingRef = useRef(false);
+    const [isDragging, setIsDragging] = useState(false);
+
+    // Preview dark mode — shared via Redux
+    const previewDarkMode = useAppSelector((s) => s.app.tab.previewDarkMode);
+    // Presentation mode
+    const [presentationMode, setPresentationMode] = useState(false);
+    const [presentationIndex, setPresentationIndex] = useState(0);
+    const presentationContainerRef = useRef<HTMLDivElement>(null);
+    const presentationNodesRef = useRef<HTMLElement[][]>([]);
+    const previewScrollSaveRef = useRef<number | null>(null);
+    const endPresentation = useCallback(() => {
+        previewScrollSaveRef.current = previewBoxRef.current?.scrollTop ?? null;
+        setPresentationMode(false);
+        setPresentationIndex(0);
+    }, []);
+    // Collect DOM nodes and dim them on enter; remove inline styles on exit
+    useEffect(() => {
+        if (!presentationMode) {
+            for (const group of presentationNodesRef.current) {
+                for (const node of group) {
+                    node.style.opacity = "";
+                    node.style.transition = "";
+                }
+            }
+            presentationNodesRef.current = [];
+            return;
+        }
+        const container = presentationContainerRef.current;
+        if (!container) return;
+        const groups: HTMLElement[][] = [];
+        let pGroup: HTMLElement[] = [];
+        const collectList = (list: HTMLElement) => {
+            for (const li of Array.from(list.children) as HTMLElement[]) {
+                groups.push([li]);
+                for (const child of Array.from(li.children) as HTMLElement[]) {
+                    if (child.tagName === "UL" || child.tagName === "OL") {
+                        collectList(child);
+                    }
+                }
+            }
+        };
+        for (const child of Array.from(container.children) as HTMLElement[]) {
+            const tag = child.tagName;
+            if (tag === "UL" || tag === "OL") {
+                if (pGroup.length > 0) {
+                    groups.push(pGroup);
+                    pGroup = [];
+                }
+                collectList(child);
+            } else if (tag === "P") {
+                pGroup.push(child);
+            } else {
+                if (pGroup.length > 0) {
+                    groups.push(pGroup);
+                    pGroup = [];
+                }
+                groups.push([child]);
+            }
+        }
+        if (pGroup.length > 0) groups.push(pGroup);
+        presentationNodesRef.current = groups;
+        for (const group of groups) {
+            for (const node of group) {
+                node.style.transition = "opacity 0.4s ease";
+                node.style.opacity = "0.2";
+            }
+        }
+    }, [presentationMode]);
+    // Update opacity as index advances + scroll newly revealed node into view
+    useEffect(() => {
+        if (!presentationMode) return;
+        const groups = presentationNodesRef.current;
+        groups.forEach((group, i) => {
+            const opacity = i < presentationIndex ? "1" : "0.2";
+            for (const node of group) node.style.opacity = opacity;
+        });
+        if (presentationIndex > 0) {
+            const group = groups[presentationIndex - 1];
+            if (group && group.length > 0)
+                group[group.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    }, [presentationIndex, presentationMode]);
+    // Restore scroll position after exiting presentation
+    useEffect(() => {
+        if (!presentationMode && previewScrollSaveRef.current !== null) {
+            const saved = previewScrollSaveRef.current;
+            previewScrollSaveRef.current = null;
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (previewBoxRef.current) previewBoxRef.current.scrollTop = saved;
+                });
+            });
+        }
+    }, [presentationMode]);
+    // Enter key advances presentation
+    useEffect(() => {
+        if (!presentationMode) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                setPresentationIndex((idx) => {
+                    const next = idx + 1;
+                    if (next >= presentationNodesRef.current.length) {
+                        endPresentation();
+                        return 0;
+                    }
+                    return next;
+                });
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [presentationMode, endPresentation]);
+    // Preview search
+    const [previewSearchOpen, setPreviewSearchOpen] = useState(false);
+    const [previewSearchQuery, setPreviewSearchQuery] = useState("");
+    const [previewSearchIdx, setPreviewSearchIdx] = useState(0);
+    const [previewSearchCount, setPreviewSearchCount] = useState(0);
+    const previewSearchInputRef = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        invoke<string>("get_images_dir").then((dir) => {
+            setImagesDir(dir);
+        });
+    }, []);
+
+    // ─── Tab state persistence ───────────────────────────────────────────────
+    // On unmount we flush editContent (hot-path local state) + scroll positions
+    // (DOM values that can't be live-synced to Redux).
+    const dispatchRef = useRef(dispatch);
+    dispatchRef.current = dispatch;
+    // ⚠️ Must be useLayoutEffect — useEffect cleanup runs AFTER React nulls out DOM refs,
+    // so editorWrapperRef.current and previewBoxRef.current would already be null.
+    useLayoutEffect(() => {
+        return () => {
+            const previewScroll = previewBoxRef.current?.scrollTop ?? 0;
+            dispatchRef.current(
+                patchEditorState({
+                    tabId,
+                    editContent: latestContentRef.current,
+                    editorScrollTop: monacoEditorRef.current?.getScrollTop() ?? 0,
+                })
+            );
+            dispatchRef.current(
+                patchPreviewerState({
+                    tabId,
+                    previewScrollTop: previewScroll,
+                })
+            );
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Refs holding saved scroll positions — read by handleEditorMount (editor) and the
+    // effect below (preview). Initialised once; handleEditorMount is stable so .current
+    // is read at call-time, which is always after the value is set.
+    const savedEditorScrollRef = useRef(savedEditorState?.editorScrollTop ?? 0);
+    const savedPreviewScrollRef = useRef(savedPreviewerState?.previewScrollTop ?? 0);
+    // Restore preview scroll once — triggered when editorReady becomes true (i.e. content
+    // has been seeded and the preview DOM is likely populated).
+    const hasRestoredPreviewScrollRef = useRef(false);
+    useEffect(() => {
+        if (hasRestoredPreviewScrollRef.current || !editorReady) return;
+        const savedPreview = savedPreviewScrollRef.current;
+        if (!savedPreview) {
+            hasRestoredPreviewScrollRef.current = true;
+            return;
+        }
+        hasRestoredPreviewScrollRef.current = true;
+        let raf2 = -1;
+        const raf1 = requestAnimationFrame(() => {
+            raf2 = requestAnimationFrame(() => {
+                const previewEl = previewBoxRef.current;
+                if (previewEl) previewEl.scrollTop = savedPreview;
+            });
+        });
+        return () => {
+            cancelAnimationFrame(raf1);
+            cancelAnimationFrame(raf2);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editorReady]);
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Split-pane drag handling
+    useEffect(() => {
+        const onMove = (e: MouseEvent) => {
+            if (!isDraggingRef.current) return;
+            const pct = (e.clientX / window.innerWidth) * 100;
+            patch({ splitRatio: Math.min(80, Math.max(20, pct)) });
+        };
+        const onUp = () => {
+            isDraggingRef.current = false;
+            setIsDragging(false);
+            document.body.style.userSelect = "";
+            document.body.style.cursor = "";
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+        return () => {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+        };
+    }, []);
+
+    // Undo/redo is handled natively by Monaco. pushHistory is kept as a no-op
+    // so call sites compile without changes (Monaco tracks its own history).
+    const pushHistory = useCallback((_content: string) => {
+        // no-op: Monaco has built-in undo/redo
+    }, []);
+
+    // Initialize editName when script loads (first time or when switching scripts)
+    useEffect(() => {
+        if (script && !ts?.editName) {
+            patch({ editName: script.name || "" });
+        }
+    }, [script, ts?.editName, patch]);
+
+    // Debounce-sync editContent to editor Redux slice so the toolbar component can read it for saving.
+    // Also debounce update previewContent in tabStates for the previewer.
+    useEffect(() => {
+        const t = setTimeout(() => {
+            dispatch(patchEditorState({ tabId, editContent }));
+            patch({ previewContent: editContent });
+        }, 150);
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editContent]);
+
+    const handleSaveEdit = useCallback(async () => {
+        if (!script) return;
+
+        await updateMarkdown({
+            ...script,
+            name: editName,
+            command: editContent,
+        }).unwrap();
+
+        patch({ hasChanges: false, edited: true });
+        setTimeout(() => dispatch(patchTabState({ tabId, edited: false })), 2000);
+
+        dispatch(scriptApi.util.invalidateTags([{ type: "Script", id: script.id }]));
+        await emit("markdown-updated", { scriptId: script.id });
+    }, [script, editName, editContent, updateMarkdown, dispatch, patch, tabId]);
+
+    // Keep ref updated with latest handleSaveEdit
+    useEffect(() => {
+        handleSaveEditRef.current = handleSaveEdit;
+    }, [handleSaveEdit]);
+
+    // Shared window-level keyboard shortcuts
+    useMarkdownShortcuts({
+        onSave: () => {
+            handleSaveEdit();
+        },
+        onClose: () => {
+            if (embedded) {
+                onClose?.();
+            } else {
+                // Drive the close from Rust via invoke so WKWebView teardown happens
+                // entirely outside the JS event-handler stack — prevents SIGSEGV on macOS.
+                invoke("close_subwindow", { label: getCurrentWindow().label });
+            }
+        },
+        onFind: () => {
+            // Trigger Monaco's built-in find widget for the editor
+            monacoEditorRef.current?.trigger("", "actions.find", null);
+            // Also open preview search when the preview is visible
+            if (editViewMode === "mixed" || editViewMode === "preview") {
+                setPreviewSearchOpen(true);
+                setTimeout(() => previewSearchInputRef.current?.focus(), 0);
+            }
+        },
+        onEscape: () => {
+            setPreviewSearchOpen(false);
+            setPreviewSearchQuery("");
+        },
+        onZoomIn: () => dispatch(setFontSize(Math.min(fontSize + 4, 40))),
+        onZoomOut: () => dispatch(setFontSize(Math.max(fontSize - 4, 8))),
+        onZoomReset: () => dispatch(setFontSize(BASE_FONT_SIZE)),
+        onToggleView: () =>
+            patch({ editViewMode: editViewMode === "preview" ? "mixed" : "preview" }),
+    });
+
+    const handleCheckboxToggle = async (checkboxIndex: number) => {
+        const content = latestContentRef.current || script?.command || "";
+        const lines = content.split("\n");
+
+        let currentCheckboxIndex = 0;
+        for (let i = 0; i < lines.length; i++) {
+            const match = lines[i].match(/^(\s*-\s+)\[([ xX])\](.*)$/);
+            if (match) {
+                if (currentCheckboxIndex === checkboxIndex) {
+                    const isChecked = match[2].toLowerCase() === "x";
+                    lines[i] = `${match[1]}[${isChecked ? " " : "x"}]${match[3]}`;
+                    break;
+                }
+                currentCheckboxIndex++;
+            }
+        }
+
+        const updatedContent = lines.join("\n");
+        latestContentRef.current = updatedContent;
+
+        // Keep the editor state in sync so the mixed-mode preview re-renders immediately
+        setEditContent(updatedContent);
+        // Immediately commit to previewContent so the previewer re-renders without debounce delay.
+        dispatch(patchEditorState({ tabId, editContent: updatedContent }));
+        patch({ previewContent: updatedContent, hasChanges: true, edited: false });
+        pushHistory(updatedContent);
+
+        if (script) {
+            await updateMarkdown({
+                ...script,
+                command: updatedContent,
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (!script) return;
+        const content = script.command || "";
+        // Only seed editor state on first load. After that, mutations update
+        // latestContentRef / editContent directly (e.g. checkbox toggles) so
+        // we must not overwrite in-progress edits or destroy the undo stack.
+        if (!editorReady) {
+            setEditContent(content);
+            latestContentRef.current = content;
+            setEditorReady(true);
+        }
+    }, [script, editorReady]);
+
+    // Monaco editor instance ref — set in onMount, used for programmatic control
+    const monacoEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null);
+    const editorWrapperRef = useRef<HTMLDivElement>(null);
+    const previewBoxRef = useRef<HTMLDivElement>(null);
+
+    // Called once when the Monaco editor mounts
+    const handleEditorMount = useCallback(
+        (editorInstance: MonacoEditorNS.IStandaloneCodeEditor) => {
+            monacoEditorRef.current = editorInstance;
+
+            // Restore saved scroll position — do this here (not in a useEffect) because
+            // handleEditorMount fires after Monaco has fully initialised, guaranteeing
+            // the editor is ready to accept setScrollTop.
+            const savedEditorScroll = savedEditorScrollRef.current;
+            if (savedEditorScroll) {
+                requestAnimationFrame(() => {
+                    editorInstance.setScrollTop(savedEditorScroll);
+                });
+            }
+
+            // Intercept paste to handle image insertion
+            editorInstance.onDidPaste(() => {
+                /* handled via addCommand below */
+            });
+
+            // Override paste to support image clipboard items
+            editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
+                try {
+                    const clipboardItems = await navigator.clipboard.read();
+                    const imageItem = clipboardItems.find((item) =>
+                        item.types.some((t) => t.startsWith("image/"))
+                    );
+                    if (imageItem) {
+                        const imageType = imageItem.types.find((t) => t.startsWith("image/"))!;
+                        const blob = await imageItem.getType(imageType);
+
+                        // Compress via canvas
+                        const compressedBlob = await (async () => {
+                            try {
+                                const bitmap = await createImageBitmap(blob);
+                                const MAX_WIDTH = 1400;
+                                const scale =
+                                    bitmap.width > MAX_WIDTH ? MAX_WIDTH / bitmap.width : 1;
+                                const w = Math.round(bitmap.width * scale);
+                                const h = Math.round(bitmap.height * scale);
+                                const canvas = document.createElement("canvas");
+                                canvas.width = w;
+                                canvas.height = h;
+                                canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
+                                bitmap.close();
+                                return await new Promise<Blob>((resolve, reject) => {
+                                    canvas.toBlob(
+                                        (b) =>
+                                            b
+                                                ? resolve(b)
+                                                : reject(new Error("canvas.toBlob failed")),
+                                        "image/jpeg",
+                                        0.85
+                                    );
+                                });
+                            } catch {
+                                return blob;
+                            }
+                        })();
+
+                        const bytes = Array.from(
+                            new Uint8Array(await compressedBlob.arrayBuffer())
+                        );
+                        const filename = await invoke<string>("save_pasted_image", { data: bytes });
+                        const insertion = `![pasted image](images/${filename})`;
+                        editorInstance.trigger("keyboard", "type", { text: insertion });
+                    } else {
+                        // Fall through to default paste
+                        editorInstance.trigger(
+                            "keyboard",
+                            "editor.action.clipboardPasteAction",
+                            {}
+                        );
+                    }
+                } catch {
+                    // Clipboard API may be unavailable; fall through to default paste
+                    editorInstance.trigger("keyboard", "editor.action.clipboardPasteAction", {});
+                }
+            });
+
+            // Pair-wrapping (same logic as useMarkdownWrap but via Monaco API)
+            const WRAP_PAIRS: Record<string, string> = {
+                "*": "*",
+                _: "_",
+                "`": "`",
+                "(": ")",
+                "[": "]",
+                "{": "}",
+                '"': '"',
+                "'": "'",
+            };
+            Object.entries(WRAP_PAIRS).forEach(([open, close]) => {
+                editorInstance.onKeyDown((e) => {
+                    if (e.browserEvent.key !== open) return;
+                    const sel = editorInstance.getSelection();
+                    if (!sel || sel.isEmpty()) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const selectedText = editorInstance.getModel()!.getValueInRange(sel);
+                    editorInstance.executeEdits("wrap", [
+                        {
+                            range: sel,
+                            text: open + selectedText + close,
+                        },
+                    ]);
+                });
+            });
+
+            // Indent / dedent via Cmd+] / Cmd+[
+            editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketRight, () => {
+                editorInstance.trigger("keyboard", "editor.action.indentLines", {});
+            });
+            editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketLeft, () => {
+                editorInstance.trigger("keyboard", "editor.action.outdentLines", {});
+            });
+
+            // Double-click → scroll + flash the corresponding preview element
+            editorInstance.onMouseDown((e) => {
+                if (e.event.detail === 2) {
+                    const line = e.target.position?.lineNumber;
+                    if (line != null) scrollPreviewToLine(line, true);
+                }
+            });
+        },
+        // scrollPreviewToLine is stable (useCallback with no deps that change)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        []
+    );
+
+    // Paste image from clipboard via DOM (fallback for plain mode, kept for completeness)
+    // Monaco overrides paste via addCommand above, so this effect is a no-op for Monaco.
+
+    // ── Preview search ─────────────────────────────────────────────────────────
+    // After ReactMarkdown commits (with marks already injected by the rehype plugin),
+    // highlight the active mark differently and scroll to it.
+    useLayoutEffect(() => {
+        if (!previewSearchOpen || !previewSearchQuery.trim()) {
+            setPreviewSearchCount(0);
+            return;
+        }
+        const container = previewBoxRef.current as HTMLElement | null;
+        if (!container) return;
+        const marks = Array.from(container.querySelectorAll<HTMLElement>("mark.search-mark"));
+        setPreviewSearchCount(marks.length);
+        if (marks.length === 0) return;
+        const idx = previewSearchIdx % marks.length;
+        marks.forEach((m, i) => {
+            m.style.backgroundColor =
+                i === idx ? "rgba(255, 160, 0, 0.7)" : "rgba(255, 210, 0, 0.35)";
+            m.style.color = "inherit";
+            m.style.borderRadius = "2px";
+            m.style.padding = "1px 0";
+        });
+        marks[idx].scrollIntoView({ block: "center" });
+    }, [previewSearchIdx, previewSearchOpen, previewSearchQuery, editContent, script?.command]);
+
+    const scrollPreviewToLine = useCallback((lineNum: number, flash = false) => {
+        const preview = previewBoxRef.current;
+        if (!preview) return;
+        // Find all annotated elements and pick the closest one at-or-before lineNum
+        const candidates = Array.from(preview.querySelectorAll<HTMLElement>("[data-source-line]"));
+        let best: HTMLElement | null = null;
+        for (const el of candidates) {
+            const n = parseInt(el.getAttribute("data-source-line") ?? "0", 10);
+            if (n <= lineNum) best = el;
+            else break;
+        }
+        if (best) {
+            // Walk up to the nearest block-level element so inline nodes (e.g. <code>)
+            // don't get flashed in isolation — we want to highlight the whole line.
+            const BLOCK_TAGS = new Set([
+                "P",
+                "LI",
+                "H1",
+                "H2",
+                "H3",
+                "H4",
+                "H5",
+                "H6",
+                "BLOCKQUOTE",
+                "PRE",
+                "TABLE",
+                "TR",
+                "TD",
+                "TH",
+            ]);
+            let flashTarget: HTMLElement = best;
+            while (flashTarget.parentElement && !BLOCK_TAGS.has(flashTarget.tagName)) {
+                flashTarget = flashTarget.parentElement;
+            }
+
+            const offsetTop = best.offsetTop;
+            preview.scrollTop = Math.max(0, offsetTop - preview.clientHeight / 2);
+            if (flash) {
+                // Flash the target element
+                flashTarget.classList.remove("preview-flash");
+                // Force reflow so removing then adding the class restarts the animation
+                void flashTarget.offsetWidth;
+                flashTarget.classList.add("preview-flash");
+                flashTarget.addEventListener(
+                    "animationend",
+                    () => flashTarget.classList.remove("preview-flash"),
+                    { once: true }
+                );
+            }
+        }
+    }, []);
+
+    const editorFlashDecorationsRef = useRef<string[]>([]);
+
+    const handlePreviewDoubleClick = useCallback((e: React.MouseEvent) => {
+        let el = e.target as HTMLElement | null;
+        while (el) {
+            const lineAttr = el.getAttribute("data-source-line");
+            if (lineAttr) {
+                const lineNum = Math.max(1, parseInt(lineAttr, 10));
+                const editor = monacoEditorRef.current;
+                if (editor) {
+                    editor.revealLineInCenter(lineNum);
+                    editor.setPosition({ lineNumber: lineNum, column: 1 });
+                    editor.focus();
+
+                    // Flash-highlight the line in the editor
+                    editorFlashDecorationsRef.current = editor.deltaDecorations(
+                        editorFlashDecorationsRef.current,
+                        [
+                            {
+                                range: new monaco.Range(lineNum, 1, lineNum, 1),
+                                options: {
+                                    isWholeLine: true,
+                                    className: "editor-line-flash",
+                                },
+                            },
+                        ]
+                    );
+                    setTimeout(() => {
+                        editorFlashDecorationsRef.current = editor.deltaDecorations(
+                            editorFlashDecorationsRef.current,
+                            []
+                        );
+                    }, 700);
+                }
+                break;
+            }
+            el = el.parentElement;
+        }
+    }, []);
+
+    // Rehype plugin that highlights all preview occurrences of the search query
+    const rehypeSearchHighlightPlugin = useMemo(
+        () => makeRehypeSearchHighlight(previewSearchQuery),
+        [previewSearchQuery]
+    );
+    // Stable plugin arrays so ReactMarkdown doesn't recompile on unrelated re-renders
+    const rehypePluginsMixedPreview = useMemo(
+        () =>
+            [
+                rehypeHighlight,
+                rehypeMathjax,
+                rehypeAddSourceLines,
+                rehypeSearchHighlightPlugin,
+            ] as any[],
+        [rehypeSearchHighlightPlugin]
+    );
+    const remarkPluginsWithItemRef = useMemo(
+        () => [remarkGfm, remarkMath, remarkItemReference] as any[],
+        []
+    );
+
+    const markdownComponents = useMemo(() => {
+        return {
+            a: ({
+                href,
+                children,
+                node,
+                ...rest
+            }: {
+                href?: string;
+                children?: React.ReactNode;
+                node?: any;
+                [key: string]: any;
+            }) => (
+                <a
+                    href={href}
+                    {...rest}
+                    onClick={(e) => {
+                        if (!href || href.startsWith("#")) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openUrl(href).catch(console.error);
+                    }}
+                    style={{ cursor: "pointer" }}
+                >
+                    {children}
+                </a>
+            ),
+            // Paragraphs that contain only an image would produce invalid <p><div>…</div></p>
+            // (because ResizableImage is a <div>). Use the HAST node to reliably detect this
+            // and render a <div> wrapper instead, keeping correct block layout.
+            p: ({
+                children,
+                node,
+                ...rest
+            }: {
+                children?: React.ReactNode;
+                node?: any;
+                [key: string]: any;
+            }) => {
+                const nodeChildren: any[] = node?.children ?? [];
+                const isOnlyImage =
+                    nodeChildren.length === 1 &&
+                    nodeChildren[0].type === "element" &&
+                    nodeChildren[0].tagName === "img";
+                if (isOnlyImage) {
+                    return (
+                        <div style={{ margin: "0.75em 0" }} {...rest}>
+                            {children}
+                        </div>
+                    );
+                }
+                return <p {...rest}>{children}</p>;
+            },
+            img: ({ src, alt }: { src?: string; alt?: string }) => {
+                // Parse optional ?width=N from the src
+                const widthMatch = src?.match(/\?width=(\d+)/);
+                const initialWidth = widthMatch ? parseInt(widthMatch[1]) : undefined;
+                // cleanPathNorm is the path without ?width=N suffix
+                const cleanPathNorm = src?.replace(/\?width=\d+$/, "") ?? "";
+
+                let imgSrc = cleanPathNorm;
+                if (cleanPathNorm.startsWith("images/") && imagesDir) {
+                    const filename = cleanPathNorm.replace(/^images\//, "");
+                    imgSrc = convertFileSrc(`${imagesDir}/${filename}`);
+                }
+
+                const handleWidthChange = (newWidth: number) => {
+                    const escaped = cleanPathNorm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                    const updated = latestContentRef.current.replace(
+                        new RegExp(`(!\\[[^\\]]*\\]\\(${escaped})(?:\\?width=\\d+)?(\\))`, "g"),
+                        `$1?width=${newWidth}$2`
+                    );
+                    latestContentRef.current = updated;
+                    setEditContent(updated);
+                    pushHistory(updated);
+                    patch({ hasChanges: true });
+                };
+
+                return (
+                    <ResizableImage
+                        src={imgSrc}
+                        alt={alt ?? ""}
+                        initialWidth={initialWidth}
+                        onWidthChange={handleWidthChange}
+                    />
+                );
+            },
+            itemref: ({ id }: { id?: string }) => (
+                <ItemReference id={id} darkMode={previewDarkMode} fontSize={fontSize} />
+            ),
+            input: ({ node, checked, disabled, ...props }: any) => {
+                if (props.type === "checkbox") {
+                    return (
+                        <input
+                            {...props}
+                            style={{ cursor: "pointer" }}
+                            type="checkbox"
+                            defaultChecked={checked}
+                            disabled={false}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const target = e.target as HTMLInputElement;
+                                const allCheckboxes =
+                                    document.querySelectorAll('input[type="checkbox"]');
+                                let index = -1;
+                                for (let i = 0; i < allCheckboxes.length; i++) {
+                                    if (allCheckboxes[i] === target) {
+                                        index = i;
+                                        break;
+                                    }
+                                }
+                                if (index !== -1) {
+                                    handleCheckboxToggle(index);
+                                }
+                            }}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                        />
+                    );
+                }
+                return <input {...props} />;
+            },
+        };
+    }, [imagesDir, previewDarkMode, fontSize]);
+
+    const handleWindowDragStart = (e: React.MouseEvent) => {
+        if (e.button !== 0) return;
+        const target = e.target as HTMLElement;
+        if (target.closest('button, input, a, [role="button"]')) return;
+        getCurrentWindow().startDragging().catch(console.error);
+    };
+
+    const handleWindowDoubleClick = async (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('button, input, a, [role="button"]')) return;
+        const next = !isFullscreen;
+        await getCurrentWindow().setFullscreen(next);
+        setIsFullscreen(next);
+    };
+
+    return (
+        <div
+            className="h-full w-full bg-white dark:bg-neutral-800 flex flex-col"
+            style={{ opacity: visible ? 1 : 0, transition: "opacity 0.1s ease" }}
+        >
+            {/* Title bar — only rendered in subwindow mode; embedded mode uses App.tsx menu bar */}
+            {!embedded && (
+                <div
+                    className="flex-shrink-0 select-none bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-3 py-2 pl-4"
+                    onMouseDown={handleWindowDragStart}
+                    onDoubleClick={handleWindowDoubleClick}
+                >
+                    <div className="flex items-center gap-2">
+                        <div
+                            className="flex gap-1.5 items-center flex-shrink-0 mr-2"
+                            onDoubleClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                onClick={() => getCurrentWindow().close()}
+                                className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group"
+                                aria-label="Close"
+                            >
+                                <span className="hidden group-hover:block text-red-900 text-[9px] leading-none">
+                                    ×
+                                </span>
+                            </button>
+                            <button
+                                onClick={() => getCurrentWindow().minimize()}
+                                className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center group"
+                                aria-label="Minimize"
+                            >
+                                <span className="hidden group-hover:block text-yellow-900 text-[9px] leading-none">
+                                    −
+                                </span>
+                            </button>
+
+                            <button
+                                onClick={async () => {
+                                    const next = !isFullscreen;
+                                    await getCurrentWindow().setFullscreen(next);
+                                    setIsFullscreen(next);
+                                }}
+                                className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center group"
+                                aria-label="Full Screen"
+                            >
+                                <span className="hidden group-hover:block text-green-900 text-[9px] leading-none">
+                                    {isFullscreen ? "↙" : "↗"}
+                                </span>
+                            </button>
+                            <QuickNavDropdown />
+                        </div>
+                        <MarkdownEditorToolbar scriptId={scriptId!} port={port ?? null} />
+                    </div>
+                </div>
+            )}
+
+            {/* Content */}
+            <div className="flex-1 overflow-hidden">
+                {editViewMode === "plain" ? (
+                    <div className="relative h-full">
+                        <div
+                            ref={editorWrapperRef}
+                            className="h-full overflow-hidden bg-[#1e1e1e] relative"
+                        >
+                            <Editor
+                                height="100%"
+                                defaultLanguage="markdown"
+                                value={editContent}
+                                theme="vs-dark"
+                                onMount={handleEditorMount}
+                                onChange={(value) => {
+                                    const code = value ?? "";
+                                    setEditContent(code);
+                                    latestContentRef.current = code;
+                                    patch({ hasChanges: true });
+                                    patch({ edited: false });
+                                    pushHistory(code);
+                                }}
+                                options={{
+                                    fontSize,
+                                    lineHeight: fontSize * 1.5,
+                                    fontFamily:
+                                        '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                    wordWrap: "on",
+                                    minimap: { enabled: false },
+                                    scrollBeyondLastLine: false,
+                                    renderWhitespace: "none",
+                                    overviewRulerLanes: 0,
+                                    hideCursorInOverviewRuler: true,
+                                    scrollbar: { vertical: "auto", horizontal: "hidden" },
+                                    padding: { top: 16, bottom: 16 },
+                                    lineNumbers: "on",
+                                    glyphMargin: false,
+                                    folding: false,
+                                    tabSize: 2,
+                                    insertSpaces: true,
+                                    detectIndentation: false,
+                                }}
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <div
+                        className="flex h-full"
+                        style={{ userSelect: isDragging ? "none" : undefined }}
+                    >
+                        {/* Left: editor */}
+                        <div
+                            className="relative h-full flex-shrink-0"
+                            style={{
+                                width: editViewMode === "preview" ? "0" : `${splitRatio}%`,
+                                overflow: "hidden",
+                                pointerEvents:
+                                    editViewMode === "preview"
+                                        ? "none"
+                                        : isDragging
+                                          ? "none"
+                                          : undefined,
+                                userSelect: isDragging ? "none" : undefined,
+                                display: editViewMode === "preview" ? "none" : undefined,
+                            }}
+                        >
+                            <div
+                                ref={editorWrapperRef}
+                                className="h-full overflow-hidden bg-[#1e1e1e] relative"
+                            >
+                                <Editor
+                                    height="100%"
+                                    defaultLanguage="markdown"
+                                    value={editContent}
+                                    theme="vs-dark"
+                                    onMount={handleEditorMount}
+                                    onChange={(value) => {
+                                        const code = value ?? "";
+                                        setEditContent(code);
+                                        latestContentRef.current = code;
+                                        patch({ hasChanges: true });
+                                        patch({ edited: false });
+                                        pushHistory(code);
+                                    }}
+                                    options={{
+                                        fontSize,
+                                        lineHeight: fontSize * 1.5,
+                                        fontFamily:
+                                            '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
+                                        wordWrap: "on",
+                                        minimap: { enabled: false },
+                                        scrollBeyondLastLine: false,
+                                        renderWhitespace: "none",
+                                        overviewRulerLanes: 0,
+                                        hideCursorInOverviewRuler: true,
+                                        scrollbar: { vertical: "auto", horizontal: "hidden" },
+                                        padding: { top: 16, bottom: 16 },
+                                        lineNumbers: "on",
+                                        glyphMargin: false,
+                                        folding: false,
+                                        tabSize: 2,
+                                        insertSpaces: true,
+                                        detectIndentation: false,
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Divider */}
+                        <div
+                            className="w-1 cursor-col-resize bg-neutral-600 hover:bg-blue-500 flex-shrink-0 transition-colors"
+                            style={{ display: editViewMode === "preview" ? "none" : undefined }}
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                isDraggingRef.current = true;
+                                setIsDragging(true);
+                                document.body.style.userSelect = "none";
+                                document.body.style.cursor = "col-resize";
+                                window.getSelection()?.removeAllRanges();
+                            }}
+                        />
+
+                        {/* Right: live preview */}
+                        <div
+                            className="h-full relative"
+                            style={{
+                                width: editViewMode === "preview" ? "100%" : `${100 - splitRatio}%`,
+                            }}
+                        >
+                            {/* Dark/Light mode toggle */}
+                            <style>{`
+                                .preview-toolbar-btn:hover {
+                                    background: rgba(150,150,150,0.60) !important;
+                                }
+                            `}</style>
+                            <button
+                                onClick={() => dispatch(setPreviewDarkMode(!previewDarkMode))}
+                                title={
+                                    previewDarkMode ? "Switch to light mode" : "Switch to dark mode"
+                                }
+                                className="preview-toolbar-btn"
+                                style={{
+                                    position: "absolute",
+                                    top: 8,
+                                    right: 18,
+                                    zIndex: 10,
+                                    background: previewDarkMode
+                                        ? "rgba(255,255,255,0.12)"
+                                        : "rgba(0,0,0,0.10)",
+                                    border: "none",
+                                    borderRadius: 6,
+                                    padding: "4px 8px",
+                                    cursor: "pointer",
+                                    lineHeight: 1,
+                                    color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
+                                }}
+                            >
+                                {previewDarkMode ? <Sun size={15} /> : <Moon size={15} />}
+                            </button>
+                            {/* Presentation mode toggle */}
+                            <button
+                                onClick={() => {
+                                    if (presentationMode) {
+                                        endPresentation();
+                                    } else {
+                                        setPresentationMode(true);
+                                        setPresentationIndex(0);
+                                    }
+                                }}
+                                title={
+                                    presentationMode
+                                        ? "End presentation"
+                                        : "Start presentation mode"
+                                }
+                                className="preview-toolbar-btn"
+                                style={{
+                                    position: "absolute",
+                                    top: 8,
+                                    right: 58,
+                                    zIndex: 10,
+                                    background: previewDarkMode
+                                        ? "rgba(255,255,255,0.12)"
+                                        : "rgba(0,0,0,0.10)",
+                                    border: presentationMode
+                                        ? "1px solid rgba(150,150,150,0.5)"
+                                        : "1px solid transparent",
+                                    borderRadius: 6,
+                                    padding: "4px 8px",
+                                    cursor: "pointer",
+                                    lineHeight: 1,
+                                    color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
+                                }}
+                            >
+                                <Presentation size={15} />
+                            </button>
+                            {/* Play / advance button (presentation mode only) */}
+                            {presentationMode && (
+                                <button
+                                    onClick={() => {
+                                        const next = presentationIndex + 1;
+                                        if (next >= presentationNodesRef.current.length) {
+                                            endPresentation();
+                                        } else {
+                                            setPresentationIndex(next);
+                                        }
+                                    }}
+                                    title="Reveal next"
+                                    className="preview-toolbar-btn"
+                                    style={{
+                                        position: "absolute",
+                                        top: 8,
+                                        right: 98,
+                                        zIndex: 10,
+                                        background: previewDarkMode
+                                            ? "rgba(255,255,255,0.12)"
+                                            : "rgba(0,0,0,0.10)",
+                                        border: "none",
+                                        borderRadius: 6,
+                                        padding: "4px 8px",
+                                        cursor: "pointer",
+                                        lineHeight: 1,
+                                        color: previewDarkMode
+                                            ? "rgb(212,212,212)"
+                                            : "rgb(50,50,50)",
+                                    }}
+                                >
+                                    <ChevronRight size={15} />
+                                </button>
+                            )}
+                            {previewSearchOpen && (
+                                <SearchBar
+                                    query={previewSearchQuery}
+                                    onQueryChange={setPreviewSearchQuery}
+                                    matchCount={previewSearchCount}
+                                    matchIdx={previewSearchIdx}
+                                    // @ts-ignore
+                                    inputRef={previewSearchInputRef}
+                                    onAdvance={() =>
+                                        setPreviewSearchIdx((i) =>
+                                            previewSearchCount === 0
+                                                ? 0
+                                                : (i + 1) % previewSearchCount
+                                        )
+                                    }
+                                    onClose={() => {
+                                        setPreviewSearchOpen(false);
+                                        setPreviewSearchQuery("");
+                                        setPreviewSearchIdx(0);
+                                    }}
+                                />
+                            )}
+                            <Box
+                                ref={previewBoxRef}
+                                className="markdown-preview"
+                                style={{ width: "100%" }}
+                                onDoubleClick={handlePreviewDoubleClick}
+                                sx={{
+                                    fontSize: `${fontSize}px`,
+                                    lineHeight: `${Math.round(fontSize * 1.6)}px`,
+                                    height: "100%",
+                                    userSelect: "text",
+                                    cursor: "text",
+                                    overflowY: "auto",
+                                    backgroundColor: previewDarkMode
+                                        ? "rgb(25, 25, 25)"
+                                        : "rgb(248, 249, 250)",
+                                    color: previewDarkMode
+                                        ? "rgb(212, 212, 212)"
+                                        : "rgb(30, 30, 30)",
+                                    padding: "48px 24px 48px 24px",
+                                    "& h1": {
+                                        fontSize: "2em",
+                                        fontWeight: "700",
+                                        marginTop: "0.67em",
+                                        marginBottom: "0.67em",
+                                        borderBottom: previewDarkMode
+                                            ? "2px solid rgba(255, 255, 255, 0.2)"
+                                            : "2px solid rgba(0, 0, 0, 0.15)",
+                                        paddingBottom: "0.3em",
+                                        color: previewDarkMode
+                                            ? "rgb(255, 255, 255)"
+                                            : "rgb(20, 30, 70)",
+                                    },
+                                    "& h2": {
+                                        fontSize: "1.75em",
+                                        fontWeight: "700",
+                                        marginTop: "0.75em",
+                                        marginBottom: "0.5em",
+                                        borderBottom: previewDarkMode
+                                            ? "1px solid rgba(255, 255, 255, 0.15)"
+                                            : "1px solid rgba(0, 0, 0, 0.1)",
+                                        paddingBottom: "0.3em",
+                                        color: previewDarkMode
+                                            ? "rgb(255, 255, 255)"
+                                            : "rgb(20, 30, 70)",
+                                    },
+                                    "& h3": {
+                                        fontSize: "1.5em",
+                                        fontWeight: "600",
+                                        marginTop: "0.75em",
+                                        marginBottom: "0.5em",
+                                        color: previewDarkMode
+                                            ? "rgb(245, 245, 245)"
+                                            : "rgb(30, 40, 80)",
+                                    },
+                                    "& h4": {
+                                        fontSize: "1.25em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: previewDarkMode
+                                            ? "rgb(245, 245, 245)"
+                                            : "rgb(40, 40, 40)",
+                                    },
+                                    "& h5": {
+                                        fontSize: "1.1em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: previewDarkMode
+                                            ? "rgb(230, 230, 230)"
+                                            : "rgb(60, 60, 60)",
+                                    },
+                                    "& h6": {
+                                        fontSize: "1em",
+                                        fontWeight: "600",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                        color: previewDarkMode
+                                            ? "rgb(220, 220, 220)"
+                                            : "rgb(80, 80, 80)",
+                                    },
+                                    "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child":
+                                        {
+                                            marginTop: "0",
+                                        },
+                                    "& ul, & ol": {
+                                        paddingLeft: LIST_GUTTER_WIDTH,
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& ul": {
+                                        listStyleType: "disc",
+                                    },
+                                    "& ol": {
+                                        listStyleType: "decimal",
+                                    },
+                                    "& li": {
+                                        lineHeight: LIST_ITEM_LINE_HEIGHT,
+                                    },
+                                    "& ul > li:not(.task-list-item)": {
+                                        listStylePosition: "outside",
+                                        marginLeft: "-0.3em",
+                                        textIndent: "0.3em",
+                                    },
+                                    "& ul > li:not(.task-list-item)::marker": {
+                                        fontSize: "0.95em",
+                                    },
+                                    "& li.task-list-item": {
+                                        listStyleType: "none",
+                                    },
+                                    "& li.task-list-item input[type='checkbox']": {
+                                        appearance: "none !important",
+                                        WebkitAppearance: "none !important",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: "1em",
+                                        height: "1em",
+                                        margin: "0 0.5em 0 -1.75em",
+                                        verticalAlign: "text-bottom",
+                                        cursor: "pointer",
+                                        border: previewDarkMode
+                                            ? "2px solid rgba(255, 255, 255, 0.3)"
+                                            : "2px solid rgba(0, 0, 0, 0.3)",
+                                        borderRadius: "3px",
+                                        backgroundColor: "transparent",
+                                        position: "relative",
+                                        "&:checked": {
+                                            backgroundColor: "rgb(59, 130, 246)",
+                                            borderColor: "rgb(59, 130, 246)",
+                                            "&::after": {
+                                                content: '"✓"',
+                                                color: "white",
+                                                fontSize: "0.72em",
+                                                fontWeight: "bold",
+                                                lineHeight: 1,
+                                                position: "absolute",
+                                                top: "50%",
+                                                left: "50%",
+                                                transform: "translate(-50%, -50%)",
+                                            },
+                                        },
+                                    },
+                                    "& li.task-list-item > p": {
+                                        display: "block",
+                                        marginTop: "0.3em",
+                                        marginBottom: 0,
+                                    },
+                                    "& li.task-list-item > p:first-of-type": {
+                                        display: "inline",
+                                        marginTop: 0,
+                                        marginBottom: 0,
+                                    },
+                                    "& li.task-list-item > ul, & li.task-list-item > ol": {
+                                        marginTop: "0.4em",
+                                        marginBottom: "0.4em",
+                                    },
+                                    "& p": {
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& code:not(pre code)": {
+                                        fontSize: "0.95em",
+                                        backgroundColor: previewDarkMode
+                                            ? LIGHT_WHITE_BG
+                                            : "rgba(0, 0, 0, 0.07)",
+                                        color: previewDarkMode ? "inherit" : "rgb(190, 50, 50)",
+                                        padding: "2px 6px",
+                                        borderRadius: "4px",
+                                    },
+                                    "& pre": {
+                                        backgroundColor: previewDarkMode
+                                            ? "rgba(0, 0, 0, 0.3)"
+                                            : "rgb(240, 242, 244)",
+                                        borderRadius: "4px",
+                                        padding: "12px",
+                                        overflow: "auto",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& pre code": {
+                                        backgroundColor: "transparent",
+                                        color: previewDarkMode ? "inherit" : "rgb(30, 30, 30)",
+                                        padding: "0",
+                                        fontSize: "0.9em",
+                                    },
+                                    "& blockquote": {
+                                        borderLeft: previewDarkMode
+                                            ? "4px solid rgba(255, 255, 255, 0.3)"
+                                            : "4px solid rgba(0, 0, 0, 0.2)",
+                                        paddingLeft: "1em",
+                                        marginLeft: "0",
+                                        color: previewDarkMode
+                                            ? "rgba(255, 255, 255, 0.8)"
+                                            : "rgba(0, 0, 0, 0.6)",
+                                    },
+                                    "& a": {
+                                        color: previewDarkMode
+                                            ? "rgb(96, 165, 250)"
+                                            : "rgb(37, 99, 235)",
+                                        textDecoration: "underline",
+                                        "&:hover": {
+                                            color: previewDarkMode
+                                                ? "rgb(147, 197, 253)"
+                                                : "rgb(29, 78, 216)",
+                                        },
+                                    },
+                                    "& table": {
+                                        borderCollapse: "collapse",
+                                        width: "100%",
+                                        marginTop: "0.5em",
+                                        marginBottom: "0.5em",
+                                    },
+                                    "& th, & td": {
+                                        border: previewDarkMode
+                                            ? "1px solid rgba(255, 255, 255, 0.2)"
+                                            : "1px solid rgba(0, 0, 0, 0.15)",
+                                        padding: "8px",
+                                    },
+                                    "& th": {
+                                        backgroundColor: previewDarkMode
+                                            ? "rgba(0, 0, 0, 0.3)"
+                                            : "rgba(0, 0, 0, 0.05)",
+                                        fontWeight: "600",
+                                    },
+                                    "& mjx-container": {
+                                        display: "inline-block",
+                                        verticalAlign: "middle",
+                                    },
+                                    "& mjx-container[display='true']": {
+                                        display: "block",
+                                        textAlign: "center",
+                                        margin: "1em 0",
+                                    },
+                                }}
+                            >
+                                <div
+                                    ref={presentationContainerRef}
+                                    style={{
+                                        maxWidth: `${Math.round((860 * fontSize) / BASE_FONT_SIZE)}px`,
+                                        margin: "0 auto",
+                                    }}
+                                >
+                                    <ReactMarkdown
+                                        remarkPlugins={remarkPluginsWithItemRef}
+                                        rehypePlugins={rehypePluginsMixedPreview}
+                                        components={markdownComponents}
+                                    >
+                                        {editContent}
+                                    </ReactMarkdown>
+                                </div>
+                            </Box>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

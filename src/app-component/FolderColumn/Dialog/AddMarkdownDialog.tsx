@@ -9,12 +9,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import SimpleEditor from "react-simple-code-editor";
-import { highlight, languages } from "prismjs";
-import "prismjs/components/prism-markdown";
-import "prismjs/themes/prism-tomorrow.css";
+import Editor, { loader } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
 import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
-import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
+
+loader.config({ monaco });
 
 import { ScriptsFolderResponse } from "@/types/dto";
 
@@ -38,11 +37,6 @@ export const AddMarkdownDialog = (props: {
         setMarkdownContent,
         handleAddMarkdown,
     } = props;
-
-    const handleEditorKeyDown = useMarkdownWrap(
-        markdownContent,
-        (newContent) => setMarkdownContent(newContent)
-    );
 
     // Shared keyboard shortcuts
     useMarkdownShortcuts({
@@ -77,9 +71,10 @@ export const AddMarkdownDialog = (props: {
                             autoFocus
                             value={markdownName}
                             onChange={(e) => setMarkdownName(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === "Enter" && markdownName.trim()) {
-                                 e.preventDefault();
-                                  handleAddMarkdown(); 
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && markdownName.trim()) {
+                                    e.preventDefault();
+                                    handleAddMarkdown();
                                 }
                             }}
                             placeholder="Markdown name"
@@ -87,25 +82,38 @@ export const AddMarkdownDialog = (props: {
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="markdown-content">Content</Label>
-                        <div className="rounded-md overflow-auto bg-[#1e1e1e]" style={{ minHeight: "300px", maxHeight: "400px" }}>
-                            <SimpleEditor
+                        <div
+                            className="rounded-md overflow-hidden bg-[#1e1e1e]"
+                            style={{ height: "350px" }}
+                        >
+                            <Editor
+                                height="100%"
+                                defaultLanguage="markdown"
                                 value={markdownContent}
-                                onValueChange={setMarkdownContent}
-                                highlight={(code) =>
-                                    highlight(code, languages.markdown, "markdown")
-                                }
-                                padding={16}
-                                style={{
+                                theme="vs-dark"
+                                onChange={(value) => setMarkdownContent(value ?? "")}
+                                options={{
+                                    fontSize: 14,
+                                    lineHeight: 21,
                                     fontFamily:
                                         '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                    fontSize: 14,
-                                    lineHeight: 1.5,
-                                    minHeight: "300px",
-                                    backgroundColor: "#1e1e1e",
-                                    color: "#d4d4d4",
+                                    wordWrap: "on",
+                                    minimap: { enabled: false },
+                                    scrollBeyondLastLine: false,
+                                    renderWhitespace: "none",
+                                    overviewRulerLanes: 0,
+                                    hideCursorInOverviewRuler: true,
+                                    scrollbar: { vertical: "auto", horizontal: "hidden" },
+                                    padding: { top: 16, bottom: 16 },
+                                    lineNumbers: "on",
+                                    glyphMargin: false,
+                                    folding: false,
+                                    tabSize: 2,
+                                    insertSpaces: true,
+                                    detectIndentation: false,
+                                    contextmenu: false,
+                                    stickyScroll: { enabled: false },
                                 }}
-                                textareaClassName="focus:outline-none"
-                                onKeyDown={handleEditorKeyDown}
                             />
                         </div>
                     </div>
@@ -114,10 +122,7 @@ export const AddMarkdownDialog = (props: {
                     <Button variant="outline" onClick={() => setIsAddMarkdownOpen(false)}>
                         Cancel
                     </Button>
-                    <Button
-                        onClick={handleAddMarkdown}
-                        disabled={!markdownName.trim()}
-                    >
+                    <Button onClick={handleAddMarkdown} disabled={!markdownName.trim()}>
                         Create Markdown
                     </Button>
                 </DialogFooter>

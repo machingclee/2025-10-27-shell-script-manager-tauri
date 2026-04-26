@@ -18,6 +18,7 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
     const tabId = scriptId;
     const dispatch = useAppDispatch();
     const ts = useAppSelector((s) => s.app.tab.tabStates[tabId]);
+    const editorState = useAppSelector((s) => s.app.tab.editor[String(tabId)]);
 
     const { data: script } = scriptApi.endpoints.getScriptById.useQuery(scriptId, {
         skip: !port || port === 0,
@@ -33,7 +34,7 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
     const editName = ts?.editName ?? "";
     const hasChanges = ts?.hasChanges ?? false;
     const edited = ts?.edited ?? false;
-    const editContent = ts?.editContent ?? "";
+    const editContent = editorState?.editContent ?? "";
 
     const patch = useCallback(
         (partial: Partial<MarkdownTabState>) => dispatch(patchTabState({ tabId, ...partial })),

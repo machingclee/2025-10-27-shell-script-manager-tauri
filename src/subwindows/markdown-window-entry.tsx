@@ -23,8 +23,16 @@ document.addEventListener("click", (e) => {
     openUrl(href).catch(console.error);
 });
 
-// No need to override MonacoEnvironment when using loader.config with paths
-// The loader handles the worker paths automatically relative to the 'vs' path
+// In production (Tauri), the sub-window HTML sits at a different depth so
+// Monaco workers can't resolve relative to the root by default.
+// Point them at the monacoeditorwork/ folder that vite-plugin-monaco-editor emits.
+if (!import.meta.env.DEV) {
+    (window as any).MonacoEnvironment = {
+        getWorkerUrl(_moduleId: string, _label: string) {
+            return "../../monacoeditorwork/editor.worker.bundle.js";
+        },
+    };
+}
 
 function MarkdownWindowContent() {
     const dispatch = useAppDispatch();

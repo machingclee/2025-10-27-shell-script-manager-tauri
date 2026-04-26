@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import monacoEditorPlugin from "vite-plugin-monaco-editor";
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -8,7 +9,9 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(() => ({
     plugins: [
         react(),
-        // Removed monacoEditorPlugin as we are now using static assets from public/monaco
+        (monacoEditorPlugin as any).default({
+            languageWorkers: ["editorWorkerService"],
+        }),
     ],
 
     // Use relative paths for assets in production so they work with Tauri's custom protocol
@@ -23,6 +26,9 @@ export default defineConfig(() => ({
             output: {
                 // Force shared CSS and vendor chunks
                 manualChunks: (id) => {
+                    if (id.includes("monaco-editor")) {
+                        return "monaco";
+                    }
                     // Put all CSS-related imports together
                     if (id.includes(".css") || id.includes("tailwind")) {
                         return "styles";

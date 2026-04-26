@@ -1,241 +1,25 @@
 import React from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeHighlight from "rehype-highlight";
-import rehypeMathjax from "rehype-mathjax";
 import { scriptApi } from "@/store/api/scriptApi";
-import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback } from "react";
-import { Box } from "@mui/material";
+import { useEffect, useLayoutEffect, useState, useRef, useCallback } from "react";
 import QuickNavDropdown from "./QuickNavDropdown";
 import MarkdownEditorToolbar from "./MarkdownEditorToolbar";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { patchTabState, setFontSize, setPreviewDarkMode } from "@/store/slices/appSlice";
+import {
+    patchTabState,
+    patchEditorState,
+    patchPreviewerState,
+    setFontSize,
+} from "@/store/slices/appSlice";
 import type { MarkdownTabState } from "@/store/slices/appSlice";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { convertFileSrc } from "@tauri-apps/api/core";
-import SimpleEditor from "react-simple-code-editor";
-import { highlight, languages } from "prismjs";
-import "prismjs/components/prism-markdown";
-import "prismjs/themes/prism-tomorrow.css";
+import type { editor as MonacoEditorNS } from "monaco-editor";
 import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
-import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
-import { remarkItemReference } from "@/lib/remarkItemReference";
-import ItemReference from "./ItemReference";
-import { Sun, Moon, Presentation, ChevronRight } from "lucide-react";
+import MarkdownCodeEditor from "./MarkdownCodeEditor";
+import MarkdownPreviewer from "./MarkdownPreviewer";
 
-const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 const BASE_FONT_SIZE = 18;
-
-// Rehype plugin: annotate block elements with their source line number
-function rehypeAddSourceLines() {
-    return (tree: any) => {
-        function walk(node: any) {
-            if (node.type === "element" && node.position?.start?.line != null) {
-                node.properties = node.properties ?? {};
-                node.properties["data-source-line"] = String(node.position.start.line);
-            }
-            if (node.children) {
-                for (const child of node.children) walk(child);
-            }
-        }
-        walk(tree);
-    };
-}
-
-// List spacing constants for alignment calibration
-const LIST_GUTTER_WIDTH = "2em";
-const LIST_ITEM_LINE_HEIGHT = "1.4";
-
-// Rehype plugin: wrap text matching `query` in <mark class="search-mark">
-function makeRehypeSearchHighlight(query: string) {
-    const q = query.trim().toLowerCase();
-    return function rehypeSearchHighlight() {
-        return function transformer(tree: any) {
-            if (!q) return;
-            function visitNode(node: any): any[] | null {
-                if (node.type === "text") {
-                    const lower: string = node.value.toLowerCase();
-                    if (!lower.includes(q)) return null;
-                    const parts: any[] = [];
-                    let pos = 0;
-                    while (true) {
-                        const found = lower.indexOf(q, pos);
-                        if (found === -1) {
-                            if (pos < node.value.length)
-                                parts.push({ type: "text", value: node.value.slice(pos) });
-                            break;
-                        }
-                        if (found > pos)
-                            parts.push({ type: "text", value: node.value.slice(pos, found) });
-                        parts.push({
-                            type: "element",
-                            tagName: "mark",
-                            properties: { className: ["search-mark"] },
-                            children: [
-                                { type: "text", value: node.value.slice(found, found + q.length) },
-                            ],
-                        });
-                        pos = found + q.length;
-                    }
-                    return parts;
-                }
-                if (node.children) {
-                    const newChildren: any[] = [];
-                    let changed = false;
-                    for (const child of node.children) {
-                        const result = visitNode(child);
-                        if (result !== null) {
-                            newChildren.push(...result);
-                            changed = true;
-                        } else {
-                            newChildren.push(child);
-                        }
-                    }
-                    if (changed) node.children = newChildren;
-                }
-                return null;
-            }
-            visitNode(tree);
-        };
-    };
-}
-
-function SearchBar({
-    query,
-    onQueryChange,
-    matchCount,
-    matchIdx,
-    inputRef,
-    onAdvance,
-    onClose,
-    bottomOffset = 16,
-}: {
-    query: string;
-    onQueryChange: (v: string) => void;
-    matchCount: number;
-    matchIdx: number;
-    inputRef: React.RefObject<HTMLInputElement>;
-    onAdvance: () => void;
-    onClose: () => void;
-    bottomOffset?: number;
-}) {
-    return (
-        <div
-            className="absolute right-4 z-50 flex items-center gap-2 bg-neutral-800/95 border border-neutral-500 rounded px-3 py-1.5 shadow-lg"
-            style={{ bottom: bottomOffset }}
-            onMouseDown={(e) => e.stopPropagation()}
-        >
-            <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => onQueryChange(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        onAdvance();
-                    }
-                    if (e.key === "Escape") {
-                        e.preventDefault();
-                        onClose();
-                    }
-                }}
-                placeholder="Search…"
-                className="bg-transparent text-white text-sm outline-none w-44 placeholder-neutral-500"
-            />
-            <span className="text-neutral-400 text-xs min-w-[3rem] text-right select-none">
-                {query.trim() ? (matchCount > 0 ? `${matchIdx + 1}/${matchCount}` : "0/0") : ""}
-            </span>
-            <button
-                onMouseDown={(e) => {
-                    e.preventDefault();
-                    onClose();
-                }}
-                className="text-neutral-400 hover:text-white leading-none"
-                aria-label="Close search"
-            >
-                ✕
-            </button>
-        </div>
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Resizable image – drag the bottom-right handle to change width
-// ---------------------------------------------------------------------------
-function ResizableImage({
-    src,
-    alt,
-    initialWidth,
-    onWidthChange,
-}: {
-    src: string;
-    alt: string;
-    initialWidth?: number;
-    onWidthChange?: (width: number) => void;
-}) {
-    const [width, setWidth] = useState<number | undefined>(initialWidth);
-    const [hovered, setHovered] = useState(false);
-    const startRef = useRef<{ x: number; w: number } | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    const onHandleMouseDown = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const currentW = width ?? containerRef.current?.getBoundingClientRect().width ?? 300;
-        startRef.current = { x: e.clientX, w: currentW };
-
-        const calcDelta = (ev: MouseEvent) =>
-            ev.clientX - startRef.current!.x - (ev.clientY - e.clientY);
-
-        const onMove = (ev: MouseEvent) => {
-            if (!startRef.current) return;
-            const newW = Math.max(50, Math.round(startRef.current.w + calcDelta(ev)));
-            setWidth(newW);
-        };
-        const onUp = (ev: MouseEvent) => {
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
-            if (!startRef.current) return;
-            const finalW = Math.max(50, Math.round(startRef.current.w + calcDelta(ev)));
-            startRef.current = null;
-            onWidthChange?.(finalW);
-        };
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
-    };
-
-    return (
-        <div
-            ref={containerRef}
-            style={{
-                position: "relative",
-                display: "inline-block",
-                width: width ? `${width}px` : "100%",
-                maxWidth: "100%",
-                borderRadius: "4px",
-                outline: hovered ? "3px solid #3e6df1" : "3px solid transparent",
-                transition: "outline-color 0.15s",
-                cursor: hovered ? "nesw-resize" : undefined,
-            }}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            onMouseDown={onHandleMouseDown}
-            title={hovered ? "Drag to resize" : undefined}
-        >
-            <img
-                src={src}
-                alt={alt}
-                style={{ display: "block", width: "100%", borderRadius: "4px" }}
-                draggable={false}
-            />
-        </div>
-    );
-}
 
 export default function MarkdownEditor({
     port,
@@ -255,6 +39,8 @@ export default function MarkdownEditor({
     // Saved state from the last time this tab was active (keyed by tab id)
     const tabId = scriptId!;
     const savedState = useAppSelector((s) => s.app.tab.tabStates[tabId]);
+    const savedEditorState = useAppSelector((s) => s.app.tab.editor[String(tabId)]);
+    const savedPreviewerState = useAppSelector((s) => s.app.tab.previewer[String(tabId)]);
 
     const { data: script } = scriptApi.endpoints.getScriptById.useQuery(scriptId, {
         skip: !(scriptId != null) || port === 0,
@@ -279,8 +65,10 @@ export default function MarkdownEditor({
         [dispatch, tabId]
     );
     // ─────────────────────────────────────────────────────────────────────────
-    // editContent stays local — hot path; persisted to Redux on unmount via latestContentRef.
-    const [editContent, setEditContent] = useState(ts?.hasChanges ? (ts.editContent ?? "") : "");
+    // editContent stays local — hot path; persisted to Redux (editor slice) on unmount.
+    const [editContent, setEditContent] = useState(
+        ts?.hasChanges ? (savedEditorState?.editContent ?? "") : ""
+    );
     // Start editorReady=true when we have unsaved edits to restore, so the seeding
     // useEffect doesn't overwrite editContent with the server's script.command.
     const [editorReady, setEditorReady] = useState(() => ts?.hasChanges ?? false);
@@ -289,11 +77,13 @@ export default function MarkdownEditor({
     // Fade-in when the tab is mounted (i.e. every time the user switches to this tab).
     const [visible, setVisible] = useState(false);
     useEffect(() => {
-        const t = setTimeout(() => setVisible(true), 50);
+        const t = setTimeout(() => setVisible(true), 1);
         return () => clearTimeout(t);
     }, []);
 
-    const latestContentRef = useRef(savedState?.hasChanges ? (savedState.editContent ?? "") : "");
+    const latestContentRef = useRef(
+        savedState?.hasChanges ? (savedEditorState?.editContent ?? "") : ""
+    );
     const handleSaveEditRef = useRef<((closeEditMode?: boolean) => Promise<void>) | null>(null);
     // useState (not useRef) so that when get_images_dir resolves it triggers a
     // re-render and the img renderer picks up the real path — otherwise images
@@ -302,129 +92,8 @@ export default function MarkdownEditor({
     const isDraggingRef = useRef(false);
     const [isDragging, setIsDragging] = useState(false);
 
-    // Editor search
-    const [editorSearchOpen, setEditorSearchOpen] = useState(false);
-    const [editorSearchQuery, setEditorSearchQuery] = useState("");
-    const [editorSearchMatches, setEditorSearchMatches] = useState<number[]>([]);
-    const [editorSearchIdx, setEditorSearchIdx] = useState(0);
-    const editorSearchInputRef = useRef<HTMLInputElement>(null);
-
-    // Preview dark mode — shared via Redux
-    const previewDarkMode = useAppSelector((s) => s.app.tab.previewDarkMode);
-    // Presentation mode
-    const [presentationMode, setPresentationMode] = useState(false);
-    const [presentationIndex, setPresentationIndex] = useState(0);
-    const presentationContainerRef = useRef<HTMLDivElement>(null);
-    const presentationNodesRef = useRef<HTMLElement[][]>([]);
-    const previewScrollSaveRef = useRef<number | null>(null);
-    const endPresentation = useCallback(() => {
-        previewScrollSaveRef.current = previewBoxRef.current?.scrollTop ?? null;
-        setPresentationMode(false);
-        setPresentationIndex(0);
-    }, []);
-    // Collect DOM nodes and dim them on enter; remove inline styles on exit
-    useEffect(() => {
-        if (!presentationMode) {
-            for (const group of presentationNodesRef.current) {
-                for (const node of group) {
-                    node.style.opacity = "";
-                    node.style.transition = "";
-                }
-            }
-            presentationNodesRef.current = [];
-            return;
-        }
-        const container = presentationContainerRef.current;
-        if (!container) return;
-        const groups: HTMLElement[][] = [];
-        let pGroup: HTMLElement[] = [];
-        const collectList = (list: HTMLElement) => {
-            for (const li of Array.from(list.children) as HTMLElement[]) {
-                groups.push([li]);
-                for (const child of Array.from(li.children) as HTMLElement[]) {
-                    if (child.tagName === "UL" || child.tagName === "OL") {
-                        collectList(child);
-                    }
-                }
-            }
-        };
-        for (const child of Array.from(container.children) as HTMLElement[]) {
-            const tag = child.tagName;
-            if (tag === "UL" || tag === "OL") {
-                if (pGroup.length > 0) {
-                    groups.push(pGroup);
-                    pGroup = [];
-                }
-                collectList(child);
-            } else if (tag === "P") {
-                pGroup.push(child);
-            } else {
-                if (pGroup.length > 0) {
-                    groups.push(pGroup);
-                    pGroup = [];
-                }
-                groups.push([child]);
-            }
-        }
-        if (pGroup.length > 0) groups.push(pGroup);
-        presentationNodesRef.current = groups;
-        for (const group of groups) {
-            for (const node of group) {
-                node.style.transition = "opacity 0.4s ease";
-                node.style.opacity = "0.2";
-            }
-        }
-    }, [presentationMode]);
-    // Update opacity as index advances + scroll newly revealed node into view
-    useEffect(() => {
-        if (!presentationMode) return;
-        const groups = presentationNodesRef.current;
-        groups.forEach((group, i) => {
-            const opacity = i < presentationIndex ? "1" : "0.2";
-            for (const node of group) node.style.opacity = opacity;
-        });
-        if (presentationIndex > 0) {
-            const group = groups[presentationIndex - 1];
-            if (group && group.length > 0)
-                group[group.length - 1].scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
-    }, [presentationIndex, presentationMode]);
-    // Restore scroll position after exiting presentation
-    useEffect(() => {
-        if (!presentationMode && previewScrollSaveRef.current !== null) {
-            const saved = previewScrollSaveRef.current;
-            previewScrollSaveRef.current = null;
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    if (previewBoxRef.current) previewBoxRef.current.scrollTop = saved;
-                });
-            });
-        }
-    }, [presentationMode]);
-    // Enter key advances presentation
-    useEffect(() => {
-        if (!presentationMode) return;
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                setPresentationIndex((idx) => {
-                    const next = idx + 1;
-                    if (next >= presentationNodesRef.current.length) {
-                        endPresentation();
-                        return 0;
-                    }
-                    return next;
-                });
-            }
-        };
-        window.addEventListener("keydown", onKeyDown);
-        return () => window.removeEventListener("keydown", onKeyDown);
-    }, [presentationMode, endPresentation]);
-    // Preview search
+    // Preview search open/close controlled here; query + results live in MarkdownPreviewer
     const [previewSearchOpen, setPreviewSearchOpen] = useState(false);
-    const [previewSearchQuery, setPreviewSearchQuery] = useState("");
-    const [previewSearchIdx, setPreviewSearchIdx] = useState(0);
-    const [previewSearchCount, setPreviewSearchCount] = useState(0);
     const previewSearchInputRef = useRef<HTMLInputElement>(null);
     useEffect(() => {
         invoke<string>("get_images_dir").then((dir) => {
@@ -443,10 +112,15 @@ export default function MarkdownEditor({
         return () => {
             const previewScroll = previewBoxRef.current?.scrollTop ?? 0;
             dispatchRef.current(
-                patchTabState({
+                patchEditorState({
                     tabId,
-                    editContent: latestContentRef.current, // always freshest
-                    editorScrollTop: editorWrapperRef.current?.scrollTop ?? 0,
+                    editContent: latestContentRef.current,
+                    editorScrollTop: monacoEditorRef.current?.getScrollTop() ?? 0,
+                })
+            );
+            dispatchRef.current(
+                patchPreviewerState({
+                    tabId,
                     previewScrollTop: previewScroll,
                 })
             );
@@ -454,28 +128,27 @@ export default function MarkdownEditor({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Restore scroll positions once — triggered when editorReady becomes true
-    // (i.e. after the content has been seeded and the DOM has full scroll height).
-    // Two nested RAFs ensure the browser has finished layout before we set scrollTop.
-    const savedEditorScrollRef = useRef(savedState?.editorScrollTop ?? 0);
-    const savedPreviewScrollRef = useRef(savedState?.previewScrollTop ?? 0);
-    const hasRestoredScrollRef = useRef(false);
+    // Refs holding saved scroll positions — read by handleEditorMount (editor) and the
+    // effect below (preview). Initialised once; handleEditorMount is stable so .current
+    // is read at call-time, which is always after the value is set.
+    const savedEditorScrollRef = useRef(savedEditorState?.editorScrollTop ?? 0);
+    const savedPreviewScrollRef = useRef(savedPreviewerState?.previewScrollTop ?? 0);
+    // Restore preview scroll once — triggered when editorReady becomes true (i.e. content
+    // has been seeded and the preview DOM is likely populated).
+    const hasRestoredPreviewScrollRef = useRef(false);
     useEffect(() => {
-        if (hasRestoredScrollRef.current || !editorReady) return;
-        hasRestoredScrollRef.current = true;
-        const savedEditor = savedEditorScrollRef.current;
+        if (hasRestoredPreviewScrollRef.current || !editorReady) return;
         const savedPreview = savedPreviewScrollRef.current;
-        if (!savedEditor && !savedPreview) return;
+        if (!savedPreview) {
+            hasRestoredPreviewScrollRef.current = true;
+            return;
+        }
+        hasRestoredPreviewScrollRef.current = true;
         let raf2 = -1;
         const raf1 = requestAnimationFrame(() => {
             raf2 = requestAnimationFrame(() => {
-                if (savedEditor && editorWrapperRef.current) {
-                    editorWrapperRef.current.scrollTop = savedEditor;
-                }
-                if (savedPreview) {
-                    const previewEl = previewBoxRef.current;
-                    if (previewEl) previewEl.scrollTop = savedPreview;
-                }
+                const previewEl = previewBoxRef.current;
+                if (previewEl) previewEl.scrollTop = savedPreview;
             });
         });
         return () => {
@@ -507,23 +180,10 @@ export default function MarkdownEditor({
         };
     }, []);
 
-    // Undo/redo history
-    const undoStackRef = useRef<string[]>([]);
-    const undoIndexRef = useRef(-1);
-    const isUndoingRef = useRef(false);
-
-    // Cursor position navigation history (Alt+Arrow)
-    const cursorHistoryRef = useRef<number[]>([]);
-    const cursorHistoryIdxRef = useRef(-1);
-    const isNavigatingCursorHistoryRef = useRef(false);
-
-    const pushHistory = useCallback((content: string) => {
-        if (isUndoingRef.current) return; // ignore changes triggered by our own undo/redo
-        const stack = undoStackRef.current.slice(0, undoIndexRef.current + 1);
-        stack.push(content);
-        if (stack.length > 500) stack.shift();
-        undoStackRef.current = stack;
-        undoIndexRef.current = stack.length - 1;
+    // Undo/redo is handled natively by Monaco. pushHistory is kept as a no-op
+    // so call sites compile without changes (Monaco tracks its own history).
+    const pushHistory = useCallback((_content: string) => {
+        // no-op: Monaco has built-in undo/redo
     }, []);
 
     // Initialize editName when script loads (first time or when switching scripts)
@@ -533,9 +193,13 @@ export default function MarkdownEditor({
         }
     }, [script, ts?.editName, patch]);
 
-    // Debounce-sync editContent to Redux so the toolbar component can read it for saving.
+    // Debounce-sync editContent to editor Redux slice so the toolbar component can read it for saving.
+    // Also debounce update previewContent in tabStates for the previewer.
     useEffect(() => {
-        const t = setTimeout(() => patch({ editContent }), 300);
+        const t = setTimeout(() => {
+            dispatch(patchEditorState({ tabId, editContent }));
+            patch({ previewContent: editContent });
+        }, 150);
         return () => clearTimeout(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editContent]);
@@ -576,17 +240,15 @@ export default function MarkdownEditor({
             }
         },
         onFind: () => {
-            setEditorSearchOpen(true);
-            setTimeout(() => editorSearchInputRef.current?.focus(), 0);
+            // Trigger Monaco's built-in find widget for the editor
+            monacoEditorRef.current?.trigger("", "actions.find", null);
+            // Also open preview search when the preview is visible
             if (editViewMode === "mixed" || editViewMode === "preview") {
                 setPreviewSearchOpen(true);
             }
         },
         onEscape: () => {
-            setEditorSearchOpen(false);
-            setEditorSearchQuery("");
             setPreviewSearchOpen(false);
-            setPreviewSearchQuery("");
         },
         onZoomIn: () => dispatch(setFontSize(Math.min(fontSize + 4, 40))),
         onZoomOut: () => dispatch(setFontSize(Math.max(fontSize - 4, 8))),
@@ -595,39 +257,52 @@ export default function MarkdownEditor({
             patch({ editViewMode: editViewMode === "preview" ? "mixed" : "preview" }),
     });
 
-    const handleCheckboxToggle = async (checkboxIndex: number) => {
-        const content = latestContentRef.current || script?.command || "";
-        const lines = content.split("\n");
+    const handleCheckboxToggle = useCallback(
+        (checkboxIndex: number) => {
+            const content = latestContentRef.current;
+            const lines = content.split("\n");
 
-        let currentCheckboxIndex = 0;
-        for (let i = 0; i < lines.length; i++) {
-            const match = lines[i].match(/^(\s*-\s+)\[([ xX])\](.*)$/);
-            if (match) {
-                if (currentCheckboxIndex === checkboxIndex) {
-                    const isChecked = match[2].toLowerCase() === "x";
-                    lines[i] = `${match[1]}[${isChecked ? " " : "x"}]${match[3]}`;
-                    break;
+            let currentCheckboxIndex = 0;
+            for (let i = 0; i < lines.length; i++) {
+                const match = lines[i].match(/^(\s*-\s+)\[([ xX])\](.*)$/);
+                if (match) {
+                    if (currentCheckboxIndex === checkboxIndex) {
+                        const isChecked = match[2].toLowerCase() === "x";
+                        lines[i] = `${match[1]}[${isChecked ? " " : "x"}]${match[3]}`;
+                        break;
+                    }
+                    currentCheckboxIndex++;
                 }
-                currentCheckboxIndex++;
             }
-        }
 
-        const updatedContent = lines.join("\n");
-        latestContentRef.current = updatedContent;
+            const updatedContent = lines.join("\n");
+            latestContentRef.current = updatedContent;
 
-        // Keep the editor state in sync so the mixed-mode preview re-renders immediately
-        setEditContent(updatedContent);
-        pushHistory(updatedContent);
-        patch({ hasChanges: true });
-        patch({ edited: false });
+            // Keep the editor state in sync so the mixed-mode preview re-renders immediately
+            setEditContent(updatedContent);
+            // Immediately commit to previewContent so the previewer re-renders without debounce delay.
+            dispatch(patchEditorState({ tabId, editContent: updatedContent }));
+            patch({ previewContent: updatedContent, hasChanges: true, edited: false });
+            pushHistory(updatedContent);
+        },
+        [dispatch, tabId, patch, pushHistory]
+    );
 
-        if (script) {
-            await updateMarkdown({
-                ...script,
-                command: updatedContent,
-            });
-        }
-    };
+    const handleImageWidthChange = useCallback(
+        (cleanPath: string, newWidth: number) => {
+            const escaped = cleanPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const updated = latestContentRef.current.replace(
+                new RegExp(`(!\\[[^\\]]*\\]\\(${escaped})(?:\\?width=\\d+)?(\\))`, "g"),
+                `$1?width=${newWidth}$2`
+            );
+            latestContentRef.current = updated;
+            setEditContent(updated);
+            pushHistory(updated);
+            patch({ hasChanges: true });
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        },
+        [patch, pushHistory]
+    );
 
     useEffect(() => {
         if (!script) return;
@@ -638,348 +313,13 @@ export default function MarkdownEditor({
         if (!editorReady) {
             setEditContent(content);
             latestContentRef.current = content;
-            undoStackRef.current = [content];
-            undoIndexRef.current = 0;
             setEditorReady(true);
         }
     }, [script, editorReady]);
 
-    // Undo/redo via capture-phase native listener so it beats WKWebView's NSUndoManager
-    const editorWrapperRef = useRef<HTMLDivElement>(null);
+    // Monaco editor instance ref — written by MarkdownCodeEditor, read here + MarkdownPreviewer
+    const monacoEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null);
     const previewBoxRef = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const container = editorWrapperRef.current;
-        if (!container) return;
-        const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
-        if (!textarea) return;
-
-        // Block native browser/WKWebView undo-redo so NSUndoManager can't touch the textarea.
-        // `beforeinput` prevention may not stop AppKit-level NSUndoManager in WKWebView, so we
-        // also intercept `input` (fires AFTER the native undo mutates the textarea) in capture
-        // phase, restore the correct value directly on the DOM, and block React from seeing it.
-        const beforeInputHandler = (e: Event) => {
-            const ie = e as InputEvent;
-            if (
-                ie.inputType === "historyUndo" ||
-                ie.inputType === "historyRedo" ||
-                ie.inputType === "insertFromYank" // macOS Cmd+Y "yank" — let our keydown handler do redo instead
-            ) {
-                e.preventDefault();
-            }
-        };
-        textarea.addEventListener("beforeinput", beforeInputHandler, true);
-
-        const nativeUndoInputHandler = (e: Event) => {
-            const ie = e as InputEvent;
-            if (ie.inputType !== "historyUndo" && ie.inputType !== "historyRedo") return;
-            // Prevent React's synthetic onChange from seeing the native-undone value
-            e.stopImmediatePropagation();
-            const idx = undoIndexRef.current;
-            const correct = undoStackRef.current[Math.max(0, idx)] ?? "";
-            // Restore directly on DOM so there is no visible flash
-            textarea.value = correct;
-            isUndoingRef.current = true;
-            setEditContent(correct);
-            latestContentRef.current = correct;
-            setTimeout(() => {
-                isUndoingRef.current = false;
-            }, 0);
-        };
-        textarea.addEventListener("input", nativeUndoInputHandler, true);
-
-        const scrollToPos = (pos: number) => {
-            const content = latestContentRef.current;
-            const lineNum = content.slice(0, pos).split("\n").length - 1;
-            const wrapper = editorWrapperRef.current;
-            if (wrapper) {
-                const LINE_HEIGHT = 15 * 1.5;
-                const lineTop = 16 + lineNum * LINE_HEIGHT;
-                wrapper.scrollTop = Math.max(
-                    0,
-                    lineTop - wrapper.clientHeight / 2 + LINE_HEIGHT / 2
-                );
-            }
-        };
-
-        const handler = (e: KeyboardEvent) => {
-            // Alt+ArrowLeft / Alt+ArrowRight — cursor position history navigation
-            if (
-                e.altKey &&
-                !e.metaKey &&
-                !e.ctrlKey &&
-                (e.key === "ArrowLeft" || e.key === "ArrowRight")
-            ) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                isNavigatingCursorHistoryRef.current = true;
-                if (e.key === "ArrowLeft") {
-                    // Snapshot the current position before going back so Alt+Right can return here
-                    const currentPos = textarea.selectionStart;
-                    const history = cursorHistoryRef.current;
-                    const idx = cursorHistoryIdxRef.current;
-                    const lastRecorded = idx >= 0 ? history[idx] : undefined;
-                    if (currentPos !== lastRecorded) {
-                        const newHistory = history.slice(0, idx + 1);
-                        newHistory.push(currentPos);
-                        if (newHistory.length > 200) newHistory.shift();
-                        cursorHistoryRef.current = newHistory;
-                        cursorHistoryIdxRef.current = newHistory.length - 1;
-                    }
-                    const newIdx = cursorHistoryIdxRef.current;
-                    if (newIdx > 0) {
-                        cursorHistoryIdxRef.current = newIdx - 1;
-                        const pos = cursorHistoryRef.current[cursorHistoryIdxRef.current];
-                        textarea.setSelectionRange(pos, pos);
-                        scrollToPos(pos);
-                    }
-                } else if (e.key === "ArrowRight") {
-                    const idx = cursorHistoryIdxRef.current;
-                    if (idx < cursorHistoryRef.current.length - 1) {
-                        cursorHistoryIdxRef.current = idx + 1;
-                        const pos = cursorHistoryRef.current[cursorHistoryIdxRef.current];
-                        textarea.setSelectionRange(pos, pos);
-                        scrollToPos(pos);
-                    }
-                }
-                setTimeout(() => {
-                    isNavigatingCursorHistoryRef.current = false;
-                }, 0);
-                return;
-            }
-
-            if (!(e.metaKey || e.ctrlKey)) return;
-            if (e.key === "z" && !e.shiftKey) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                const idx = undoIndexRef.current;
-                if (idx > 0) {
-                    const prev = undoStackRef.current[idx - 1];
-                    undoIndexRef.current = idx - 1;
-                    isUndoingRef.current = true;
-                    setEditContent(prev);
-                    latestContentRef.current = prev;
-                    setTimeout(() => {
-                        isUndoingRef.current = false;
-                    }, 0);
-                }
-            } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                const idx = undoIndexRef.current;
-                if (idx < undoStackRef.current.length - 1) {
-                    const next = undoStackRef.current[idx + 1];
-                    undoIndexRef.current = idx + 1;
-                    isUndoingRef.current = true;
-                    setEditContent(next);
-                    latestContentRef.current = next;
-                    setTimeout(() => {
-                        isUndoingRef.current = false;
-                    }, 0);
-                }
-            }
-        };
-
-        textarea.addEventListener("keydown", handler, true); // capture phase
-        return () => {
-            textarea.removeEventListener("keydown", handler, true);
-            textarea.removeEventListener("beforeinput", beforeInputHandler, true);
-            textarea.removeEventListener("input", nativeUndoInputHandler, true);
-        };
-    }, [editorReady]);
-
-    // Record cursor positions for Alt+Arrow history navigation
-    useEffect(() => {
-        if (!editorReady) return;
-        const container = editorWrapperRef.current;
-        if (!container) return;
-        const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
-        if (!textarea) return;
-
-        const recordPos = () => {
-            if (isNavigatingCursorHistoryRef.current) return;
-            const pos = textarea.selectionStart;
-            const history = cursorHistoryRef.current;
-            const idx = cursorHistoryIdxRef.current;
-            const current = idx >= 0 ? history[idx] : undefined;
-            if (current === pos) return;
-            const newHistory = history.slice(0, idx + 1);
-            newHistory.push(pos);
-            if (newHistory.length > 200) newHistory.shift();
-            cursorHistoryRef.current = newHistory;
-            cursorHistoryIdxRef.current = newHistory.length - 1;
-        };
-
-        let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-        const scheduleRecord = () => {
-            if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(recordPos, 300);
-        };
-
-        const handleMouseUp = () => setTimeout(recordPos, 10);
-        const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.altKey) return; // Alt+Arrow is handled by the keydown listener
-            const navKeys = [
-                "ArrowLeft",
-                "ArrowRight",
-                "ArrowUp",
-                "ArrowDown",
-                "Home",
-                "End",
-                "PageUp",
-                "PageDown",
-            ];
-            if (navKeys.includes(e.key)) scheduleRecord();
-        };
-
-        textarea.addEventListener("mouseup", handleMouseUp);
-        textarea.addEventListener("keyup", handleKeyUp);
-        return () => {
-            textarea.removeEventListener("mouseup", handleMouseUp);
-            textarea.removeEventListener("keyup", handleKeyUp);
-            if (debounceTimer) clearTimeout(debounceTimer);
-        };
-    }, [editorReady]);
-
-    // Paste image from clipboard
-    useEffect(() => {
-        if (!editorReady) return;
-        const container = editorWrapperRef.current;
-        if (!container) return;
-        const textarea = container.querySelector<HTMLTextAreaElement>("textarea");
-        if (!textarea) return;
-
-        const handlePaste = async (e: ClipboardEvent) => {
-            const items = Array.from(e.clipboardData?.items ?? []);
-            const imageItem = items.find((item) => item.type.startsWith("image/"));
-            if (!imageItem) return;
-
-            e.preventDefault();
-            const blob = imageItem.getAsFile();
-            if (!blob) return;
-
-            // Compress to JPEG via canvas to avoid OOM on large screenshots (e.g. TIFFs)
-            const compressedBlob = await (async () => {
-                try {
-                    const bitmap = await createImageBitmap(blob);
-                    const MAX_WIDTH = 1400;
-                    const scale = bitmap.width > MAX_WIDTH ? MAX_WIDTH / bitmap.width : 1;
-                    const w = Math.round(bitmap.width * scale);
-                    const h = Math.round(bitmap.height * scale);
-                    const canvas = document.createElement("canvas");
-                    canvas.width = w;
-                    canvas.height = h;
-                    const ctx = canvas.getContext("2d")!;
-                    ctx.drawImage(bitmap, 0, 0, w, h);
-                    bitmap.close();
-                    return await new Promise<Blob>((resolve, reject) => {
-                        canvas.toBlob(
-                            (b) => (b ? resolve(b) : reject(new Error("canvas.toBlob failed"))),
-                            "image/jpeg",
-                            0.85
-                        );
-                    });
-                } catch {
-                    return blob; // fall back to original if compression fails
-                }
-            })();
-
-            const arrayBuffer = await compressedBlob.arrayBuffer();
-            const bytes = Array.from(new Uint8Array(arrayBuffer));
-
-            try {
-                const filename = await invoke<string>("save_pasted_image", { data: bytes });
-                const insertion = `![pasted image](images/${filename})`;
-                const { selectionStart, selectionEnd } = textarea;
-                const before = editContent.slice(0, selectionStart);
-                const after = editContent.slice(selectionEnd);
-                const newContent = before + insertion + after;
-                setEditContent(newContent);
-                pushHistory(newContent);
-                patch({ hasChanges: true });
-                patch({ edited: false });
-            } catch (err) {
-                console.error("Failed to save pasted image:", err);
-            }
-        };
-
-        textarea.addEventListener("paste", handlePaste);
-        return () => textarea.removeEventListener("paste", handlePaste);
-    }, [editorReady, editContent, pushHistory]);
-
-    // ── Editor search ──────────────────────────────────────────────────────────
-    // Recompute match list whenever the query or editor content changes
-    useEffect(() => {
-        if (!editorSearchQuery.trim()) {
-            setEditorSearchMatches([]);
-            setEditorSearchIdx(0);
-            return;
-        }
-        const lower = editContent.toLowerCase();
-        const q = editorSearchQuery.toLowerCase();
-        const matches: number[] = [];
-        let pos = 0;
-        while (true) {
-            const found = lower.indexOf(q, pos);
-            if (found === -1) break;
-            matches.push(found);
-            pos = found + 1;
-        }
-        setEditorSearchMatches(matches);
-        setEditorSearchIdx(0);
-    }, [editorSearchQuery, editContent]);
-
-    // Scroll editor to the current match and set textarea selection
-    useEffect(() => {
-        if (!editorSearchOpen || editorSearchMatches.length === 0) return;
-        const match = editorSearchMatches[editorSearchIdx];
-        if (match == null) return;
-        const textarea = editorWrapperRef.current?.querySelector<HTMLTextAreaElement>("textarea");
-        if (!textarea) return;
-        // Only focus + select when the search input is NOT active (e.g. user pressed Enter).
-        // While typing, skip focus/select entirely — setSelectionRange also steals focus in WKWebView.
-        const searchInputFocused = document.activeElement === editorSearchInputRef.current;
-        if (!searchInputFocused) {
-            textarea.focus();
-            textarea.setSelectionRange(match, match + editorSearchQuery.length);
-        }
-        const lineNum = editContent.slice(0, match).split("\n").length - 1;
-        const wrapper = editorWrapperRef.current;
-        if (wrapper) {
-            const lineTop = 16 + lineNum * (fontSize * 1.5);
-            wrapper.scrollTop = Math.max(0, lineTop - wrapper.clientHeight / 2 + fontSize * 0.75);
-        }
-    }, [
-        editorSearchIdx,
-        editorSearchMatches,
-        editorSearchQuery,
-        editorSearchOpen,
-        editContent,
-        fontSize,
-    ]);
-
-    // ── Preview search ─────────────────────────────────────────────────────────
-    // After ReactMarkdown commits (with marks already injected by the rehype plugin),
-    // highlight the active mark differently and scroll to it.
-    useLayoutEffect(() => {
-        if (!previewSearchOpen || !previewSearchQuery.trim()) {
-            setPreviewSearchCount(0);
-            return;
-        }
-        const container = previewBoxRef.current as HTMLElement | null;
-        if (!container) return;
-        const marks = Array.from(container.querySelectorAll<HTMLElement>("mark.search-mark"));
-        setPreviewSearchCount(marks.length);
-        if (marks.length === 0) return;
-        const idx = previewSearchIdx % marks.length;
-        marks.forEach((m, i) => {
-            m.style.backgroundColor =
-                i === idx ? "rgba(255, 160, 0, 0.7)" : "rgba(255, 210, 0, 0.35)";
-            m.style.color = "inherit";
-            m.style.borderRadius = "2px";
-            m.style.padding = "1px 0";
-        });
-        marks[idx].scrollIntoView({ block: "center" });
-    }, [previewSearchIdx, previewSearchOpen, previewSearchQuery, editContent, script?.command]);
 
     const scrollPreviewToLine = useCallback((lineNum: number, flash = false) => {
         const preview = previewBoxRef.current;
@@ -1033,230 +373,6 @@ export default function MarkdownEditor({
         }
     }, []);
 
-    const handleEditorCursorChange = useCallback(
-        (flash: boolean) => {
-            const textarea =
-                editorWrapperRef.current?.querySelector<HTMLTextAreaElement>("textarea");
-            if (!textarea) return;
-            const pos = textarea.selectionStart;
-            const lineNum = editContent.slice(0, pos).split("\n").length;
-            scrollPreviewToLine(lineNum, flash);
-        },
-        [editContent, scrollPreviewToLine, fontSize]
-    );
-
-    const handlePreviewDoubleClick = useCallback(
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        (e: React.MouseEvent) => {
-            let el = e.target as HTMLElement | null;
-            while (el) {
-                const lineAttr = el.getAttribute("data-source-line");
-                if (lineAttr) {
-                    const lineNum = Math.max(0, parseInt(lineAttr, 10) - 1); // 0-based
-                    const textarea =
-                        editorWrapperRef.current?.querySelector<HTMLTextAreaElement>("textarea");
-                    if (textarea) {
-                        const lines = editContent.split("\n");
-                        const charPos = lines
-                            .slice(0, lineNum)
-                            .reduce((acc, l) => acc + l.length + 1, 0);
-                        textarea.focus();
-                        textarea.setSelectionRange(charPos, charPos);
-
-                        // Scroll the editor wrapper so the target line is centred in view
-                        const wrapper = editorWrapperRef.current;
-                        if (wrapper) {
-                            const LINE_HEIGHT = fontSize * 1.5; // matches SimpleEditor style
-                            const PADDING = 16;
-                            const lineTop = PADDING + lineNum * LINE_HEIGHT;
-                            const centredScrollTop =
-                                lineTop - wrapper.clientHeight / 2 + LINE_HEIGHT / 2;
-                            wrapper.scrollTop = Math.max(0, centredScrollTop);
-                        }
-                    }
-                    break;
-                }
-                el = el.parentElement;
-            }
-        },
-        [editContent]
-    );
-
-    const handleEditorKeyDown = useMarkdownWrap(editContent, (newContent) => {
-        setEditContent(newContent);
-        pushHistory(newContent);
-        patch({ hasChanges: true });
-        patch({ edited: false });
-    });
-
-    // Rehype plugin that highlights all preview occurrences of the search query
-    const rehypeSearchHighlightPlugin = useMemo(
-        () => makeRehypeSearchHighlight(previewSearchQuery),
-        [previewSearchQuery]
-    );
-    // Stable plugin arrays so ReactMarkdown doesn't recompile on unrelated re-renders
-    const rehypePluginsMixedPreview = useMemo(
-        () =>
-            [
-                rehypeHighlight,
-                rehypeMathjax,
-                rehypeAddSourceLines,
-                rehypeSearchHighlightPlugin,
-            ] as any[],
-        [rehypeSearchHighlightPlugin]
-    );
-    const remarkPluginsWithItemRef = useMemo(
-        () => [remarkGfm, remarkMath, remarkItemReference] as any[],
-        []
-    );
-
-    // Mirror HTML for editor search highlight overlay (transparent marks over the textarea)
-    const editorHighlightHtml = useMemo(() => {
-        if (!editorSearchOpen || !editorSearchQuery.trim()) return "";
-        const q = editorSearchQuery.toLowerCase();
-        const lower = editContent.toLowerCase();
-        const parts: string[] = [];
-        let last = 0;
-        let matchNum = 0;
-        let pos = 0;
-        while (true) {
-            const found = lower.indexOf(q, pos);
-            if (found === -1) break;
-            if (found > last) {
-                parts.push(
-                    editContent
-                        .slice(last, found)
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                );
-            }
-            const isActive = matchNum === editorSearchIdx;
-            const chunk = editContent
-                .slice(found, found + q.length)
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-            parts.push(
-                `<mark class="editor-search-mark${isActive ? " active" : ""}">${chunk}</mark>`
-            );
-            last = found + q.length;
-            matchNum++;
-            pos = found + 1;
-        }
-        if (last < editContent.length) {
-            parts.push(
-                editContent
-                    .slice(last)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-            );
-        }
-        return parts.join("");
-    }, [editorSearchQuery, editContent, editorSearchOpen, editorSearchIdx]);
-
-    const markdownComponents = useMemo(() => {
-        return {
-            a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
-                <a
-                    href={href}
-                    onClick={(e) => {
-                        if (!href || href.startsWith("#")) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openUrl(href).catch(console.error);
-                    }}
-                    style={{ cursor: "pointer" }}
-                >
-                    {children}
-                </a>
-            ),
-            // Paragraphs that contain only an image would produce invalid <p><div>…</div></p>
-            // (because ResizableImage is a <div>). Use the HAST node to reliably detect this
-            // and render a <div> wrapper instead, keeping correct block layout.
-            p: ({ children, node }: { children?: React.ReactNode; node?: any }) => {
-                const nodeChildren: any[] = node?.children ?? [];
-                const isOnlyImage =
-                    nodeChildren.length === 1 &&
-                    nodeChildren[0].type === "element" &&
-                    nodeChildren[0].tagName === "img";
-                if (isOnlyImage) {
-                    return <div style={{ margin: "0.75em 0" }}>{children}</div>;
-                }
-                return <p>{children}</p>;
-            },
-            img: ({ src, alt }: { src?: string; alt?: string }) => {
-                // Parse optional ?width=N from the src
-                const widthMatch = src?.match(/\?width=(\d+)/);
-                const initialWidth = widthMatch ? parseInt(widthMatch[1]) : undefined;
-                // cleanPathNorm is the path without ?width=N suffix
-                const cleanPathNorm = src?.replace(/\?width=\d+$/, "") ?? "";
-
-                let imgSrc = cleanPathNorm;
-                if (cleanPathNorm.startsWith("images/") && imagesDir) {
-                    const filename = cleanPathNorm.replace(/^images\//, "");
-                    imgSrc = convertFileSrc(`${imagesDir}/${filename}`);
-                }
-
-                const handleWidthChange = (newWidth: number) => {
-                    const escaped = cleanPathNorm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-                    const updated = latestContentRef.current.replace(
-                        new RegExp(`(!\\[[^\\]]*\\]\\(${escaped})(?:\\?width=\\d+)?(\\))`, "g"),
-                        `$1?width=${newWidth}$2`
-                    );
-                    latestContentRef.current = updated;
-                    setEditContent(updated);
-                    pushHistory(updated);
-                    patch({ hasChanges: true });
-                };
-
-                return (
-                    <ResizableImage
-                        src={imgSrc}
-                        alt={alt ?? ""}
-                        initialWidth={initialWidth}
-                        onWidthChange={handleWidthChange}
-                    />
-                );
-            },
-            itemref: ({ id }: { id?: string }) => (
-                <ItemReference id={id} darkMode={previewDarkMode} fontSize={fontSize} />
-            ),
-            input: ({ node, checked, disabled, ...props }: any) => {
-                if (props.type === "checkbox") {
-                    return (
-                        <input
-                            {...props}
-                            style={{ cursor: "pointer" }}
-                            type="checkbox"
-                            defaultChecked={checked}
-                            disabled={false}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                const target = e.target as HTMLInputElement;
-                                const allCheckboxes =
-                                    document.querySelectorAll('input[type="checkbox"]');
-                                let index = -1;
-                                for (let i = 0; i < allCheckboxes.length; i++) {
-                                    if (allCheckboxes[i] === target) {
-                                        index = i;
-                                        break;
-                                    }
-                                }
-                                if (index !== -1) {
-                                    handleCheckboxToggle(index);
-                                }
-                            }}
-                            onDoubleClick={(e) => e.stopPropagation()}
-                        />
-                    );
-                }
-                return <input {...props} />;
-            },
-        };
-    }, [script?.command, imagesDir, previewDarkMode, fontSize]);
-
     const handleWindowDragStart = (e: React.MouseEvent) => {
         if (e.button !== 0) return;
         const target = e.target as HTMLElement;
@@ -1275,7 +391,7 @@ export default function MarkdownEditor({
     return (
         <div
             className="h-full w-full bg-white dark:bg-neutral-800 flex flex-col"
-            style={{ opacity: visible ? 1 : 0, transition: "opacity 0.05s ease" }}
+            style={{ opacity: visible ? 1 : 0, transition: "opacity 0.1s ease" }}
         >
             {/* Title bar — only rendered in subwindow mode; embedded mode uses App.tsx menu bar */}
             {!embedded && (
@@ -1332,81 +448,19 @@ export default function MarkdownEditor({
             <div className="flex-1 overflow-hidden">
                 {editViewMode === "plain" ? (
                     <div className="relative h-full">
-                        {editorSearchOpen && (
-                            <SearchBar
-                                query={editorSearchQuery}
-                                onQueryChange={setEditorSearchQuery}
-                                matchCount={editorSearchMatches.length}
-                                matchIdx={editorSearchIdx}
-                                // @ts-ignore
-                                inputRef={editorSearchInputRef}
-                                onAdvance={() =>
-                                    setEditorSearchIdx((i) =>
-                                        editorSearchMatches.length === 0
-                                            ? 0
-                                            : (i + 1) % editorSearchMatches.length
-                                    )
-                                }
-                                onClose={() => {
-                                    setEditorSearchOpen(false);
-                                    setEditorSearchQuery("");
-                                }}
-                            />
-                        )}
-                        <div
-                            ref={editorWrapperRef}
-                            className="h-full overflow-auto bg-[#1e1e1e] relative"
-                        >
-                            {editorSearchOpen && editorSearchQuery.trim() && (
-                                <div
-                                    aria-hidden="true"
-                                    style={{
-                                        position: "absolute",
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        padding: "16px",
-                                        fontFamily:
-                                            '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                        fontSize: `${fontSize}px`,
-                                        lineHeight: "1.5",
-                                        color: "transparent",
-                                        pointerEvents: "none",
-                                        whiteSpace: "pre-wrap",
-                                        overflowWrap: "break-word",
-                                        overflow: "hidden",
-                                        zIndex: 2,
-                                        userSelect: "none",
-                                    }}
-                                    dangerouslySetInnerHTML={{ __html: editorHighlightHtml }}
-                                />
-                            )}
-                            <SimpleEditor
-                                value={editContent}
-                                onValueChange={(code) => {
-                                    setEditContent(code);
-                                    latestContentRef.current = code;
-                                    patch({ hasChanges: true });
-                                    patch({ edited: false });
-                                    pushHistory(code);
-                                }}
-                                highlight={(code) =>
-                                    highlight(code, languages.markdown, "markdown")
-                                }
-                                padding={16}
-                                style={{
-                                    fontFamily:
-                                        '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                    fontSize: fontSize,
-                                    lineHeight: 1.5,
-                                    minHeight: "100%",
-                                    backgroundColor: "#1e1e1e",
-                                    color: "#d4d4d4",
-                                }}
-                                textareaClassName="focus:outline-none"
-                                onKeyDown={handleEditorKeyDown}
-                            />
-                        </div>
+                        <MarkdownCodeEditor
+                            editContent={editContent}
+                            fontSize={fontSize}
+                            savedScrollTop={savedEditorScrollRef.current}
+                            editorRef={monacoEditorRef}
+                            onChange={(code) => {
+                                setEditContent(code);
+                                latestContentRef.current = code;
+                                patch({ hasChanges: true, edited: false });
+                                pushHistory(code);
+                            }}
+                            onScrollPreviewToLine={scrollPreviewToLine}
+                        />
                     </div>
                 ) : (
                     <div
@@ -1429,100 +483,19 @@ export default function MarkdownEditor({
                                 display: editViewMode === "preview" ? "none" : undefined,
                             }}
                         >
-                            {editorSearchOpen && (
-                                <SearchBar
-                                    query={editorSearchQuery}
-                                    onQueryChange={setEditorSearchQuery}
-                                    matchCount={editorSearchMatches.length}
-                                    matchIdx={editorSearchIdx}
-                                    // @ts-ignore
-                                    inputRef={editorSearchInputRef}
-                                    onAdvance={() =>
-                                        setEditorSearchIdx((i) =>
-                                            editorSearchMatches.length === 0
-                                                ? 0
-                                                : (i + 1) % editorSearchMatches.length
-                                        )
-                                    }
-                                    onClose={() => {
-                                        setEditorSearchOpen(false);
-                                        setEditorSearchQuery("");
-                                        setPreviewSearchOpen(false);
-                                        setPreviewSearchQuery("");
-                                        setPreviewSearchIdx(0);
-                                    }}
-                                />
-                            )}
-                            <div
-                                ref={editorWrapperRef}
-                                className="h-full overflow-auto bg-[#1e1e1e] relative"
-                            >
-                                {editorSearchOpen && editorSearchQuery.trim() && (
-                                    <div
-                                        aria-hidden="true"
-                                        style={{
-                                            position: "absolute",
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            padding: "16px",
-                                            fontFamily:
-                                                '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                            fontSize: `${fontSize}px`,
-                                            lineHeight: "1.5",
-                                            color: "transparent",
-                                            pointerEvents: "none",
-                                            whiteSpace: "pre-wrap",
-                                            overflowWrap: "break-word",
-                                            overflow: "hidden",
-                                            zIndex: 2,
-                                            userSelect: "none",
-                                        }}
-                                        dangerouslySetInnerHTML={{
-                                            __html: editorHighlightHtml,
-                                        }}
-                                    />
-                                )}
-                                <SimpleEditor
-                                    value={editContent}
-                                    onValueChange={(code) => {
-                                        setEditContent(code);
-                                        latestContentRef.current = code;
-                                        patch({ hasChanges: true });
-                                        patch({ edited: false });
-                                        pushHistory(code);
-                                    }}
-                                    highlight={(code) =>
-                                        highlight(code, languages.markdown, "markdown")
-                                    }
-                                    padding={16}
-                                    style={{
-                                        fontFamily:
-                                            '"Fira code", "Fira Mono", Consolas, Menlo, Courier, monospace',
-                                        fontSize: fontSize,
-                                        lineHeight: 1.5,
-                                        minHeight: "100%",
-                                        backgroundColor: "#1e1e1e",
-                                        color: "#d4d4d4",
-                                    }}
-                                    textareaClassName="focus:outline-none"
-                                    onKeyDown={handleEditorKeyDown}
-                                    onKeyUp={(e) => {
-                                        const CURSOR_KEYS = new Set([
-                                            "ArrowUp",
-                                            "ArrowDown",
-                                            "ArrowLeft",
-                                            "ArrowRight",
-                                            "Home",
-                                            "End",
-                                            "PageUp",
-                                            "PageDown",
-                                        ]);
-                                        if (CURSOR_KEYS.has(e.key)) handleEditorCursorChange(false);
-                                    }}
-                                    onDoubleClick={() => handleEditorCursorChange(true)}
-                                />
-                            </div>
+                            <MarkdownCodeEditor
+                                editContent={editContent}
+                                fontSize={fontSize}
+                                savedScrollTop={savedEditorScrollRef.current}
+                                editorRef={monacoEditorRef}
+                                onChange={(code) => {
+                                    setEditContent(code);
+                                    latestContentRef.current = code;
+                                    patch({ hasChanges: true, edited: false });
+                                    pushHistory(code);
+                                }}
+                                onScrollPreviewToLine={scrollPreviewToLine}
+                            />
                         </div>
 
                         {/* Divider */}
@@ -1541,387 +514,24 @@ export default function MarkdownEditor({
 
                         {/* Right: live preview */}
                         <div
-                            className="h-full relative"
+                            className="h-full"
                             style={{
                                 width: editViewMode === "preview" ? "100%" : `${100 - splitRatio}%`,
                             }}
                         >
-                            {/* Dark/Light mode toggle */}
-                            <style>{`
-                                .preview-toolbar-btn:hover {
-                                    background: rgba(150,150,150,0.60) !important;
-                                }
-                            `}</style>
-                            <button
-                                onClick={() => dispatch(setPreviewDarkMode(!previewDarkMode))}
-                                title={
-                                    previewDarkMode ? "Switch to light mode" : "Switch to dark mode"
-                                }
-                                className="preview-toolbar-btn"
-                                style={{
-                                    position: "absolute",
-                                    top: 8,
-                                    right: 18,
-                                    zIndex: 10,
-                                    background: previewDarkMode
-                                        ? "rgba(255,255,255,0.12)"
-                                        : "rgba(0,0,0,0.10)",
-                                    border: "none",
-                                    borderRadius: 6,
-                                    padding: "4px 8px",
-                                    cursor: "pointer",
-                                    lineHeight: 1,
-                                    color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
-                                }}
-                            >
-                                {previewDarkMode ? <Sun size={15} /> : <Moon size={15} />}
-                            </button>
-                            {/* Presentation mode toggle */}
-                            <button
-                                onClick={() => {
-                                    if (presentationMode) {
-                                        endPresentation();
-                                    } else {
-                                        setPresentationMode(true);
-                                        setPresentationIndex(0);
-                                    }
-                                }}
-                                title={
-                                    presentationMode
-                                        ? "End presentation"
-                                        : "Start presentation mode"
-                                }
-                                className="preview-toolbar-btn"
-                                style={{
-                                    position: "absolute",
-                                    top: 8,
-                                    right: 58,
-                                    zIndex: 10,
-                                    background: previewDarkMode
-                                        ? "rgba(255,255,255,0.12)"
-                                        : "rgba(0,0,0,0.10)",
-                                    border: presentationMode
-                                        ? "1px solid rgba(150,150,150,0.5)"
-                                        : "1px solid transparent",
-                                    borderRadius: 6,
-                                    padding: "4px 8px",
-                                    cursor: "pointer",
-                                    lineHeight: 1,
-                                    color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
-                                }}
-                            >
-                                <Presentation size={15} />
-                            </button>
-                            {/* Play / advance button (presentation mode only) */}
-                            {presentationMode && (
-                                <button
-                                    onClick={() => {
-                                        const next = presentationIndex + 1;
-                                        if (next >= presentationNodesRef.current.length) {
-                                            endPresentation();
-                                        } else {
-                                            setPresentationIndex(next);
-                                        }
-                                    }}
-                                    title="Reveal next"
-                                    className="preview-toolbar-btn"
-                                    style={{
-                                        position: "absolute",
-                                        top: 8,
-                                        right: 98,
-                                        zIndex: 10,
-                                        background: previewDarkMode
-                                            ? "rgba(255,255,255,0.12)"
-                                            : "rgba(0,0,0,0.10)",
-                                        border: "none",
-                                        borderRadius: 6,
-                                        padding: "4px 8px",
-                                        cursor: "pointer",
-                                        lineHeight: 1,
-                                        color: previewDarkMode
-                                            ? "rgb(212,212,212)"
-                                            : "rgb(50,50,50)",
-                                    }}
-                                >
-                                    <ChevronRight size={15} />
-                                </button>
-                            )}
-                            {previewSearchOpen && (
-                                <SearchBar
-                                    query={previewSearchQuery}
-                                    onQueryChange={setPreviewSearchQuery}
-                                    matchCount={previewSearchCount}
-                                    matchIdx={previewSearchIdx}
-                                    // @ts-ignore
-                                    inputRef={previewSearchInputRef}
-                                    onAdvance={() =>
-                                        setPreviewSearchIdx((i) =>
-                                            previewSearchCount === 0
-                                                ? 0
-                                                : (i + 1) % previewSearchCount
-                                        )
-                                    }
-                                    onClose={() => {
-                                        setPreviewSearchOpen(false);
-                                        setPreviewSearchQuery("");
-                                        setPreviewSearchIdx(0);
-                                        setEditorSearchOpen(false);
-                                        setEditorSearchQuery("");
-                                    }}
-                                />
-                            )}
-                            <Box
-                                ref={previewBoxRef}
-                                className="markdown-preview"
-                                style={{ width: "100%" }}
-                                onDoubleClick={handlePreviewDoubleClick}
-                                sx={{
-                                    fontSize: `${fontSize}px`,
-                                    lineHeight: `${Math.round(fontSize * 1.6)}px`,
-                                    height: "100%",
-                                    userSelect: "text",
-                                    cursor: "text",
-                                    overflowY: "auto",
-                                    backgroundColor: previewDarkMode
-                                        ? "rgb(25, 25, 25)"
-                                        : "rgb(248, 249, 250)",
-                                    color: previewDarkMode
-                                        ? "rgb(212, 212, 212)"
-                                        : "rgb(30, 30, 30)",
-                                    padding: "48px 24px 48px 24px",
-                                    "& h1": {
-                                        fontSize: "2em",
-                                        fontWeight: "700",
-                                        marginTop: "0.67em",
-                                        marginBottom: "0.67em",
-                                        borderBottom: previewDarkMode
-                                            ? "2px solid rgba(255, 255, 255, 0.2)"
-                                            : "2px solid rgba(0, 0, 0, 0.15)",
-                                        paddingBottom: "0.3em",
-                                        color: previewDarkMode
-                                            ? "rgb(255, 255, 255)"
-                                            : "rgb(20, 30, 70)",
-                                    },
-                                    "& h2": {
-                                        fontSize: "1.75em",
-                                        fontWeight: "700",
-                                        marginTop: "0.75em",
-                                        marginBottom: "0.5em",
-                                        borderBottom: previewDarkMode
-                                            ? "1px solid rgba(255, 255, 255, 0.15)"
-                                            : "1px solid rgba(0, 0, 0, 0.1)",
-                                        paddingBottom: "0.3em",
-                                        color: previewDarkMode
-                                            ? "rgb(255, 255, 255)"
-                                            : "rgb(20, 30, 70)",
-                                    },
-                                    "& h3": {
-                                        fontSize: "1.5em",
-                                        fontWeight: "600",
-                                        marginTop: "0.75em",
-                                        marginBottom: "0.5em",
-                                        color: previewDarkMode
-                                            ? "rgb(245, 245, 245)"
-                                            : "rgb(30, 40, 80)",
-                                    },
-                                    "& h4": {
-                                        fontSize: "1.25em",
-                                        fontWeight: "600",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                        color: previewDarkMode
-                                            ? "rgb(245, 245, 245)"
-                                            : "rgb(40, 40, 40)",
-                                    },
-                                    "& h5": {
-                                        fontSize: "1.1em",
-                                        fontWeight: "600",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                        color: previewDarkMode
-                                            ? "rgb(230, 230, 230)"
-                                            : "rgb(60, 60, 60)",
-                                    },
-                                    "& h6": {
-                                        fontSize: "1em",
-                                        fontWeight: "600",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                        color: previewDarkMode
-                                            ? "rgb(220, 220, 220)"
-                                            : "rgb(80, 80, 80)",
-                                    },
-                                    "& h1:first-child, & h2:first-child, & h3:first-child, & h4:first-child, & h5:first-child, & h6:first-child":
-                                        {
-                                            marginTop: "0",
-                                        },
-                                    "& ul, & ol": {
-                                        paddingLeft: LIST_GUTTER_WIDTH,
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                    },
-                                    "& ul": {
-                                        listStyleType: "disc",
-                                    },
-                                    "& ol": {
-                                        listStyleType: "decimal",
-                                    },
-                                    "& li": {
-                                        lineHeight: LIST_ITEM_LINE_HEIGHT,
-                                    },
-                                    "& ul > li:not(.task-list-item)": {
-                                        listStylePosition: "outside",
-                                        marginLeft: "-0.3em",
-                                        textIndent: "0.3em",
-                                    },
-                                    "& ul > li:not(.task-list-item)::marker": {
-                                        fontSize: "0.95em",
-                                    },
-                                    "& li.task-list-item": {
-                                        listStyleType: "none",
-                                    },
-                                    "& li.task-list-item input[type='checkbox']": {
-                                        appearance: "none !important",
-                                        WebkitAppearance: "none !important",
-                                        display: "inline-flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        width: "1em",
-                                        height: "1em",
-                                        margin: "0 0.5em 0 -1.75em",
-                                        verticalAlign: "text-bottom",
-                                        cursor: "pointer",
-                                        border: previewDarkMode
-                                            ? "2px solid rgba(255, 255, 255, 0.3)"
-                                            : "2px solid rgba(0, 0, 0, 0.3)",
-                                        borderRadius: "3px",
-                                        backgroundColor: "transparent",
-                                        position: "relative",
-                                        "&:checked": {
-                                            backgroundColor: "rgb(59, 130, 246)",
-                                            borderColor: "rgb(59, 130, 246)",
-                                            "&::after": {
-                                                content: '"✓"',
-                                                color: "white",
-                                                fontSize: "0.72em",
-                                                fontWeight: "bold",
-                                                lineHeight: 1,
-                                                position: "absolute",
-                                                top: "50%",
-                                                left: "50%",
-                                                transform: "translate(-50%, -50%)",
-                                            },
-                                        },
-                                    },
-                                    "& li.task-list-item > p": {
-                                        display: "block",
-                                        marginTop: "0.3em",
-                                        marginBottom: 0,
-                                    },
-                                    "& li.task-list-item > p:first-of-type": {
-                                        display: "inline",
-                                        marginTop: 0,
-                                        marginBottom: 0,
-                                    },
-                                    "& li.task-list-item > ul, & li.task-list-item > ol": {
-                                        marginTop: "0.4em",
-                                        marginBottom: "0.4em",
-                                    },
-                                    "& p": {
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                    },
-                                    "& code:not(pre code)": {
-                                        fontSize: "0.95em",
-                                        backgroundColor: previewDarkMode
-                                            ? LIGHT_WHITE_BG
-                                            : "rgba(0, 0, 0, 0.07)",
-                                        color: previewDarkMode ? "inherit" : "rgb(190, 50, 50)",
-                                        padding: "2px 6px",
-                                        borderRadius: "4px",
-                                    },
-                                    "& pre": {
-                                        backgroundColor: previewDarkMode
-                                            ? "rgba(0, 0, 0, 0.3)"
-                                            : "rgb(240, 242, 244)",
-                                        borderRadius: "4px",
-                                        padding: "12px",
-                                        overflow: "auto",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                    },
-                                    "& pre code": {
-                                        backgroundColor: "transparent",
-                                        color: previewDarkMode ? "inherit" : "rgb(30, 30, 30)",
-                                        padding: "0",
-                                        fontSize: "0.9em",
-                                    },
-                                    "& blockquote": {
-                                        borderLeft: previewDarkMode
-                                            ? "4px solid rgba(255, 255, 255, 0.3)"
-                                            : "4px solid rgba(0, 0, 0, 0.2)",
-                                        paddingLeft: "1em",
-                                        marginLeft: "0",
-                                        color: previewDarkMode
-                                            ? "rgba(255, 255, 255, 0.8)"
-                                            : "rgba(0, 0, 0, 0.6)",
-                                    },
-                                    "& a": {
-                                        color: previewDarkMode
-                                            ? "rgb(96, 165, 250)"
-                                            : "rgb(37, 99, 235)",
-                                        textDecoration: "underline",
-                                        "&:hover": {
-                                            color: previewDarkMode
-                                                ? "rgb(147, 197, 253)"
-                                                : "rgb(29, 78, 216)",
-                                        },
-                                    },
-                                    "& table": {
-                                        borderCollapse: "collapse",
-                                        width: "100%",
-                                        marginTop: "0.5em",
-                                        marginBottom: "0.5em",
-                                    },
-                                    "& th, & td": {
-                                        border: previewDarkMode
-                                            ? "1px solid rgba(255, 255, 255, 0.2)"
-                                            : "1px solid rgba(0, 0, 0, 0.15)",
-                                        padding: "8px",
-                                    },
-                                    "& th": {
-                                        backgroundColor: previewDarkMode
-                                            ? "rgba(0, 0, 0, 0.3)"
-                                            : "rgba(0, 0, 0, 0.05)",
-                                        fontWeight: "600",
-                                    },
-                                    "& mjx-container": {
-                                        display: "inline-block",
-                                        verticalAlign: "middle",
-                                    },
-                                    "& mjx-container[display='true']": {
-                                        display: "block",
-                                        textAlign: "center",
-                                        margin: "1em 0",
-                                    },
-                                }}
-                            >
-                                <div
-                                    ref={presentationContainerRef}
-                                    style={{
-                                        maxWidth: `${Math.round((860 * fontSize) / BASE_FONT_SIZE)}px`,
-                                        margin: "0 auto",
-                                    }}
-                                >
-                                    <ReactMarkdown
-                                        remarkPlugins={remarkPluginsWithItemRef}
-                                        rehypePlugins={rehypePluginsMixedPreview}
-                                        components={markdownComponents}
-                                    >
-                                        {editContent}
-                                    </ReactMarkdown>
-                                </div>
-                            </Box>
+                            <MarkdownPreviewer
+                                editContent={editContent}
+                                fontSize={fontSize}
+                                imagesDir={imagesDir}
+                                previewBoxRef={previewBoxRef}
+                                editorRef={monacoEditorRef}
+                                latestContentRef={latestContentRef}
+                                onImageWidthChange={handleImageWidthChange}
+                                onCheckboxToggle={handleCheckboxToggle}
+                                searchOpen={previewSearchOpen}
+                                searchInputRef={previewSearchInputRef}
+                                onSearchClose={() => setPreviewSearchOpen(false)}
+                            />
                         </div>
                     </div>
                 )}
