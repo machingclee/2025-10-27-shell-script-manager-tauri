@@ -23,6 +23,21 @@ class WorkspaceController(
     private val queryInvoker: QueryInvoker
 ) {
 
+    @PatchMapping("/{id}/status")
+    fun updateWorkspaceStatus(
+        @RequestBody request: UpdateWorkspaceStatusRequest,
+        @PathVariable id: Int
+    ): ApiResponse<Unit> {
+        val (statusName) = request
+        val command = UpdateWorkspaceStatusCommand(
+            workspaceid = id,
+            newStatus = statusName
+        )
+        commandInvoker.invoke(command)
+        return ApiResponse()
+    }
+
+
     @Operation(summary = "Get all workspaces", description = "Retrieves all workspaces ordered by their ordering value")
     @GetMapping
     fun getAllWorkspaces(): ApiResponse<List<WorkspaceResponse>> {

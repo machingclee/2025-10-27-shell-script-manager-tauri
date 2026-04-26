@@ -6,6 +6,7 @@ import {
     WorkspaceResponse,
     WorkspaceDTO,
     ScriptsFolderResponse,
+    UpdateWorkspaceStatusRequest,
 } from "@/types/dto";
 import { baseApi } from "./baseApi";
 import rootFolderSlice from "../slices/rootFolderSlice";
@@ -155,6 +156,18 @@ export const workspaceApi = baseApi.injectEndpoints({
                     action.undo();
                 }
             },
+        }),
+
+        updateWorkspaceStatus: builder.mutation<
+            void,
+            { id: number; request: UpdateWorkspaceStatusRequest }
+        >({
+            query: ({ id, request }) => ({
+                url: `/workspace/${id}/status`,
+                method: "PATCH",
+                body: request,
+            }),
+            invalidatesTags: (_, __, { id }) => [{ type: "WorkspaceDetail", id }, "Workspace"],
         }),
     }),
 });

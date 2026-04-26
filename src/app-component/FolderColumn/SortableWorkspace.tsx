@@ -8,7 +8,15 @@ import {
     ContextMenuContent,
     ContextMenuItem,
 } from "@/components/ui/context-menu";
-import { ChevronRight, ChevronDown, Pencil, Trash2, FolderPlus } from "lucide-react";
+import {
+    ChevronRight,
+    ChevronDown,
+    Pencil,
+    Trash2,
+    FolderPlus,
+    CheckCircle2,
+    Archive,
+} from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -30,7 +38,13 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { WorkspaceDTO, WorkspaceResponse, CollisionType, ScriptsFolderResponse } from "@/types/dto";
+import {
+    WorkspaceDTO,
+    WorkspaceResponse,
+    CollisionType,
+    ScriptsFolderResponse,
+    WorkspaceStatusName,
+} from "@/types/dto";
 import { useAppSelector } from "@/store/hooks";
 import clsx from "clsx";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -88,6 +102,7 @@ export default function SortableWorkspace({
     const [newName, setNewName] = useState(workspace.name);
     const [newFolderName, setNewFolderName] = useState("");
     const [createWorkspaceFolder] = workspaceApi.endpoints.createWorkspaceFolder.useMutation();
+    const [updateWorkspaceStatus] = workspaceApi.endpoints.updateWorkspaceStatus.useMutation();
     const [createSubfolder] = folderApi.endpoints.createSubfolder.useMutation();
     const [updateFolder] = folderApi.endpoints.updateFolder.useMutation();
     const [deleteFolder] = folderApi.endpoints.deleteFolder.useMutation();
@@ -125,6 +140,10 @@ export default function SortableWorkspace({
     const handleDelete = () => {
         onDelete(workspace.id);
         setIsDeleteOpen(false);
+    };
+
+    const handleSetStatus = async (statusName: WorkspaceStatusName) => {
+        await updateWorkspaceStatus({ id: workspace.id, request: { statusName } });
     };
 
     const handleCreateFolder = async () => {
@@ -279,6 +298,25 @@ export default function SortableWorkspace({
                             <Pencil className="w-4 h-4 mr-2" />
                             Rename
                         </ContextMenuItem>
+                        {!workspace.statuses?.includes("ACTIVE") && (
+                            <ContextMenuItem
+                                className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                                onClick={() => handleSetStatus("ACTIVE")}
+                            >
+                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                Set Active
+                            </ContextMenuItem>
+                        )}
+
+                        {!workspace.statuses?.includes("ARCHIVED") && (
+                            <ContextMenuItem
+                                className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                                onClick={() => handleSetStatus("ARCHIVED")}
+                            >
+                                <Archive className="w-4 h-4 mr-2" />
+                                Set Archived
+                            </ContextMenuItem>
+                        )}
                         <ContextMenuItem
                             onClick={() => setIsDeleteOpen(true)}
                             className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"

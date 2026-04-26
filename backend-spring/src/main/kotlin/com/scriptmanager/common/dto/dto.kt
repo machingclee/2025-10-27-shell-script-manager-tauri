@@ -179,7 +179,8 @@ fun Workspace.toResponse(): WorkspaceResponse {
         ordering = this.ordering,
         folders = this.folders.sortedBy { it.ordering }.map { it.toResponse() },
         createdAt = this.createdAt,
-        createdAtHk = this.createdAtHk
+        createdAtHk = this.createdAtHk,
+        statuses = this.statuses?.map { it.name }?.takeIf { it.isNotEmpty() } ?: listOf(WorkspaceStatusName.ACTIVE)
     )
 }
 
@@ -189,7 +190,8 @@ data class WorkspaceResponse(
     val ordering: Int,
     val folders: List<ScriptsFolderResponse>,
     val createdAt: Double?,
-    val createdAtHk: String?
+    val createdAtHk: String?,
+    val statuses: List<WorkspaceStatusName>
 )
 
 data class HistoricalShellScriptResponse(
@@ -236,3 +238,6 @@ data class SelectDefaultModelConfigRequest(
     val modelConfigId: Int
 )
 
+data class UpdateWorkspaceStatusRequest(
+    val statusName: WorkspaceStatusName
+)

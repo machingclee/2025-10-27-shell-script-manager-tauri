@@ -41,6 +41,7 @@ import {
     WorkspaceResponse,
     CollisionType as CollisionType,
     ScriptsFolderResponse,
+    WorkspaceStatusName,
 } from "@/types/dto";
 import RootFoldersDroppableArea from "./RootFoldersDroppableArea";
 
@@ -86,7 +87,6 @@ export default function FolderColumn() {
                 data: result.data ?? [],
             }),
         });
-
     const { data: folders, isLoading } = folderApi.endpoints.getAllFolders.useQuery(undefined, {
         skip: !backendPort,
         // Stabilize the reference to prevent unnecessary re-renders
@@ -113,6 +113,7 @@ export default function FolderColumn() {
     const [newFolderName, setNewFolderName] = useState("");
     const [isCreateWorkspaceDialogOpen, setIsCreateWorkspaceDialogOpen] = useState(false);
     const [newWorkspaceName, setNewWorkspaceName] = useState("");
+    const [workspaceFilter, setWorkspaceFilter] = useState<WorkspaceStatusName>("ACTIVE");
 
     const { data: appState } = appStateApi.endpoints.getAppState.useQuery(undefined, {
         skip: !backendPort,
@@ -406,6 +407,8 @@ export default function FolderColumn() {
         return `workspace-${workspace.id}`;
     };
 
+    const filteredWorkspaces = workspaces.filter((w) => w.statuses?.includes(workspaceFilter));
+
     return (
         <div className="flex flex-col h-full dark:text-white">
             <div className="flex items-center justify-between">
@@ -437,12 +440,28 @@ export default function FolderColumn() {
                 </div>
             </div>
             <div className="h-px bg-gray-400 dark:bg-neutral-600" />
+            {/* Status filter tabs */}
+            <div className="flex gap-1 px-4 pt-3 pb-1">
+                {(["ACTIVE", "ARCHIVED"] as WorkspaceStatusName[]).map((status) => (
+                    <button
+                        key={status}
+                        onClick={() => setWorkspaceFilter(status)}
+                        className={`px-3 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                            workspaceFilter === status
+                                ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
+                                : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600"
+                        }`}
+                    >
+                        {status.charAt(0) + status.slice(1).toLowerCase()}
+                    </button>
+                ))}
+            </div>
             <div className="space-y-1 p-4 overflow-y-auto flex-1">
                 {(isLoading || isLoadingWorkspaces) && <div>Loading...</div>}
 
                 {!isLoading &&
                     !isLoadingWorkspaces &&
-                    (workspaces.length > 0 || folders.length > 0) && (
+                    (filteredWorkspaces.length > 0 || folders.length > 0) && (
                         <DndContext
                             sensors={sensors}
                             collisionDetection={customFolderWorkspaceDetection}
@@ -452,10 +471,10 @@ export default function FolderColumn() {
                             <div className="space-y-1">
                                 {/* Separate SortableContext for Workspaces */}
                                 <SortableContext
-                                    items={workspaces.map((w) => getWorkspaceSortableId(w))}
+                                    items={filteredWorkspaces.map((w) => getWorkspaceSortableId(w))}
                                     strategy={verticalListSortingStrategy}
                                 >
-                                    {workspaces.map((workspace) => (
+                                    {filteredWorkspaces.map((workspace) => (
                                         <SortableWorkspace
                                             key={workspace.id}
                                             workspace={workspace}

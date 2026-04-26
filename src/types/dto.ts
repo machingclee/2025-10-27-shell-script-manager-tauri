@@ -86,6 +86,7 @@ export type WorkspaceResponse = {
     folders: ScriptsFolderResponse[];
     createdAt: number;
     createdAtHk: string;
+    statuses: WorkspaceStatusName[];
 };
 
 export type ReorderFoldersRequest = {
@@ -121,6 +122,12 @@ export interface ReorderWorkspacesRequest {
 export interface ReorderWorkspaceFoldersRequest {
     fromIndex: number;
     toIndex: number;
+}
+
+export type WorkspaceStatusName = "ACTIVE" | "ARCHIVED";
+
+export interface UpdateWorkspaceStatusRequest {
+    statusName: WorkspaceStatusName;
 }
 
 export type HistoricalShellScriptDTO = {

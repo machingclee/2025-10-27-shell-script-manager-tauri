@@ -25,7 +25,6 @@ import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
 import { useMarkdownWrap } from "@/hooks/useMarkdownWrap";
 import { remarkItemReference } from "@/lib/remarkItemReference";
 import ItemReference from "./ItemReference";
-import { generateScriptHtml } from "@/lib/generateScriptHtml";
 
 const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 const DEFAULT_FONT_SIZE = 18;

@@ -47,6 +47,15 @@ class Workspace(
     )
     var folders: MutableSet<ScriptsFolder> = mutableSetOf()
 
+    @OneToMany(fetch = FetchType.LAZY)
+    @Cascade(CascadeType.ALL)
+    @JoinTable(
+        name = "rel_workspace_workspacestatus",
+        joinColumns = [JoinColumn(name = "workspace_id", referencedColumnName = "id")],
+        inverseJoinColumns = [JoinColumn(name = "workspace_status_id", referencedColumnName = "id")]
+    )
+    var statuses: MutableSet<WorkspaceStatus> = mutableSetOf()
+
     fun resetFolderOrders() {
         folders.sortedBy { it.ordering }.forEachIndexed { idx, f ->
             f.ordering = idx

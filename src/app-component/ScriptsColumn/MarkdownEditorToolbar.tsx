@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { patchTabState, renameTab } from "@/store/slices/appSlice";
+import { patchTabState } from "@/store/slices/appSlice";
 import type { MarkdownTabState } from "@/store/slices/appSlice";
 import { Button } from "@/components/ui/button";
 import { Edit, AlignLeft, Columns2, Globe, Eye } from "lucide-react";
@@ -59,7 +59,6 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
         if (!script) return;
         await updateMarkdown({ ...script, name: editName, command: editContent }).unwrap();
         patch({ hasChanges: false, edited: true });
-        dispatch(renameTab({ tabId, scriptName: editName }));
         setTimeout(() => dispatch(patchTabState({ tabId, edited: false })), 2000);
         if (closeEditMode) patch({ isEditMode: false });
         dispatch(scriptApi.util.invalidateTags([{ type: "Script", id: script.id }]));

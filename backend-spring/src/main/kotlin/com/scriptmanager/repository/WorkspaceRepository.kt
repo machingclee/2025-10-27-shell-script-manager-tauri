@@ -18,6 +18,7 @@ interface WorkspaceRepository : JpaRepository<Workspace, Int> {
         left join fetch subfolder.parentFolder
         left join fetch subsubfolder.shellScripts
         left join fetch subsubfolder.parentFolder
+        left join fetch ws.statuses
     """
     )
     fun findAllFetchingFoldersAndShellScripts(): List<Workspace>

@@ -81,12 +81,13 @@ model rel_folder_folder {
 }
 
 model workspace {
-    id                   Int                    @id @default(autoincrement())
-    name                 String
-    ordering             Int
-    created_at           Float                  @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
-    created_at_hk        String                 @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
-    rel_workspace_folder rel_workspace_folder[]
+    id                            Int                             @id @default(autoincrement())
+    name                          String
+    ordering                      Int
+    created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))
+    created_at_hk                 String                          @default(dbgenerated("(strftime('%Y-%m-%d %H:%M:%S', datetime('now', '+8 hours')))"))
+    rel_workspace_folder          rel_workspace_folder[]
+    rel_workspace_workspacestatus rel_workspace_workspacestatus[]
 
     @@index([id])
 }
@@ -215,4 +216,18 @@ model rel_aiprofile_aiscriptedtool {
     ai_profile_id       Int
     ai_scripted_tool    ai_scripted_tool @relation(fields: [ai_scripted_tool_id], references: [id], onDelete: Cascade)
     ai_scripted_tool_id Int
+}
+
+model workspace_status {
+    id                            Int                             @id @default(autoincrement())
+    name                          String                          @default("ACTIVE") // Enum values: ACTIVE, ARCHIVED
+    rel_workspace_workspacestatus rel_workspace_workspacestatus[]
+}
+
+model rel_workspace_workspacestatus {
+    id                  Int              @id @default(autoincrement())
+    workspace_status    workspace_status @relation(fields: [workspace_status_id], references: [id], onDelete: Cascade)
+    workspace_status_id Int
+    workspace           workspace        @relation(fields: [workspace_id], references: [id], onDelete: Cascade)
+    workspace_id        Int
 }
