@@ -18,8 +18,7 @@
                 "width": 1300,
                 "height": 800,
                 "titleBarStyle": "Overlay",
-                "hiddenTitle": true,
-                "devtools": true
+                "hiddenTitle": true
             }
         ],
         "security": {

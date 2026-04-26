@@ -3,9 +3,8 @@ import { ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useState, useRef, useEffect } from "react";
 import { Box } from "@mui/material";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import {
     ContextMenu,
     ContextMenuContent,
@@ -49,86 +48,13 @@ export default function MarkdownItem({
     }, []);
 
     const handleViewClick = async () => {
-        try {
-            if (!script.id) {
-                console.error("Script ID is undefined. Cannot open markdown window.");
-                return;
-            }
-
-            const windowLabel = `markdown-${script.id}`;
-
-            const existing = await WebviewWindow.getByLabel(windowLabel);
-            if (existing) {
-                await existing.setFocus();
-                return;
-            }
-
-            const url = getSubwindowPaths.markdown(script.id, false);
-
-            const webview = new WebviewWindow(windowLabel, {
-                url,
-                title: script.name,
-                width: 1000,
-                height: 700,
-                minWidth: 800,
-                minHeight: 600,
-                skipTaskbar: false,
-                alwaysOnTop: false,
-                focus: true,
-                devtools: true,
-                decorations: false,
-                hiddenTitle: true,
-                transparent: true,
-            });
-
-            webview.once("tauri://error", (e) => {
-                console.error("Error creating markdown window:", e);
-            });
-        } catch (error) {
-            console.error("Failed to create webview window:", error);
-        }
+        if (!script.id) return;
+        await emit("open-markdown-reference", { scriptId: script.id, scriptName: script.name });
     };
 
     const handleEditClick = async () => {
-        try {
-            if (!script.id) {
-                console.error("Script ID is undefined. Cannot open markdown window.");
-                return;
-            }
-
-            const windowLabel = `markdown-${script.id}`;
-
-            // If the window is already open, just bring it to the front.
-            const existing = await WebviewWindow.getByLabel(windowLabel);
-            if (existing) {
-                await existing.setFocus();
-                return;
-            }
-
-            const url = getSubwindowPaths.markdown(script.id, true);
-
-            const webview = new WebviewWindow(windowLabel, {
-                url,
-                title: `Edit: ${script.name}`,
-                width: 1000,
-                height: 700,
-                minWidth: 800,
-                minHeight: 600,
-                skipTaskbar: false,
-                alwaysOnTop: false,
-                focus: true,
-                devtools: true,
-                decorations: false,
-                hiddenTitle: true,
-                transparent: true,
-            });
-
-            webview.once("tauri://error", (e) => {
-                console.error("Error creating markdown window:", e);
-            });
-        } catch (error) {
-            console.error("Failed to create webview window:", error);
-        }
+        if (!script.id) return;
+        await emit("open-markdown-reference", { scriptId: script.id, scriptName: script.name });
     };
 
     const handleDelete = async () => {

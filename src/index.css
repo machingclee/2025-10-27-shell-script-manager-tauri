@@ -5,6 +5,15 @@
 /* Prism.js Dark Theme for Code Editor */
 @import "prismjs/themes/prism-okaidia.css";
 
+/* Remove the default browser focus ring on all buttons globally */
+@layer base {
+    button:focus,
+    button:focus-visible {
+        outline: none;
+        box-shadow: none;
+    }
+}
+
 @layer base {
     :root {
         --background: 0 0% 100%;
@@ -68,6 +77,7 @@
 }
 
 /* Custom scrollbar styling */
+
 *::-webkit-scrollbar {
     width: 8px;
     height: 8px;

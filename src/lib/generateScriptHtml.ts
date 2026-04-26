@@ -32,7 +32,7 @@ export async function generateScriptHtml(
         }
     );
 
-    type ScriptMeta = { name: string; isMarkdown: boolean };
+    type ScriptMeta = { name: string; isMarkdown: boolean; command: string };
     const itemRefMatches = [...resolvedMarkdown.matchAll(/\[item#(\d+)\]/g)];
     const scriptMetaMap = new Map<number, ScriptMeta>();
     if (itemRefMatches.length > 0) {
@@ -45,6 +45,7 @@ export async function generateScriptHtml(
                         scriptMetaMap.set(id, {
                             name: r.data.name,
                             isMarkdown: r.data.isMarkdown,
+                            command: r.data.command || "",
                         });
                     }
                 } catch {
@@ -73,11 +74,14 @@ export async function generateScriptHtml(
         const icon = meta.isMarkdown ? FILE_TEXT_SVG : TERMINAL_SVG;
         const chipStyle =
             "display:inline-flex;align-items:center;gap:6px;padding:1px 8px;border-radius:4px;font-size:14px;font-weight:500;background:rgba(64,64,64,0.1);border:1px solid rgba(115,115,115,0.2);text-decoration:none";
-        if (meta.isMarkdown) {
-            const deepLink = `tauri-shellscript-manager://open?scriptId=${id}`;
-            return `<a href="${deepLink}" style="${chipStyle};cursor:pointer">${icon}${meta.name}</a>`;
-        }
-        return `<span style="${chipStyle}">${icon}${meta.name}</span>`;
+        const deepLink = meta.isMarkdown
+            ? `tauri-shellscript-manager://open?scriptId=${id}`
+            : `tauri-shellscript-manager://script?scriptId=${id}`;
+        const titleAttr =
+            !meta.isMarkdown && meta.command
+                ? ` title="${meta.command.replace(/"/g, "&quot;").replace(/\n/g, "&#10;")}"`
+                : "";
+        return `<a href="${deepLink}" style="${chipStyle};cursor:pointer"${titleAttr}>${icon}${meta.name}</a>`;
     });
 
     return markdownHTMLTemplate({ scriptName: script.name, bodyHtml });

@@ -7,10 +7,11 @@ import rehypeMathjax from "rehype-mathjax";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useEffect, useLayoutEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Box } from "@mui/material";
-import { Button } from "@/components/ui/button";
-import { Edit, AlignLeft, Columns2, Globe } from "lucide-react";
 import QuickNavDropdown from "./QuickNavDropdown";
-import { useAppDispatch } from "@/store/hooks";
+import MarkdownEditorToolbar from "./MarkdownEditorToolbar";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { patchTabState, setFontSize } from "@/store/slices/appSlice";
+import type { MarkdownTabState } from "@/store/slices/appSlice";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { emit } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
@@ -165,14 +166,97 @@ function SearchBar({
     );
 }
 
+// ---------------------------------------------------------------------------
+// Resizable image – drag the bottom-right handle to change width
+// ---------------------------------------------------------------------------
+function ResizableImage({
+    src,
+    alt,
+    initialWidth,
+    onWidthChange,
+}: {
+    src: string;
+    alt: string;
+    initialWidth?: number;
+    onWidthChange?: (width: number) => void;
+}) {
+    const [width, setWidth] = useState<number | undefined>(initialWidth);
+    const [hovered, setHovered] = useState(false);
+    const startRef = useRef<{ x: number; w: number } | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const onHandleMouseDown = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const currentW = width ?? containerRef.current?.getBoundingClientRect().width ?? 300;
+        startRef.current = { x: e.clientX, w: currentW };
+
+        const calcDelta = (ev: MouseEvent) =>
+            ev.clientX - startRef.current!.x - (ev.clientY - e.clientY);
+
+        const onMove = (ev: MouseEvent) => {
+            if (!startRef.current) return;
+            const newW = Math.max(50, Math.round(startRef.current.w + calcDelta(ev)));
+            setWidth(newW);
+        };
+        const onUp = (ev: MouseEvent) => {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+            if (!startRef.current) return;
+            const finalW = Math.max(50, Math.round(startRef.current.w + calcDelta(ev)));
+            startRef.current = null;
+            onWidthChange?.(finalW);
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+    };
+
+    return (
+        <div
+            ref={containerRef}
+            style={{
+                position: "relative",
+                display: "inline-block",
+                width: width ? `${width}px` : "100%",
+                maxWidth: "100%",
+                borderRadius: "4px",
+                outline: hovered ? "3px solid #3e6df1" : "3px solid transparent",
+                transition: "outline-color 0.15s",
+                cursor: hovered ? "nwse-resize" : undefined,
+            }}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            onMouseDown={onHandleMouseDown}
+            title={hovered ? "Drag to resize" : undefined}
+        >
+            <img
+                src={src}
+                alt={alt}
+                style={{ display: "block", width: "100%", borderRadius: "4px" }}
+                draggable={false}
+            />
+        </div>
+    );
+}
+
 export default function MarkdownEditor({
     port,
     scriptId,
+    embedded = false,
+    onClose,
 }: {
     port?: number;
     scriptId: number | undefined;
+    /** When true, hides traffic-light buttons and disables window drag (for in-app tab use). */
+    embedded?: boolean;
+    /** Called on Cmd+W when embedded; ignored in subwindow mode. */
+    onClose?: () => void;
 }) {
     const dispatch = useAppDispatch();
+
+    // Saved state from the last time this tab was active (keyed by tab id)
+    const tabId = scriptId!;
+    const savedState = useAppSelector((s) => s.app.tab.tabStates[tabId]);
 
     const { data: script } = scriptApi.endpoints.getScriptById.useQuery(scriptId, {
         skip: !(scriptId != null) || port === 0,
@@ -183,23 +267,40 @@ export default function MarkdownEditor({
     const editModeFromUrl = urlParams.get("editMode") === "true";
 
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const [isEditMode, setIsEditMode] = useState(editModeFromUrl);
-    const [editContent, setEditContent] = useState("");
-    const [editName, setEditName] = useState("");
-    const [edited, setEdited] = useState(false);
-    const [hasChanges, setHasChanges] = useState(false);
-    const [splitRatio, setSplitRatio] = useState(50);
-    const [editViewMode, setEditViewMode] = useState<"plain" | "mixed">("mixed");
-    // Only true after useEffect has seeded editContent from the real script data.
-    // Prevents SimpleEditor from mounting with an empty string and letting
-    // WKWebView's NSUndoManager record "" → content as an undoable action.
-    const [editorReady, setEditorReady] = useState(false);
-    const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+    // ─── Redux-backed tab state (live-synced; survives tab switches) ─────────
+    const ts = savedState; // shorthand; undefined on first open
+    const isEditMode: boolean = ts?.isEditMode ?? editModeFromUrl;
+    const editName: string = ts?.editName ?? "";
+    const splitRatio: number = ts?.splitRatio ?? 50;
+    const editViewMode: "plain" | "mixed" | "preview" = ts?.editViewMode ?? "mixed";
+    // fontSize is global — shared by all tabs so zoom in/out affects every open tab.
+    const fontSize: number = useAppSelector((s) => s.app.tab.fontSize);
+    /** Dispatch a partial update for this tab's persisted state. */
+    const patch = useCallback(
+        (partial: Partial<MarkdownTabState>) => dispatch(patchTabState({ tabId, ...partial })),
+        [dispatch, tabId]
+    );
+    // ─────────────────────────────────────────────────────────────────────────
+    // editContent stays local — hot path; persisted to Redux on unmount via latestContentRef.
+    const [editContent, setEditContent] = useState(ts?.hasChanges ? (ts.editContent ?? "") : "");
+    // Start editorReady=true when we have unsaved edits to restore, so the seeding
+    // useEffect doesn't overwrite editContent with the server's script.command.
+    const [editorReady, setEditorReady] = useState(() => ts?.hasChanges ?? false);
     const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
-    const latestContentRef = useRef("");
+    // Fade-in when the tab is mounted (i.e. every time the user switches to this tab).
+    const [visible, setVisible] = useState(false);
+    useEffect(() => {
+        const t = setTimeout(() => setVisible(true), 50);
+        return () => clearTimeout(t);
+    }, []);
+
+    const latestContentRef = useRef(savedState?.hasChanges ? (savedState.editContent ?? "") : "");
     const handleSaveEditRef = useRef<((closeEditMode?: boolean) => Promise<void>) | null>(null);
-    const imagesDirRef = useRef<string | null>(null);
+    // useState (not useRef) so that when get_images_dir resolves it triggers a
+    // re-render and the img renderer picks up the real path — otherwise images
+    // stay broken on remount (e.g. after switching tabs and returning).
+    const [imagesDir, setImagesDir] = useState<string | null>(null);
     const isDraggingRef = useRef(false);
     const [isDragging, setIsDragging] = useState(false);
 
@@ -220,16 +321,85 @@ export default function MarkdownEditor({
 
     useEffect(() => {
         invoke<string>("get_images_dir").then((dir) => {
-            imagesDirRef.current = dir;
+            setImagesDir(dir);
         });
     }, []);
+
+    // ─── Tab state persistence ───────────────────────────────────────────────
+    // isEditMode and other persisted fields are live in Redux (patched on every change).
+    // On unmount we only flush editContent (hot-path local state) + scroll positions
+    // (DOM values that can't be live-synced to Redux).
+    // isEditModeRef keeps a fresh value for the cleanup without causing re-renders.
+    const isEditModeRef = useRef(isEditMode);
+    isEditModeRef.current = isEditMode;
+    const dispatchRef = useRef(dispatch);
+    dispatchRef.current = dispatch;
+    // ⚠️ Must be useLayoutEffect — useEffect cleanup runs AFTER React nulls out DOM refs,
+    // so editorWrapperRef.current and previewBoxRef.current would already be null.
+    useLayoutEffect(() => {
+        return () => {
+            // Which preview container is in the DOM depends on isEditMode at unmount time.
+            // previewBoxRef is used in edit mode (mixed/preview), viewBoxRef in view-only mode.
+            const savedIsEditMode = isEditModeRef.current;
+            const previewScroll = savedIsEditMode
+                ? (previewBoxRef.current?.scrollTop ?? 0)
+                : (viewBoxRef.current?.scrollTop ?? 0);
+            dispatchRef.current(
+                patchTabState({
+                    tabId,
+                    editContent: latestContentRef.current, // always freshest
+                    editorScrollTop: editorWrapperRef.current?.scrollTop ?? 0,
+                    previewScrollTop: previewScroll,
+                })
+            );
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Restore scroll positions once — triggered when editorReady becomes true
+    // (i.e. after the content has been seeded and the DOM has full scroll height).
+    // Two nested RAFs ensure the browser has finished layout before we set scrollTop.
+    const savedEditorScrollRef = useRef(savedState?.editorScrollTop ?? 0);
+    const savedPreviewScrollRef = useRef(savedState?.previewScrollTop ?? 0);
+    // Capture which preview ref to restore to based on the saved isEditMode.
+    const savedIsEditModeRef = useRef(savedState?.isEditMode ?? editModeFromUrl);
+    const hasRestoredScrollRef = useRef(false);
+    useEffect(() => {
+        if (hasRestoredScrollRef.current || !editorReady) return;
+        hasRestoredScrollRef.current = true;
+        const savedEditor = savedEditorScrollRef.current;
+        const savedPreview = savedPreviewScrollRef.current;
+        if (!savedEditor && !savedPreview) return;
+        let raf2 = -1;
+        const raf1 = requestAnimationFrame(() => {
+            raf2 = requestAnimationFrame(() => {
+                if (savedEditor && editorWrapperRef.current) {
+                    editorWrapperRef.current.scrollTop = savedEditor;
+                }
+                if (savedPreview) {
+                    // previewBoxRef is in DOM in edit mode (mixed/preview);
+                    // viewBoxRef is in DOM in view-only mode.
+                    const previewEl = savedIsEditModeRef.current
+                        ? previewBoxRef.current
+                        : viewBoxRef.current;
+                    if (previewEl) previewEl.scrollTop = savedPreview;
+                }
+            });
+        });
+        return () => {
+            cancelAnimationFrame(raf1);
+            cancelAnimationFrame(raf2);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editorReady]);
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Split-pane drag handling
     useEffect(() => {
         const onMove = (e: MouseEvent) => {
             if (!isDraggingRef.current) return;
             const pct = (e.clientX / window.innerWidth) * 100;
-            setSplitRatio(Math.min(80, Math.max(20, pct)));
+            patch({ splitRatio: Math.min(80, Math.max(20, pct)) });
         };
         const onUp = () => {
             isDraggingRef.current = false;
@@ -264,33 +434,32 @@ export default function MarkdownEditor({
         undoIndexRef.current = stack.length - 1;
     }, []);
 
-    const handleEnableEdit = () => {
-        setIsEditMode(true);
-        setEditName(script?.name || "");
-    };
-
-    const handleViewAsHtml = async () => {
-        if (!script?.id) return;
-        try {
-            const html = await generateScriptHtml(script.id, dispatch, imagesDirRef.current ?? "");
-            await invoke("write_and_open_html", { html });
-        } catch (error) {
-            console.error("Failed to open as HTML:", error);
-        }
-    };
-
     // Initialize editName when script loads if starting in edit mode
     useEffect(() => {
         if (editModeFromUrl && script) {
-            setEditName(script.name || "");
+            patch({ editName: script.name || "" });
         }
-    }, [script, editModeFromUrl]);
+    }, [script, editModeFromUrl, patch]);
+
+    // Debounce-sync editContent to Redux so the toolbar component can read it for saving.
+    useEffect(() => {
+        const t = setTimeout(() => patch({ editContent }), 300);
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editContent]);
+
+    // When edit mode ends (cancel or save), reset local editContent to the saved script content.
+    const prevIsEditModeRef = useRef(isEditMode);
+    useEffect(() => {
+        if (prevIsEditModeRef.current && !isEditMode) {
+            setEditContent(script?.command || "");
+        }
+        prevIsEditModeRef.current = isEditMode;
+    }, [isEditMode, script?.command]);
 
     const handleSaveEdit = useCallback(
         async (closeEditMode: boolean = true) => {
-            if (!script) {
-                return;
-            }
+            if (!script) return;
 
             await updateMarkdown({
                 ...script,
@@ -298,20 +467,17 @@ export default function MarkdownEditor({
                 command: editContent,
             }).unwrap();
 
-            setHasChanges(false);
-            setEdited(true);
-            setTimeout(() => setEdited(false), 2000);
+            patch({ hasChanges: false, edited: true });
+            setTimeout(() => dispatch(patchTabState({ tabId, edited: false })), 2000);
 
             if (closeEditMode) {
-                setIsEditMode(false);
+                patch({ isEditMode: false });
             }
 
             dispatch(scriptApi.util.invalidateTags([{ type: "Script", id: script.id }]));
-
-            // Notify main window to refresh its data
             await emit("markdown-updated", { scriptId: script.id });
         },
-        [script, editName, editContent, updateMarkdown, dispatch]
+        [script, editName, editContent, updateMarkdown, dispatch, patch, tabId]
     );
 
     // Keep ref updated with latest handleSaveEdit
@@ -325,15 +491,19 @@ export default function MarkdownEditor({
             if (isEditMode) handleSaveEdit(false);
         },
         onClose: () => {
-            // Drive the close from Rust via invoke so WKWebView teardown happens
-            // entirely outside the JS event-handler stack — prevents SIGSEGV on macOS.
-            invoke("close_subwindow", { label: getCurrentWindow().label });
+            if (embedded) {
+                onClose?.();
+            } else {
+                // Drive the close from Rust via invoke so WKWebView teardown happens
+                // entirely outside the JS event-handler stack — prevents SIGSEGV on macOS.
+                invoke("close_subwindow", { label: getCurrentWindow().label });
+            }
         },
         onFind: () => {
             if (isEditMode) {
                 setEditorSearchOpen(true);
                 setTimeout(() => editorSearchInputRef.current?.focus(), 0);
-                if (editViewMode === "mixed") {
+                if (editViewMode === "mixed" || editViewMode === "preview") {
                     setPreviewSearchOpen(true);
                 }
             } else {
@@ -347,44 +517,10 @@ export default function MarkdownEditor({
             setPreviewSearchOpen(false);
             setPreviewSearchQuery("");
         },
-        onZoomIn: () => setFontSize((s) => Math.min(s + 1, 36)),
-        onZoomOut: () => setFontSize((s) => Math.max(s - 1, 8)),
-        onZoomReset: () => setFontSize(DEFAULT_FONT_SIZE),
+        onZoomIn: () => dispatch(setFontSize(Math.min(fontSize + 1, 36))),
+        onZoomOut: () => dispatch(setFontSize(Math.max(fontSize - 1, 8))),
+        onZoomReset: () => dispatch(setFontSize(DEFAULT_FONT_SIZE)),
     });
-
-    const handleCancelEdit = () => {
-        setEditContent(script?.command || "");
-        setIsEditMode(false);
-    };
-
-    // const handleClose = () => {
-    //     // Close the window
-    //     getCurrentWindow().close();
-    // };
-
-    const endEditButton = () => {
-        return (
-            <Button
-                variant="outline"
-                onClick={handleCancelEdit}
-                className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-            >
-                End Edit
-            </Button>
-        );
-    };
-
-    // const closeButton = () => {
-    //     return (
-    //         <Button
-    //             variant="outline"
-    //             onClick={handleClose}
-    //             className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-    //         >
-    //             Close
-    //         </Button>
-    //     );
-    // };
 
     const handleCheckboxToggle = async (checkboxIndex: number) => {
         const content = latestContentRef.current || script?.command || "";
@@ -410,8 +546,8 @@ export default function MarkdownEditor({
         if (isEditMode) {
             setEditContent(updatedContent);
             pushHistory(updatedContent);
-            setHasChanges(true);
-            setEdited(false);
+            patch({ hasChanges: true });
+            patch({ edited: false });
         }
 
         if (script) {
@@ -693,8 +829,8 @@ export default function MarkdownEditor({
                 const newContent = before + insertion + after;
                 setEditContent(newContent);
                 pushHistory(newContent);
-                setHasChanges(true);
-                setEdited(false);
+                patch({ hasChanges: true });
+                patch({ edited: false });
             } catch (err) {
                 console.error("Failed to save pasted image:", err);
             }
@@ -892,8 +1028,8 @@ export default function MarkdownEditor({
     const handleEditorKeyDown = useMarkdownWrap(editContent, (newContent) => {
         setEditContent(newContent);
         pushHistory(newContent);
-        setHasChanges(true);
-        setEdited(false);
+        patch({ hasChanges: true });
+        patch({ edited: false });
     });
 
     // Rehype plugin that highlights all preview occurrences of the search query
@@ -987,24 +1123,38 @@ export default function MarkdownEditor({
             img: ({ src, alt }: { src?: string; alt?: string }) => {
                 // Parse optional ?width=N from the src
                 const widthMatch = src?.match(/\?width=(\d+)/);
-                const width = widthMatch ? parseInt(widthMatch[1]) : undefined;
-                const cleanPath = src?.replace(/\?width=\d+$/, "") ?? "";
+                const initialWidth = widthMatch ? parseInt(widthMatch[1]) : undefined;
+                // cleanPathNorm is the path without ?width=N suffix
+                const cleanPathNorm = src?.replace(/\?width=\d+$/, "") ?? "";
 
-                let imgSrc = cleanPath;
-                if (cleanPath.startsWith("images/") && imagesDirRef.current) {
-                    const filename = cleanPath.replace(/^images\//, "");
-                    imgSrc = convertFileSrc(`${imagesDirRef.current}/${filename}`);
+                let imgSrc = cleanPathNorm;
+                if (cleanPathNorm.startsWith("images/") && imagesDir) {
+                    const filename = cleanPathNorm.replace(/^images\//, "");
+                    imgSrc = convertFileSrc(`${imagesDir}/${filename}`);
                 }
 
+                const handleWidthChange = (newWidth: number) => {
+                    const escaped = cleanPathNorm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                    const updated = latestContentRef.current.replace(
+                        new RegExp(`(!\\[[^\\]]*\\]\\(${escaped})(?:\\?width=\\d+)?(\\))`, "g"),
+                        `$1?width=${newWidth}$2`
+                    );
+                    latestContentRef.current = updated;
+                    if (isEditMode) {
+                        setEditContent(updated);
+                        pushHistory(updated);
+                        patch({ hasChanges: true });
+                    } else if (script) {
+                        updateMarkdown({ ...script, command: updated });
+                    }
+                };
+
                 return (
-                    <img
+                    <ResizableImage
                         src={imgSrc}
                         alt={alt ?? ""}
-                        style={{
-                            maxWidth: width ? `${width}px` : "100%",
-                            width: "100%",
-                            borderRadius: "4px",
-                        }}
+                        initialWidth={initialWidth}
+                        onWidthChange={handleWidthChange}
                     />
                 );
             },
@@ -1041,7 +1191,7 @@ export default function MarkdownEditor({
                 return <input {...props} />;
             },
         };
-    }, [script?.command]);
+    }, [script?.command, imagesDir]);
 
     const handleWindowDragStart = (e: React.MouseEvent) => {
         if (e.button !== 0) return;
@@ -1059,153 +1209,60 @@ export default function MarkdownEditor({
     };
 
     return (
-        <div className="h-full w-full bg-white dark:bg-neutral-800 flex flex-col">
-            {/* Combined title bar + toolbar */}
-            <div
-                className="flex-shrink-0 select-none bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-3 py-2 pl-4"
-                onMouseDown={handleWindowDragStart}
-                onDoubleClick={handleWindowDoubleClick}
-            >
-                <div className="flex items-center gap-2">
-                    {/* Traffic-light buttons */}
-                    <div
-                        className="flex gap-1.5 items-center flex-shrink-0 mr-2"
-                        onDoubleClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            onClick={() => getCurrentWindow().close()}
-                            className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group"
-                            aria-label="Close"
+        <div
+            className="h-full w-full bg-white dark:bg-neutral-800 flex flex-col"
+            style={{ opacity: visible ? 1 : 0, transition: "opacity 0.05s ease" }}
+        >
+            {/* Title bar — only rendered in subwindow mode; embedded mode uses App.tsx menu bar */}
+            {!embedded && (
+                <div
+                    className="flex-shrink-0 select-none bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 px-3 py-2 pl-4"
+                    onMouseDown={handleWindowDragStart}
+                    onDoubleClick={handleWindowDoubleClick}
+                >
+                    <div className="flex items-center gap-2">
+                        <div
+                            className="flex gap-1.5 items-center flex-shrink-0 mr-2"
+                            onDoubleClick={(e) => e.stopPropagation()}
                         >
-                            <span className="hidden group-hover:block text-red-900 text-[9px] leading-none">
-                                ×
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => getCurrentWindow().minimize()}
-                            className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center group"
-                            aria-label="Minimize"
-                        >
-                            <span className="hidden group-hover:block text-yellow-900 text-[9px] leading-none">
-                                −
-                            </span>
-                        </button>
-
-                        <button
-                            onClick={async () => {
-                                const next = !isFullscreen;
-                                await getCurrentWindow().setFullscreen(next);
-                                setIsFullscreen(next);
-                            }}
-                            className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center group"
-                            aria-label="Full Screen"
-                        >
-                            <span className="hidden group-hover:block text-green-900 text-[9px] leading-none">
-                                {isFullscreen ? "↙" : "↗"}
-                            </span>
-                        </button>
-                        <QuickNavDropdown />
-                    </div>
-
-                    {/* Icon + title/name input */}
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                        {isEditMode ? (
-                            <input
-                                type="text"
-                                value={editName}
-                                onChange={(e) => {
-                                    setEditName(e.target.value);
-                                    setHasChanges(true);
-                                    setEdited(false);
-                                }}
-                                className="text-sm font-semibold bg-transparent border border-gray-300 dark:border-neutral-600 focus:outline-none focus:border-blue-500 text-black dark:text-white px-2 py-0.5 rounded flex-1 max-w-sm"
-                                placeholder="Markdown name"
-                            />
-                        ) : (
-                            <h2
-                                className="text-sm font-semibold text-black dark:text-white cursor-pointer truncate"
-                                onDoubleClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEnableEdit();
-                                }}
+                            <button
+                                onClick={() => getCurrentWindow().close()}
+                                className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group"
+                                aria-label="Close"
                             >
-                                {script?.name}
-                            </h2>
-                        )}
-                    </div>
+                                <span className="hidden group-hover:block text-red-900 text-[9px] leading-none">
+                                    ×
+                                </span>
+                            </button>
+                            <button
+                                onClick={() => getCurrentWindow().minimize()}
+                                className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 flex items-center justify-center group"
+                                aria-label="Minimize"
+                            >
+                                <span className="hidden group-hover:block text-yellow-900 text-[9px] leading-none">
+                                    −
+                                </span>
+                            </button>
 
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        {isEditMode && (
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {edited ? "Saved" : hasChanges ? "Not Saved" : ""}
-                            </span>
-                        )}
-                        {!isEditMode ? (
-                            <>
-                                <Button
-                                    variant="outline"
-                                    onClick={handleViewAsHtml}
-                                    className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                                >
-                                    <Globe className="w-4 h-4" />
-                                    View as HTML
-                                </Button>
-                                <Button
-                                    onClick={handleEnableEdit}
-                                    className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                                >
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <div className="flex items-center rounded-lg overflow-hidden border border-neutral-600">
-                                    <button
-                                        onClick={() => setEditViewMode("plain")}
-                                        className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors rounded-none ${
-                                            editViewMode === "plain"
-                                                ? "bg-neutral-600 text-white"
-                                                : "bg-transparent text-gray-400 hover:text-white hover:bg-neutral-700"
-                                        }`}
-                                    >
-                                        <AlignLeft className="w-3.5 h-3.5" />
-                                        Plain Text
-                                    </button>
-                                    <button
-                                        onClick={() => setEditViewMode("mixed")}
-                                        className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors rounded-none ${
-                                            editViewMode === "mixed"
-                                                ? "bg-neutral-600 text-white"
-                                                : "bg-transparent text-gray-400 hover:text-white hover:bg-neutral-700"
-                                        }`}
-                                    >
-                                        <Columns2 className="w-3.5 h-3.5" />
-                                        Mixed
-                                    </button>
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    onClick={handleViewAsHtml}
-                                    className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                                >
-                                    <Globe className="w-4 h-4" />
-                                    View as HTML
-                                </Button>
-                                <Button
-                                    onClick={() => handleSaveEdit(true)}
-                                    disabled={!hasChanges}
-                                    className="dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-white"
-                                >
-                                    Save Changes
-                                </Button>
-                                {endEditButton()}
-                            </>
-                        )}
+                            <button
+                                onClick={async () => {
+                                    const next = !isFullscreen;
+                                    await getCurrentWindow().setFullscreen(next);
+                                    setIsFullscreen(next);
+                                }}
+                                className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center group"
+                                aria-label="Full Screen"
+                            >
+                                <span className="hidden group-hover:block text-green-900 text-[9px] leading-none">
+                                    {isFullscreen ? "↙" : "↗"}
+                                </span>
+                            </button>
+                            <QuickNavDropdown />
+                        </div>
+                        <MarkdownEditorToolbar scriptId={scriptId!} port={port ?? null} />
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Content */}
             <div className="flex-1 overflow-hidden">
@@ -1266,8 +1323,8 @@ export default function MarkdownEditor({
                                     onValueChange={(code) => {
                                         setEditContent(code);
                                         latestContentRef.current = code;
-                                        setHasChanges(true);
-                                        setEdited(false);
+                                        patch({ hasChanges: true });
+                                        patch({ edited: false });
                                         pushHistory(code);
                                     }}
                                     highlight={(code) =>
@@ -1297,9 +1354,16 @@ export default function MarkdownEditor({
                             <div
                                 className="relative h-full flex-shrink-0"
                                 style={{
-                                    width: `${splitRatio}%`,
-                                    pointerEvents: isDragging ? "none" : undefined,
+                                    width: editViewMode === "preview" ? "0" : `${splitRatio}%`,
+                                    overflow: "hidden",
+                                    pointerEvents:
+                                        editViewMode === "preview"
+                                            ? "none"
+                                            : isDragging
+                                              ? "none"
+                                              : undefined,
                                     userSelect: isDragging ? "none" : undefined,
+                                    display: editViewMode === "preview" ? "none" : undefined,
                                 }}
                             >
                                 {editorSearchOpen && (
@@ -1361,8 +1425,8 @@ export default function MarkdownEditor({
                                         onValueChange={(code) => {
                                             setEditContent(code);
                                             latestContentRef.current = code;
-                                            setHasChanges(true);
-                                            setEdited(false);
+                                            patch({ hasChanges: true });
+                                            patch({ edited: false });
                                             pushHistory(code);
                                         }}
                                         highlight={(code) =>
@@ -1402,6 +1466,7 @@ export default function MarkdownEditor({
                             {/* Divider */}
                             <div
                                 className="w-1 cursor-col-resize bg-neutral-600 hover:bg-blue-500 flex-shrink-0 transition-colors"
+                                style={{ display: editViewMode === "preview" ? "none" : undefined }}
                                 onMouseDown={(e) => {
                                     e.preventDefault();
                                     isDraggingRef.current = true;
@@ -1413,7 +1478,15 @@ export default function MarkdownEditor({
                             />
 
                             {/* Right: live preview */}
-                            <div className="h-full" style={{ width: `${100 - splitRatio}%` }}>
+                            <div
+                                className="h-full"
+                                style={{
+                                    width:
+                                        editViewMode === "preview"
+                                            ? "100%"
+                                            : `${100 - splitRatio}%`,
+                                }}
+                            >
                                 {previewSearchOpen && (
                                     <SearchBar
                                         query={previewSearchQuery}
@@ -1520,6 +1593,9 @@ export default function MarkdownEditor({
                                             display: "list-item",
                                             paddingLeft: LIST_ITEM_PADDING,
                                             lineHeight: LIST_ITEM_LINE_HEIGHT,
+                                        },
+                                        "& li:not(.task-list-item)": {
+                                            marginLeft: "-0.5em",
                                         },
                                         "& li.task-list-item": {
                                             listStyleType: "none",
@@ -1735,6 +1811,9 @@ export default function MarkdownEditor({
                                     paddingLeft: LIST_ITEM_PADDING,
                                     lineHeight: LIST_ITEM_LINE_HEIGHT,
                                 },
+                                "& li:not(.task-list-item)": {
+                                    marginLeft: "-0.5em",
+                                },
                                 "& li.task-list-item": {
                                     listStyleType: "none",
                                     paddingLeft: "0",
@@ -1830,7 +1909,9 @@ export default function MarkdownEditor({
                                     margin: "1em 0",
                                 },
                             }}
-                            onDoubleClick={handleEnableEdit}
+                            onDoubleClick={() =>
+                                patch({ isEditMode: true, editName: script?.name || "" })
+                            }
                         >
                             <div style={{ maxWidth: "860px", margin: "0 auto" }}>
                                 <ReactMarkdown

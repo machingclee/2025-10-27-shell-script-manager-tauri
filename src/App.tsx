@@ -1,9 +1,20 @@
 import "./App.css";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+    AppTab,
+    openMarkdownTab,
+    closeTab,
+    setActiveTab,
+    HOME_TAB_ID,
+} from "./store/slices/appSlice";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { onOpenUrl, getCurrent } from "@tauri-apps/plugin-deep-link";
+import { Home, FileText, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import MarkdownEditor from "./app-component/ScriptsColumn/MarkdownEditor";
+import MarkdownEditorToolbar from "./app-component/ScriptsColumn/MarkdownEditorToolbar";
 import { generateScriptHtml } from "@/lib/generateScriptHtml";
 import { getSubwindowPaths } from "@/lib/subwindowPaths";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -23,10 +34,174 @@ import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
 // import AIProfileButton from "./app-component/AIProfile/AIProfileButton";
 
+function TabPill({
+    tab,
+    isActive,
+    onActivate,
+    onClose,
+    onDetach,
+}: {
+    tab: AppTab;
+    isActive: boolean;
+    onActivate: () => void;
+    onClose?: () => void;
+    onDetach?: () => void;
+}) {
+    // Track the Y coordinate where the drag began so we can measure how far
+    // down the user dragged when the drag ends.
+    const dragStartYRef = useRef<number | null>(null);
+
+    // const script = scriptApi.endpoints.getScriptById.useQueryState(tab.scriptId, {
+    //     skip: tab.type === "home",
+    // }).data;
+
+    const { data: script } = scriptApi.endpoints.getScriptById.useQuery(tab.scriptId, {
+        skip: tab.type === "home",
+    });
+
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+        dragStartYRef.current = e.clientY;
+
+        // Build an off-screen styled element that the OS uses as the drag image.
+        // Because this goes through the browser's native DnD API, the image is
+        // rendered by the OS compositor and is visible outside the app window —
+        // unlike a DOM ghost div which is clipped to the webview bounds.
+        const ghost = document.createElement("div");
+        ghost.style.cssText = [
+            "position:fixed",
+            "top:-9999px",
+            "left:-9999px",
+            "display:flex",
+            "align-items:center",
+            "padding:0 12px",
+            "height:32px",
+            "font-size:12px",
+            "border-radius:6px",
+            "border:1px solid #525252",
+            "background:#262626",
+            "color:#fff",
+            "white-space:nowrap",
+            "box-shadow:0 4px 16px rgba(0,0,0,0.6)",
+            "opacity:0.9",
+        ].join(";");
+        ghost.textContent = tab.type === "home" ? "Home" : (script?.name ?? tab.scriptName);
+        document.body.appendChild(ghost);
+
+        // Anchor the drag image at the exact point the user grabbed.
+        const rect = e.currentTarget.getBoundingClientRect();
+        e.dataTransfer.setDragImage(ghost, e.clientX - rect.left, e.clientY - rect.top);
+        e.dataTransfer.effectAllowed = "move";
+
+        // The browser captures the image synchronously before the next frame,
+        // so it's safe to remove the element immediately after.
+        requestAnimationFrame(() => ghost.remove());
+    };
+
+    const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+        if (dragStartYRef.current === null) return;
+        const deltaY = e.clientY - dragStartYRef.current;
+        dragStartYRef.current = null;
+
+        if (deltaY > 80 && onDetach) {
+            onDetach();
+        } else {
+            // Drag ended without crossing the detach threshold — treat as activation.
+            onActivate();
+        }
+    };
+
+    return (
+        <div
+            draggable={!!onDetach}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onClick={onActivate}
+            className={cn(
+                "flex items-center gap-1.5 px-3 h-8 text-xs select-none cursor-pointer rounded-t border-t border-l border-r transition-colors",
+                isActive
+                    ? "bg-neutral-800 text-white border-neutral-600"
+                    : "bg-transparent text-neutral-500 border-transparent hover:text-neutral-200 hover:bg-neutral-800/40"
+            )}
+        >
+            {tab.type === "home" ? (
+                <Home className="w-3 h-3 flex-shrink-0" />
+            ) : (
+                <FileText className="w-3 h-3 flex-shrink-0" />
+            )}
+            <span className="max-w-[140px] truncate">
+                {tab.type === "home" ? "Home" : (script?.name ?? tab.scriptName)}
+            </span>
+            {onClose && (
+                <button
+                    className="ml-0.5 p-0.5 rounded hover:bg-neutral-600 text-neutral-500 hover:text-white"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                    }}
+                >
+                    <X className="w-2.5 h-2.5" />
+                </button>
+            )}
+        </div>
+    );
+}
+
 function App() {
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const isHistoryOpen = useAppSelector((s) => s.history.isOpen);
+
+    // -----------------------------------------------------------------------
+    // Tab system (state lives in Redux)
+    // -----------------------------------------------------------------------
+    const tabs = useAppSelector((s) => s.app.tab.tabs);
+    const activeTabId = useAppSelector((s) => s.app.tab.activeTabId);
+
+    const openMarkdownTabDispatch = useCallback(
+        (scriptId: number, scriptName: string) => {
+            dispatch(openMarkdownTab({ scriptId, scriptName }));
+        },
+        [dispatch]
+    );
+
+    const openMarkdownTabRef = useRef(openMarkdownTabDispatch);
+    useEffect(() => {
+        openMarkdownTabRef.current = openMarkdownTabDispatch;
+    }, [openMarkdownTabDispatch]);
+
+    const closeTabDispatch = useCallback(
+        (tabId: number) => {
+            dispatch(closeTab(tabId));
+        },
+        [dispatch]
+    );
+
+    const detachTab = useCallback(
+        (tab: AppTab & { type: "markdown" }) => {
+            const windowLabel = `markdown-${tab.scriptId}`;
+            const url = getSubwindowPaths.markdown(tab.scriptId, false);
+            const webview = new WebviewWindow(windowLabel, {
+                url,
+                width: 1000,
+                height: 700,
+                minWidth: 800,
+                minHeight: 600,
+                skipTaskbar: false,
+                alwaysOnTop: false,
+                focus: true,
+                devtools: true,
+                decorations: false,
+                hiddenTitle: true,
+                transparent: true,
+            });
+            webview.once("tauri://error", (err) =>
+                console.error("Failed to detach markdown tab:", err)
+            );
+            dispatch(closeTab(tab.scriptId));
+        },
+        [dispatch]
+    );
+
     const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
     const notifyScriptExecutedRef = useRef(notifyScriptExecuted);
     useEffect(() => {
@@ -129,36 +304,12 @@ function App() {
         };
     }, []);
 
-    // Listen for open-markdown-reference events from subwindows (they can't create windows directly)
+    // Listen for open-markdown-reference events — open as in-app tab
     useEffect(() => {
         const unlisten = listen<{ scriptId: number; scriptName: string }>(
             "open-markdown-reference",
-            async ({ payload }) => {
-                const windowLabel = `markdown-${payload.scriptId}`;
-                const existing = await WebviewWindow.getByLabel(windowLabel);
-                if (existing) {
-                    await existing.setFocus();
-                    return;
-                }
-                const url = getSubwindowPaths.markdown(payload.scriptId, false);
-                const webview = new WebviewWindow(windowLabel, {
-                    url,
-                    title: `Edit: ${payload.scriptName}`,
-                    width: 1000,
-                    height: 700,
-                    minWidth: 800,
-                    minHeight: 600,
-                    skipTaskbar: false,
-                    alwaysOnTop: false,
-                    focus: true,
-                    devtools: true,
-                    decorations: false,
-                    hiddenTitle: true,
-                    transparent: true,
-                });
-                webview.once("tauri://error", (err) =>
-                    console.error("Failed to open markdown reference window:", err)
-                );
+            ({ payload }) => {
+                openMarkdownTabRef.current(payload.scriptId, payload.scriptName);
             }
         );
         return () => {
@@ -166,36 +317,12 @@ function App() {
         };
     }, []);
 
-    // Handle QuickNavDropdown actions emitted from any window (including markdown subwindows)
+    // Handle QuickNavDropdown actions — open as in-app tab
     useEffect(() => {
         const unlisten = listen<{ scriptId: number; editMode: boolean; scriptName: string }>(
             "quick-nav-open-markdown",
-            async ({ payload }) => {
-                const windowLabel = `markdown-${payload.scriptId}`;
-                const existing = await WebviewWindow.getByLabel(windowLabel);
-                if (existing) {
-                    await existing.setFocus();
-                    return;
-                }
-                const url = getSubwindowPaths.markdown(payload.scriptId, payload.editMode);
-                const webview = new WebviewWindow(windowLabel, {
-                    url,
-                    title: payload.editMode ? `Edit: ${payload.scriptName}` : payload.scriptName,
-                    width: 1000,
-                    height: 700,
-                    minWidth: 800,
-                    minHeight: 600,
-                    skipTaskbar: false,
-                    alwaysOnTop: false,
-                    focus: true,
-                    devtools: true,
-                    decorations: false,
-                    hiddenTitle: true,
-                    transparent: true,
-                });
-                webview.once("tauri://error", (e) =>
-                    console.error("Error creating markdown window from QuickNav:", e)
-                );
+            ({ payload }) => {
+                openMarkdownTabRef.current(payload.scriptId, payload.scriptName);
             }
         );
         return () => {
@@ -268,6 +395,41 @@ function App() {
             }
         };
 
+        const executeScriptById = async (scriptId: number) => {
+            console.log("[deep-link] executeScriptById called with scriptId:", scriptId);
+            try {
+                const result = await dispatch(scriptApi.endpoints.getScriptById.initiate(scriptId));
+                const script = result.data;
+                if (!script) {
+                    console.warn("[deep-link] script not found for id:", scriptId);
+                    return;
+                }
+                dispatch(
+                    rootFolderSlice.actions.setExecutingScript({
+                        script_id: scriptId,
+                        loading: true,
+                    })
+                );
+                try {
+                    if (script.showShell) {
+                        await invoke("execute_command_in_shell", { command: script.command });
+                    } else {
+                        await invoke("execute_command", { command: script.command });
+                    }
+                    await notifyScriptExecutedRef.current({ scriptId });
+                } finally {
+                    dispatch(
+                        rootFolderSlice.actions.setExecutingScript({
+                            script_id: scriptId,
+                            loading: false,
+                        })
+                    );
+                }
+            } catch (e) {
+                console.error("[deep-link] Failed to execute script via deep link:", e);
+            }
+        };
+
         let cleanup: (() => void) | undefined;
 
         const handleUrls = (urls: string[]) => {
@@ -289,6 +451,13 @@ function App() {
                         const scriptId = parseInt(parsed.searchParams.get("scriptId") ?? "", 10);
                         if (!isNaN(scriptId)) {
                             openMarkdownAsHtml(scriptId);
+                        } else {
+                            console.warn("[deep-link] scriptId is NaN for url:", url);
+                        }
+                    } else if (parsed.pathname === "/script") {
+                        const scriptId = parseInt(parsed.searchParams.get("scriptId") ?? "", 10);
+                        if (!isNaN(scriptId)) {
+                            executeScriptById(scriptId);
                         } else {
                             console.warn("[deep-link] scriptId is NaN for url:", url);
                         }
@@ -389,7 +558,7 @@ function App() {
                 onDoubleClick={handleDoubleClick}
             >
                 {/* Window control buttons (macOS style) */}
-                <div className="absolute left-4 flex gap-2 z-10 items-center">
+                <div className="ml-4 flex gap-2 z-10 items-center">
                     <button
                         onClick={handleClose}
                         className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group"
@@ -421,31 +590,88 @@ function App() {
                 </div>
 
                 {/* Right-side controls */}
-                <div className="absolute right-4 z-10 flex items-center gap-2">
-                    {/* <AIProfileButton /> */}
-                    <HistoryButton />
-                </div>
+                {activeTabId === HOME_TAB_ID && (
+                    <div className="flex-1 right-4 z-10 flex items-center gap-2 px-4 justify-end">
+                        {/* <AIProfileButton /> */}
+                        <HistoryButton />
+                    </div>
+                )}
 
-                {/* Window title (centered) */}
-                <div className="flex-1 flex items-center justify-center">
-                    {selectedFolder?.name}
-                </div>
+                {/* Window title / Markdown toolbar */}
+                {activeTabId !== HOME_TAB_ID && (
+                    <div className="flex-1 flex items-center h-full ">
+                        {activeTabId === HOME_TAB_ID ? (
+                            <span className="flex-1 text-center">{selectedFolder?.name}</span>
+                        ) : (
+                            (() => {
+                                const activeTab = tabs.find((t) => t.scriptId === activeTabId);
+                                if (!activeTab || activeTab.type !== "markdown") return null;
+                                return (
+                                    <MarkdownEditorToolbar
+                                        scriptId={activeTab.scriptId}
+                                        port={backendPort ?? null}
+                                    />
+                                );
+                            })()
+                        )}
+                    </div>
+                )}
+            </div>
+            {/* Tab bar */}
+            <div
+                className="flex-shrink-0 flex items-end gap-0.5 px-2 bg-neutral-900 border-b border-neutral-700 overflow-x-auto"
+                style={{ height: 36 }}
+            >
+                {tabs.map((tab) => (
+                    <TabPill
+                        key={tab.scriptId}
+                        tab={tab}
+                        isActive={tab.scriptId === activeTabId}
+                        onActivate={() => dispatch(setActiveTab(tab.scriptId))}
+                        onClose={
+                            tab.type !== "home" ? () => closeTabDispatch(tab.scriptId) : undefined
+                        }
+                        onDetach={
+                            tab.type === "markdown"
+                                ? () => detachTab(tab as AppTab & { type: "markdown" })
+                                : undefined
+                        }
+                    />
+                ))}
             </div>
             {/* Main content */}
             <div className="flex-1 overflow-hidden flex flex-row">
-                <ResizablePanelGroup direction="horizontal" className="flex-1">
-                    <ResizablePanel defaultSize={25} minSize={25} maxSize={50}>
-                        <FolderColumn />
-                    </ResizablePanel>
-                    <ResizableHandle withHandle />
-                    <ResizablePanel defaultSize={75}>
-                        <ScriptsColumn />
-                    </ResizablePanel>
-                </ResizablePanelGroup>
-                {isHistoryOpen && (
-                    <div className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700">
-                        <HistoryPanel />
-                    </div>
+                {activeTabId === HOME_TAB_ID ? (
+                    <>
+                        <ResizablePanelGroup direction="horizontal" className="flex-1">
+                            <ResizablePanel defaultSize={25} minSize={25} maxSize={50}>
+                                <FolderColumn />
+                            </ResizablePanel>
+                            <ResizableHandle withHandle />
+                            <ResizablePanel defaultSize={75}>
+                                <ScriptsColumn />
+                            </ResizablePanel>
+                        </ResizablePanelGroup>
+                        {isHistoryOpen && (
+                            <div className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700">
+                                <HistoryPanel />
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    (() => {
+                        const activeTab = tabs.find((t) => t.scriptId === activeTabId);
+                        if (!activeTab || activeTab.type !== "markdown") return null;
+                        return (
+                            <MarkdownEditor
+                                key={activeTab.scriptId}
+                                scriptId={activeTab.scriptId}
+                                port={backendPort}
+                                embedded={true}
+                                onClose={() => closeTabDispatch(activeTab.scriptId)}
+                            />
+                        );
+                    })()
                 )}
             </div>
             <Toaster />

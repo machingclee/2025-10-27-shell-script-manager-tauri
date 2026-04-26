@@ -2,16 +2,27 @@ import { scriptApi } from "@/store/api/scriptApi";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { FileText, Terminal } from "lucide-react";
+import { useState } from "react";
 import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 /**
  * Renders an [item#ID] cross-reference chip inside a markdown preview.
- * Right-click to open a context menu with actions (open / execute).
+ * Left-click: markdown → open subwindow; shell → confirmation dialog then execute.
+ * Right-click to open a context menu with the same actions.
  */
 export default function ItemReference({ id }: { id?: string }) {
     const scriptId = id ? parseInt(id, 10) : undefined;
@@ -19,23 +30,39 @@ export default function ItemReference({ id }: { id?: string }) {
         skip: scriptId == null || isNaN(scriptId ?? NaN),
     });
 
-    const handleOpen = async () => {
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    const executeScript = async () => {
         if (!script) return;
         try {
-            if (script.isMarkdown) {
-                await emit("open-markdown-reference", {
-                    scriptId: script.id,
-                    scriptName: script.name,
-                });
+            if (script.showShell) {
+                await invoke("execute_command_in_shell", { command: script.command });
             } else {
-                if (script.showShell) {
-                    await invoke("execute_command_in_shell", { command: script.command });
-                } else {
-                    await invoke("execute_command", { command: script.command });
-                }
+                await invoke("execute_command", { command: script.command });
             }
         } catch (err) {
-            console.error("ItemReference action error:", err);
+            console.error("ItemReference execute error:", err);
+        }
+    };
+
+    const openMarkdown = async () => {
+        if (!script) return;
+        try {
+            await emit("open-markdown-reference", {
+                scriptId: script.id,
+                scriptName: script.name,
+            });
+        } catch (err) {
+            console.error("ItemReference open error:", err);
+        }
+    };
+
+    const handleChipClick = () => {
+        if (!script) return;
+        if (script.isMarkdown) {
+            openMarkdown();
+        } else {
+            setConfirmOpen(true);
         }
     };
 
@@ -60,25 +87,80 @@ export default function ItemReference({ id }: { id?: string }) {
     }
 
     return (
-        <ContextMenu>
-            <ContextMenuTrigger asChild>
-                <span
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-sm font-medium border cursor-context-menu select-none transition-colors bg-neutral-700/80 text-neutral-300 border-neutral-600/60 hover:bg-neutral-600/50"
-                    title="Right-click for actions"
-                >
-                    {script.isMarkdown ? (
-                        <FileText className="w-4 h-4 flex-shrink-0" />
-                    ) : (
-                        <Terminal className="w-4 h-4 flex-shrink-0" />
-                    )}
-                    {script.name}
-                </span>
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-                <ContextMenuItem onClick={handleOpen}>
-                    {script.isMarkdown ? "Open in new window" : "Execute script"}
-                </ContextMenuItem>
-            </ContextMenuContent>
-        </ContextMenu>
+        <>
+            <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                <DialogContent className="dark bg-neutral-900 border-neutral-700 max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-neutral-100 flex items-center gap-2">
+                            <Terminal className="w-4 h-4 text-neutral-400" />
+                            Execute script: {script.name}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="rounded border border-neutral-700 bg-neutral-950 p-3 max-h-64 overflow-y-auto">
+                        <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-neutral-300">
+                            {script.command}
+                        </pre>
+                    </div>
+                    <p className="text-sm text-neutral-400">
+                        Are you sure you want to execute this script?
+                    </p>
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setConfirmOpen(false)}
+                            className="border-neutral-600 text-neutral-300 hover:bg-neutral-800"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={async () => {
+                                setConfirmOpen(false);
+                                await executeScript();
+                            }}
+                            className="bg-blue-600 hover:bg-blue-500 text-white"
+                        >
+                            Execute
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <ContextMenu>
+                <ContextMenuTrigger asChild>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span
+                                onClick={handleChipClick}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-sm font-medium border cursor-pointer select-none transition-colors bg-neutral-700/80 text-neutral-300 border-neutral-600/60 hover:bg-neutral-600/50"
+                            >
+                                {script.isMarkdown ? (
+                                    <FileText className="w-4 h-4 flex-shrink-0" />
+                                ) : (
+                                    <Terminal className="w-4 h-4 flex-shrink-0" />
+                                )}
+                                {script.name}
+                            </span>
+                        </TooltipTrigger>
+                        {!script.isMarkdown && script.command && (
+                            <TooltipContent side="bottom" className="max-w-sm">
+                                <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                                    {script.command}
+                                </pre>
+                            </TooltipContent>
+                        )}
+                        {script.isMarkdown && (
+                            <TooltipContent side="bottom">
+                                Open in-app markdown preview
+                            </TooltipContent>
+                        )}
+                    </Tooltip>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                    <ContextMenuItem onClick={handleChipClick}>
+                        {script.isMarkdown ? "Open in new window" : "Execute script"}
+                    </ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
+        </>
     );
 }
