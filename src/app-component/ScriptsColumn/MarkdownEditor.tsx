@@ -1812,6 +1812,11 @@ export default function MarkdownEditor({
                                         },
                                     },
                                     "& li.task-list-item > p": {
+                                        display: "block",
+                                        marginTop: "0.3em",
+                                        marginBottom: 0,
+                                    },
+                                    "& li.task-list-item > p:first-of-type": {
                                         display: "inline",
                                         marginTop: 0,
                                         marginBottom: 0,

@@ -34,11 +34,17 @@ export function useMarkdownWrap(
             // Cmd/Ctrl + ]  → indent selected lines by 2 spaces
             // Cmd/Ctrl + [  → dedent selected lines by up to 2 spaces
             if ((e.metaKey || e.ctrlKey) && (e.key === "]" || e.key === "[")) {
-                if (selectionStart === selectionEnd) return;
                 e.preventDefault();
                 const INDENT = "  ";
                 const lineStart = content.lastIndexOf("\n", selectionStart - 1) + 1;
-                const selectedLinesText = content.slice(lineStart, selectionEnd);
+                // If no selection, operate on the cursor's line only
+                const lineEnd =
+                    selectionStart === selectionEnd
+                        ? content.indexOf("\n", selectionStart) === -1
+                            ? content.length
+                            : content.indexOf("\n", selectionStart)
+                        : selectionEnd;
+                const selectedLinesText = content.slice(lineStart, lineEnd);
                 const lines = selectedLinesText.split("\n");
                 const modifiedLines =
                     e.key === "]"
@@ -50,12 +56,20 @@ export function useMarkdownWrap(
                           });
                 const modifiedText = modifiedLines.join("\n");
                 const newContent =
-                    content.slice(0, lineStart) + modifiedText + content.slice(selectionEnd);
+                    content.slice(0, lineStart) + modifiedText + content.slice(lineEnd);
                 setContent(newContent);
                 onAfterWrap?.(newContent);
                 requestAnimationFrame(() => {
-                    textarea.selectionStart = lineStart;
-                    textarea.selectionEnd = lineStart + modifiedText.length;
+                    if (selectionStart === selectionEnd) {
+                        // Keep cursor on same line, adjusted for indent change
+                        const delta = modifiedText.length - selectedLinesText.length;
+                        const newPos = Math.max(lineStart, selectionStart + delta);
+                        textarea.selectionStart = newPos;
+                        textarea.selectionEnd = newPos;
+                    } else {
+                        textarea.selectionStart = lineStart;
+                        textarea.selectionEnd = lineStart + modifiedText.length;
+                    }
                 });
                 return;
             }
