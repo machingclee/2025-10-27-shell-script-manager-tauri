@@ -2,7 +2,7 @@ import { useRef, useCallback } from "react";
 import Editor, { loader } from "@monaco-editor/react";
 import type { editor as MonacoEditorNS } from "monaco-editor";
 import * as monaco from "monaco-editor";
-import { invoke } from "@tauri-apps/api/core";
+import { registerMarkdownEditorBehaviors } from "@/lib/registerMonacoPasteHandler";
 
 // Use the locally-installed monaco-editor (offline / Tauri)
 loader.config({ monaco });
@@ -44,109 +44,9 @@ export default function MarkdownCodeEditor({
                 });
             }
 
-            // Override paste to support image clipboard items
-            editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
-                try {
-                    const clipboardItems = await navigator.clipboard.read();
-                    const imageItem = clipboardItems.find((item) =>
-                        item.types.some((t) => t.startsWith("image/"))
-                    );
-                    if (imageItem) {
-                        const imageType = imageItem.types.find((t) => t.startsWith("image/"))!;
-                        const blob = await imageItem.getType(imageType);
-
-                        // Compress via canvas
-                        const compressedBlob = await (async () => {
-                            try {
-                                const bitmap = await createImageBitmap(blob);
-                                const MAX_WIDTH = 1400;
-                                const scale =
-                                    bitmap.width > MAX_WIDTH ? MAX_WIDTH / bitmap.width : 1;
-                                const w = Math.round(bitmap.width * scale);
-                                const h = Math.round(bitmap.height * scale);
-                                const canvas = document.createElement("canvas");
-                                canvas.width = w;
-                                canvas.height = h;
-                                canvas.getContext("2d")!.drawImage(bitmap, 0, 0, w, h);
-                                bitmap.close();
-                                return await new Promise<Blob>((resolve, reject) => {
-                                    canvas.toBlob(
-                                        (b) =>
-                                            b
-                                                ? resolve(b)
-                                                : reject(new Error("canvas.toBlob failed")),
-                                        "image/jpeg",
-                                        0.85
-                                    );
-                                });
-                            } catch {
-                                return blob;
-                            }
-                        })();
-
-                        const bytes = Array.from(
-                            new Uint8Array(await compressedBlob.arrayBuffer())
-                        );
-                        const filename = await invoke<string>("save_pasted_image", { data: bytes });
-                        const insertion = `![pasted image](images/${filename})`;
-                        editorInstance.trigger("keyboard", "type", { text: insertion });
-                    } else {
-                        editorInstance.trigger(
-                            "keyboard",
-                            "editor.action.clipboardPasteAction",
-                            {}
-                        );
-                    }
-                } catch {
-                    editorInstance.trigger("keyboard", "editor.action.clipboardPasteAction", {});
-                }
+            registerMarkdownEditorBehaviors(editorInstance, {
+                onDoubleClickLine: (line) => onScrollRef.current(line, true),
             });
-
-            // Pair-wrapping via Monaco API
-            const WRAP_PAIRS: Record<string, string> = {
-                "*": "*",
-                _: "_",
-                "`": "`",
-                "(": ")",
-                "[": "]",
-                "{": "}",
-                '"': '"',
-                "'": "'",
-            };
-            Object.entries(WRAP_PAIRS).forEach(([open, close]) => {
-                editorInstance.onKeyDown((e) => {
-                    if (e.browserEvent.key !== open) return;
-                    const sel = editorInstance.getSelection();
-                    if (!sel || sel.isEmpty()) return;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const selectedText = editorInstance.getModel()!.getValueInRange(sel);
-                    editorInstance.executeEdits("wrap", [
-                        { range: sel, text: open + selectedText + close },
-                    ]);
-                });
-            });
-
-            // Indent / dedent via Cmd+] / Cmd+[
-            editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketRight, () => {
-                editorInstance.trigger("keyboard", "editor.action.indentLines", {});
-            });
-            editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.BracketLeft, () => {
-                editorInstance.trigger("keyboard", "editor.action.outdentLines", {});
-            });
-
-            // Double-click → scroll + flash the corresponding preview element
-            editorInstance.onMouseDown((e) => {
-                if (e.event.detail === 2) {
-                    const line = e.target.position?.lineNumber;
-                    if (line != null) onScrollRef.current(line, true);
-                }
-            });
-
-            // Force a layout pass after the window/dialog animation finishes so
-            // Monaco measures the correct container dimensions (fixes garbled text
-            // when opened in a subwindow or dialog while a CSS transition is active).
-            requestAnimationFrame(() => requestAnimationFrame(() => editorInstance.layout()));
         },
         // savedScrollTop and onScrollPreviewToLine are both stable at mount time
         // eslint-disable-next-line react-hooks/exhaustive-deps

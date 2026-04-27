@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import Editor, { loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { useMarkdownShortcuts } from "@/hooks/useMarkdownShortcuts";
+import { registerMarkdownEditorBehaviors } from "@/lib/registerMonacoPasteHandler";
 
 loader.config({ monaco });
 
@@ -92,12 +93,8 @@ export const AddMarkdownDialog = (props: {
                                 value={markdownContent}
                                 theme="vs-dark"
                                 onChange={(value) => setMarkdownContent(value ?? "")}
-                                onMount={(editor) => {
-                                    // Dialog animation may not have finished — force a re-layout
-                                    // so Monaco measures the correct container dimensions.
-                                    requestAnimationFrame(() =>
-                                        requestAnimationFrame(() => editor.layout())
-                                    );
+                                onMount={(editorInstance) => {
+                                    registerMarkdownEditorBehaviors(editorInstance);
                                 }}
                                 options={{
                                     fontSize: 14,

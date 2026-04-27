@@ -344,6 +344,35 @@ async fn write_and_open_html(html: String) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(serde::Serialize)]
+pub struct ClipboardImageData {
+    pub width: usize,
+    pub height: usize,
+    /// Raw RGBA bytes, row-major.
+    pub rgba: Vec<u8>,
+}
+
+/// Reads an image from the system clipboard without any browser permission dialog.
+/// Returns `None` if the clipboard holds no image or the read fails.
+#[tauri::command]
+fn read_clipboard_image() -> Option<ClipboardImageData> {
+    let mut clipboard = arboard::Clipboard::new().ok()?;
+    let img = clipboard.get_image().ok()?;
+    Some(ClipboardImageData {
+        width: img.width,
+        height: img.height,
+        rgba: img.bytes.into_owned(),
+    })
+}
+
+/// Reads plain text from the system clipboard without any browser permission dialog.
+/// Returns `None` if the clipboard holds no text or the read fails.
+#[tauri::command]
+fn read_clipboard_text() -> Option<String> {
+    let mut clipboard = arboard::Clipboard::new().ok()?;
+    clipboard.get_text().ok()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -361,6 +390,8 @@ pub fn run() {
             write_and_open_html,
             get_images_dir,
             save_pasted_image,
+            read_clipboard_image,
+            read_clipboard_text,
             setup_subwindow_appearance,
         ])
         .setup(|app| {

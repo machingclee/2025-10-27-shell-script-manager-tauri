@@ -1,44 +1,43 @@
-import { GripVertical } from "lucide-react"
-import * as ResizablePrimitive from "react-resizable-panels"
+import { GripVertical } from "lucide-react";
+import * as ResizablePrimitive from "react-resizable-panels";
 
-import { cn } from "../../lib/utils"
+import { cn } from "../../lib/utils";
 
 const ResizablePanelGroup = ({
-  className,
-  ...props
+    className,
+    ...props
 }: React.ComponentProps<typeof ResizablePrimitive.PanelGroup>) => (
-  <ResizablePrimitive.PanelGroup
-    className={cn(
-      "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
-      className
-    )}
-    {...props}
-  />
-)
+    <ResizablePrimitive.PanelGroup
+        className={cn(
+            "flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
+            className
+        )}
+        {...props}
+    />
+);
 
-const ResizablePanel = ResizablePrimitive.Panel
+const ResizablePanel = ResizablePrimitive.Panel;
 
 const ResizableHandle = ({
-  withHandle,
-  className,
-  ...props
+    withHandle,
+    className,
+    ...props
 }: React.ComponentProps<typeof ResizablePrimitive.PanelResizeHandle> & {
-  withHandle?: boolean
+    withHandle?: boolean;
 }) => (
-  <ResizablePrimitive.PanelResizeHandle
-    className={cn(
-      "relative flex w-2 items-center justify-center bg-border hover:bg-blue-200 transition-colors after:absolute after:inset-y-0 after:left-1/2 after:w-4 after:-translate-x-1/2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-2 data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-4 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:-translate-y-1/2 data-[panel-group-direction=vertical]:after:translate-x-0 [&[data-panel-group-direction=vertical]>div]:rotate-90",
-      className
-    )}
-    {...props}
-  >
-    {withHandle && (
-      <div className="z-10 flex h-10 w-6 items-center justify-center rounded-md border bg-gray-100 hover:bg-gray-200 transition-colors shadow-sm">
-        <GripVertical className="h-4 w-4 text-gray-600" />
-      </div>
-    )}
-  </ResizablePrimitive.PanelResizeHandle>
-)
+    <ResizablePrimitive.PanelResizeHandle
+        className={cn(
+            "relative flex w-2 items-center justify-center bg-border hover:bg-blue-200 transition-colors after:absolute after:inset-y-0 after:left-1/2 after:w-4 after:-translate-x-1/2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-2 data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-4 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:-translate-y-1/2 data-[panel-group-direction=vertical]:after:translate-x-0 [&[data-panel-group-direction=vertical]>div]:rotate-90",
+            className
+        )}
+        {...props}
+    >
+        {withHandle && (
+            <div className="flex h-10 w-6 items-center justify-center rounded-md border bg-gray-100 hover:bg-gray-200 transition-colors shadow-sm">
+                <GripVertical className="h-4 w-4 text-gray-600" />
+            </div>
+        )}
+    </ResizablePrimitive.PanelResizeHandle>
+);
 
-export { ResizablePanelGroup, ResizablePanel, ResizableHandle }
-
+export { ResizablePanelGroup, ResizablePanel, ResizableHandle };

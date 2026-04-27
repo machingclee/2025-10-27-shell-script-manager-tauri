@@ -399,7 +399,7 @@ function App() {
         <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-800 flex flex-col">
             {/* Custom title bar with window controls */}
             <div
-                className="h-12 flex-shrink-0  dark:bg-neutral-800 select-none flex items-center dark:text-white w-full relative z-[200] pointer-events-auto"
+                className="h-14 flex-shrink-0  dark:bg-neutral-800 select-none flex items-center dark:text-white w-full relative z-[200] pointer-events-auto dark:hover:bg-neutral-700/30 transition-colors"
                 onMouseDown={handleDragStart}
                 onDoubleClick={handleDoubleClick}
             >
@@ -471,7 +471,7 @@ function App() {
                 {activeTabId === HOME_TAB_ID ? (
                     <>
                         <ResizablePanelGroup direction="horizontal" className="flex-1">
-                            <ResizablePanel defaultSize={25} minSize={25} maxSize={50}>
+                            <ResizablePanel defaultSize={20} minSize={0} maxSize={50}>
                                 <FolderColumn />
                             </ResizablePanel>
                             <ResizableHandle withHandle />

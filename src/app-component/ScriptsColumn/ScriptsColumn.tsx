@@ -309,17 +309,6 @@ export default function ScriptsColumn() {
         setActiveType(null);
     };
 
-    const displayName = () => {
-        if (selectedFolder) {
-            return (
-                <div>
-                    Scripts in <span className="font-bold text-[18px]">{selectedFolder.name}</span>
-                </div>
-            );
-        }
-        return <Label>Scripts</Label>;
-    };
-
     const handleCloseAllFolders = () => {
         setCloseAllFoldersTrigger((prev) => prev + 1);
     };
@@ -329,8 +318,7 @@ export default function ScriptsColumn() {
             <>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 p-4">
-                        <ScrollText />
-                        <div className="font-medium">{displayName()}</div>
+  
                     </div>
                     <div className="flex items-center gap-2 mr-4">
                         <Button
@@ -351,7 +339,7 @@ export default function ScriptsColumn() {
     return (
         <div className="flex flex-col h-full dark:text-white">
             {header()}
-            <div className="h-px bg-gray-400 dark:bg-neutral-600" />
+            <div className="mt-2 h-px bg-gray-400 dark:bg-neutral-600" />
             <div className="space-y-2 p-4 overflow-y-auto flex-1 min-h-[400px] bg-gray-50 dark:bg-neutral-800">
                 {isLoading && <div>Loading...</div>}
 

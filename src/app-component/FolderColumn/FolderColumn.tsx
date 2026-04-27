@@ -412,25 +412,12 @@ export default function FolderColumn() {
     return (
         <div className="flex flex-col h-full dark:text-white">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 p-4">
-                    <FolderCode />
-                    <div className="font-medium">Workspaces</div>
-                </div>
-                <div className="flex items-center gap-2 mr-4">
-                    {/* <Button
-                        variant="ghost"
-                        size="sm"
-                        className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
-                        onClick={() => setIsCreateDialogOpen(true)}
-                        title="Create new folder"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <FolderCode className="w-4 h-4" />
-                    </Button> */}
+       
+                <div className="flex items-center gap-2 justify-end w-full pb-[13px]">
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
+                        className="mr-4 bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
                         onClick={() => setIsCreateWorkspaceDialogOpen(true)}
                         title="Create new workspace"
                     >
@@ -441,15 +428,15 @@ export default function FolderColumn() {
             </div>
             <div className="h-px bg-gray-400 dark:bg-neutral-600" />
             {/* Status filter tabs */}
-            <div className="flex gap-1 px-4 pt-3 pb-1">
+            <div className="flex  pb-1">
                 {(["ACTIVE", "ARCHIVED"] as WorkspaceStatusName[]).map((status) => (
                     <button
                         key={status}
                         onClick={() => setWorkspaceFilter(status)}
-                        className={`px-3 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                        className={`flex-1 px-2 py-2 rounded-none font-medium transition-colors ${
                             workspaceFilter === status
-                                ? "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900"
-                                : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600"
+                                ? "bg-neutral-800 dark:text-white dark:bg-neutral-700/100 dark:text-neutral-900"
+                                : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300 dark:bg-neutral-700/50 dark:text-neutral-500 dark:hover:bg-neutral-600"
                         }`}
                     >
                         {status.charAt(0) + status.slice(1).toLowerCase()}
