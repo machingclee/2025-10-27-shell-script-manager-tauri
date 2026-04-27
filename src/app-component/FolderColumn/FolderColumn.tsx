@@ -1,4 +1,4 @@
-import { FolderCode, Loader2, Plus } from "lucide-react";
+import {  Loader2, Plus } from "lucide-react";
 import { folderApi } from "../../store/api/folderApi";
 import { workspaceApi } from "../../store/api/workspaceApi";
 import { appStateApi } from "../../store/api/appStateApi";
@@ -435,7 +435,7 @@ export default function FolderColumn() {
                         onClick={() => setWorkspaceFilter(status)}
                         className={`flex-1 px-2 py-2 rounded-none font-medium transition-colors ${
                             workspaceFilter === status
-                                ? "bg-neutral-800 dark:text-white dark:bg-neutral-700/100 dark:text-neutral-900"
+                                ? "bg-neutral-800 dark:text-white dark:bg-neutral-700/100"
                                 : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300 dark:bg-neutral-700/50 dark:text-neutral-500 dark:hover:bg-neutral-600"
                         }`}
                     >

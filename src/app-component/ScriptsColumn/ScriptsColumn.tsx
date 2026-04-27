@@ -1,7 +1,6 @@
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { ScrollText, FoldVertical } from "lucide-react";
+import { FoldVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
     DndContext,
     KeyboardSensor,
@@ -67,7 +66,7 @@ export default function ScriptsColumn() {
     const selectedRootFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
-    const { data: selectedFolder } = folderApi.endpoints.getAllFolders.useQueryState(undefined, {
+    const { data: _selectedFolder } = folderApi.endpoints.getAllFolders.useQueryState(undefined, {
         selectFromResult: (result) => ({
             data: result.data?.find((f) => f.id === selectedRootFolderId),
         }),
