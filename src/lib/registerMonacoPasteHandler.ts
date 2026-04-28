@@ -23,6 +23,31 @@ export interface MarkdownEditorBehaviorOptions {
     onDoubleClickLine?: (lineNum: number) => void;
 }
 
+function replaceCurrentSelection(
+    editorInstance: MonacoEditorNS.IStandaloneCodeEditor,
+    text: string
+) {
+    const model = editorInstance.getModel();
+    const selection = editorInstance.getSelection();
+    if (!model || !selection) return;
+
+    const insertionOffset = model.getOffsetAt(selection.getStartPosition()) + text.length;
+    const cursorPosition = model.getPositionAt(insertionOffset);
+
+    editorInstance.executeEdits(
+        "paste",
+        [{ range: selection, text, forceMoveMarkers: true }],
+        [
+            new monaco.Selection(
+                cursorPosition.lineNumber,
+                cursorPosition.column,
+                cursorPosition.lineNumber,
+                cursorPosition.column
+            ),
+        ]
+    );
+}
+
 /**
  * Registers all standard markdown editor behaviors on a Monaco instance:
  *  - Cmd+V: image + text paste via Rust/arboard (no macOS permission dialog)
@@ -67,15 +92,13 @@ export function registerMarkdownEditorBehaviors(
 
             const bytes = Array.from(new Uint8Array(await blob.arrayBuffer()));
             const filename = await invoke<string>("save_pasted_image", { data: bytes });
-            editorInstance.trigger("keyboard", "type", {
-                text: `![pasted image](images/${filename})`,
-            });
+            replaceCurrentSelection(editorInstance, `![pasted image](images/${filename})`);
             return;
         }
 
         const text = await invoke<string | null>("read_clipboard_text").catch(() => null);
         if (text) {
-            editorInstance.trigger("keyboard", "type", { text });
+            replaceCurrentSelection(editorInstance, text);
         }
     });
 

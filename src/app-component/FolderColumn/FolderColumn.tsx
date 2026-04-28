@@ -1,4 +1,4 @@
-import {  Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { folderApi } from "../../store/api/folderApi";
 import { workspaceApi } from "../../store/api/workspaceApi";
 import { appStateApi } from "../../store/api/appStateApi";
@@ -412,7 +412,6 @@ export default function FolderColumn() {
     return (
         <div className="flex flex-col h-full dark:text-white">
             <div className="flex items-center justify-between">
-       
                 <div className="flex items-center gap-2 justify-end w-full pb-[13px]">
                     <Button
                         variant="ghost"
@@ -428,6 +427,18 @@ export default function FolderColumn() {
             </div>
             <div className="h-px bg-gray-400 dark:bg-neutral-600" />
             {/* Status filter tabs */}
+            <style>{`
+                @keyframes folder-filter-fade-down {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-12px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
             <div className="flex  pb-1">
                 {(["ACTIVE", "ARCHIVED"] as WorkspaceStatusName[]).map((status) => (
                     <button
@@ -443,7 +454,13 @@ export default function FolderColumn() {
                     </button>
                 ))}
             </div>
-            <div className="space-y-1 p-4 overflow-y-auto flex-1">
+            <div
+                key={workspaceFilter}
+                className="space-y-1 p-4 overflow-y-auto flex-1"
+                style={{
+                    animation: "folder-filter-fade-down 220ms ease",
+                }}
+            >
                 {(isLoading || isLoadingWorkspaces) && <div>Loading...</div>}
 
                 {!isLoading &&

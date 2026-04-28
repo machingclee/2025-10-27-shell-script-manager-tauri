@@ -323,7 +323,7 @@ export default function ({
                         items={folder.shellScripts.map((s) => s.id || 0)}
                         strategy={verticalListSortingStrategy}
                     >
-                        <div className="ml-8 mt-2 space-y-2">
+                        <div className="ml-12 mt-2 space-y-2">
                             {folder.shellScripts.map((script) => (
                                 <SortableScriptItem
                                     key={script.id}

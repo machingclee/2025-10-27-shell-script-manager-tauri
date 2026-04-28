@@ -54,6 +54,19 @@ function TabPill({
             style={style}
             {...attributes}
             {...listeners}
+            onMouseDown={(e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }}
+            onMouseUp={(e) => {
+                if (e.button === 1 && onClose) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                }
+            }}
             onClick={onActivate}
             className={cn(
                 "w-full flex flex-1 items-center gap-1.5 px-3 h-8 select-none rounded-t border-t border-l border-r transition-colors",

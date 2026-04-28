@@ -316,9 +316,7 @@ export default function ScriptsColumn() {
         return (
             <>
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 p-4">
-  
-                    </div>
+                    <div className="flex items-center gap-2 p-4"></div>
                     <div className="flex items-center gap-2 mr-4">
                         <Button
                             variant="ghost"
@@ -369,7 +367,9 @@ export default function ScriptsColumn() {
                                 const scriptInfo = findScriptRecursive(folderResponse, activeId);
                                 return scriptInfo ? (
                                     <div className="opacity-80 cursor-grabbing">
-                                        <div className="bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700">
+                                        <div
+                                            className={`bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700 ml-8`}
+                                        >
                                             <GenericScriptItem
                                                 script={scriptInfo.script}
                                                 parentFolderId={scriptInfo.parentFolderId}
