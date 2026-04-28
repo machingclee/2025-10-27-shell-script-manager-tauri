@@ -16,6 +16,7 @@
             {
                 "title": "Shell Script Manager",
                 "width": 1300,
+                "minWidth": 500,
                 "height": 800,
                 "titleBarStyle": "Overlay",
                 "hiddenTitle": true
@@ -43,6 +44,7 @@
                         "core:window:allow-set-focus",
                         "core:window:allow-set-fullscreen",
                         "core:window:allow-is-fullscreen",
+                        "core:window:allow-inner-size",
                         "core:event:default",
                         "core:webview:allow-create-webview-window",
                         "core:webview:allow-webview-close",
