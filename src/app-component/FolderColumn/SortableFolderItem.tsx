@@ -134,7 +134,14 @@ export default React.memo(
                     style={style}
                     {...attributes}
                     className="w-full flex-shrink-0"
-                    onClick={onClick}
+                    onClick={() => {
+                        if (isSelected) {
+                            setNewName(folder.name);
+                            setIsRenameOpen(true);
+                        } else {
+                            onClick();
+                        }
+                    }}
                 >
                     <ContextMenu>
                         <ContextMenuTrigger asChild>
