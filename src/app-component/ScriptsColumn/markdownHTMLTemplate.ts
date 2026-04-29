@@ -24,6 +24,7 @@ export default function markdownHTMLTemplate(props: { scriptName: string; bodyHt
     li { display: list-item; padding-left: 0.5em; line-height: 1.4; }
     ul.contains-task-list { padding-left: 2em; }
     li.task-list-item { list-style: none; padding-left: 0; }
+    li.task-list-item > p { display: block; margin-top: 0.5em; margin-bottom: 0.5em; }
     input[type="checkbox"] {
       appearance: none; -webkit-appearance: none;
       width: 16px; height: 16px;
@@ -39,7 +40,7 @@ export default function markdownHTMLTemplate(props: { scriptName: string; bodyHt
     img { border-radius: 4px; }
     input[type="checkbox"]:checked,
     input[type="checkbox"][checked] { background-color: rgb(59,130,246); border-color: rgb(59,130,246); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: center; background-size: 11px; }
-    code:not(pre code) { background: #f6f8fa; border: 1px solid #d0d7de; padding: 2px 6px; border-radius: 4px; font-size: 0.95em; }
+    code:not(pre code) { background: #f6f8fa; border: 1px solid #d0d7de; padding: 2px 6px; border-radius: 4px; font-size: 0.95em; white-space: pre-wrap; word-break: break-word; }
     pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow: auto; margin-top: 0.5em; margin-bottom: 0.5em; }
     pre code.hljs { background: transparent; padding: 0; font-size: 0.9em; }
     blockquote { border-left: 4px solid #d0d7de; margin-left: 0; padding-left: 1em; color: #57606a; }
@@ -80,6 +81,17 @@ export default function markdownHTMLTemplate(props: { scriptName: string; bodyHt
   ${bodyHtml}
 </body>
 <script>
+  document.querySelectorAll('img').forEach(function(img) {
+    if (img.parentElement && img.parentElement.tagName !== 'A') {
+      var a = document.createElement('a');
+      a.href = img.src;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      img.parentNode.insertBefore(a, img);
+      a.appendChild(img);
+    }
+  });
+
   document.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
     if (cb.checked || cb.hasAttribute('checked')) {
       cb.style.backgroundColor = 'rgb(59,130,246)';

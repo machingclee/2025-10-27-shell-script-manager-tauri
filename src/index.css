@@ -2,6 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes toast-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes search-item-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-search-item {
+    animation: search-item-in 0.2s ease-out both;
+}
+@keyframes panel-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+.animate-panel-in {
+    animation: panel-fade-in 0.15s ease-out both;
+}
+@keyframes toast-fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
 /* Prism.js Dark Theme for Code Editor */
 @import "prismjs/themes/prism-okaidia.css";
 

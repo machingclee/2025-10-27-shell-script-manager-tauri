@@ -61,7 +61,7 @@ function TabPill({
                 }
             }}
             onMouseUp={(e) => {
-                if (e.button === 1 && onClose) {
+                if (e.button === 1 && onClose && !hasChanges) {
                     e.preventDefault();
                     e.stopPropagation();
                     onClose();
@@ -86,11 +86,14 @@ function TabPill({
             </span>
             {onClose && (
                 <button
-                    className="ml-0.5 p-0.5 rounded hover:bg-neutral-600 text-neutral-500 hover:text-white"
+                    className={cn(
+                        "ml-0.5 p-0.5 rounded hover:bg-neutral-600 text-neutral-500 hover:text-white",
+                        hasChanges && "pointer-events-none"
+                    )}
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                         e.stopPropagation();
-                        onClose();
+                        if (!hasChanges) onClose();
                     }}
                 >
                     {hasChanges ? (

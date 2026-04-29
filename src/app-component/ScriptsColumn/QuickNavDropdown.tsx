@@ -29,6 +29,19 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AddMarkdownDialog } from "../FolderColumn/Dialog/AddMarkdownDialog";
 import { emit } from "@tauri-apps/api/event";
 import {
     Compass,
@@ -41,6 +54,7 @@ import {
     Trash2,
     Link,
     Building2,
+    Plus,
 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import ExecuteConfirmDialog from "./ExecuteConfirmDialog";
@@ -117,33 +131,96 @@ function ScriptContextActions({
     );
 }
 
+// ─── Folder right-click context actions ──────────────────────────────────────
+function FolderContextActions({
+    folder,
+    onAddMarkdownRequest,
+    onAddScriptRequest,
+}: {
+    folder: ScriptsFolderResponse;
+    onAddMarkdownRequest: (folder: ScriptsFolderResponse) => void;
+    onAddScriptRequest: (folder: ScriptsFolderResponse) => void;
+}) {
+    return (
+        <>
+            <ContextMenuItem
+                className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
+                onClick={() => onAddMarkdownRequest(folder)}
+            >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Markdown
+            </ContextMenuItem>
+            <ContextMenuItem
+                className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
+                onClick={() => onAddScriptRequest(folder)}
+            >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Script
+            </ContextMenuItem>
+        </>
+    );
+}
+
 // ─── Recursive folder node ─────────────────────────────────────────────────────
 function FolderNode({
     folder,
     onDeleteRequest,
     onExecuteRequest,
+    onAddMarkdownRequest,
+    onAddScriptRequest,
 }: {
     folder: ScriptsFolderResponse;
     onDeleteRequest: (script: ShellScriptResponse, folderId: number) => void;
     onExecuteRequest: (script: ShellScriptResponse) => void;
+    onAddMarkdownRequest: (folder: ScriptsFolderResponse) => void;
+    onAddScriptRequest: (folder: ScriptsFolderResponse) => void;
 }) {
     const hasContent = folder.subfolders.length > 0 || folder.shellScripts.length > 0;
 
     if (!hasContent) {
         return (
-            <DropdownMenuItem key={folder.id} disabled className="dark:text-neutral-500 opacity-50">
-                <Folder className="w-4 h-4 mr-2" />
-                {folder.name}
-            </DropdownMenuItem>
+            <DropdownMenuSub key={folder.id}>
+                <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                        <DropdownMenuSubTrigger className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700 dark:hover:bg-neutral-700">
+                            <Folder className="w-4 h-4 mr-2" />
+                            {folder.name}
+                        </DropdownMenuSubTrigger>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                        <FolderContextActions
+                            folder={folder}
+                            onAddMarkdownRequest={onAddMarkdownRequest}
+                            onAddScriptRequest={onAddScriptRequest}
+                        />
+                    </ContextMenuContent>
+                </ContextMenu>
+                <DropdownMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                    <DropdownMenuItem disabled className="dark:text-neutral-500 opacity-50">
+                        Empty folder
+                    </DropdownMenuItem>
+                </DropdownMenuSubContent>
+            </DropdownMenuSub>
         );
     }
 
     return (
         <DropdownMenuSub key={folder.id}>
-            <DropdownMenuSubTrigger className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700 dark:hover:bg-neutral-700">
-                <Folder className="w-4 h-4 mr-2" />
-                {folder.name}
-            </DropdownMenuSubTrigger>
+            <ContextMenu>
+                <ContextMenuTrigger asChild>
+                    <DropdownMenuSubTrigger className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700 dark:hover:bg-neutral-700">
+                        <Folder className="w-4 h-4 mr-2" />
+                        {folder.name}
+                    </DropdownMenuSubTrigger>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                    <FolderContextActions
+                        folder={folder}
+                        onAddMarkdownRequest={onAddMarkdownRequest}
+                        onAddScriptRequest={onAddScriptRequest}
+                    />
+                </ContextMenuContent>
+            </ContextMenu>
             <DropdownMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700">
                 {folder.subfolders.map((sub) => (
                     <FolderNode
@@ -151,6 +228,8 @@ function FolderNode({
                         folder={sub}
                         onDeleteRequest={onDeleteRequest}
                         onExecuteRequest={onExecuteRequest}
+                        onAddMarkdownRequest={onAddMarkdownRequest}
+                        onAddScriptRequest={onAddScriptRequest}
                     />
                 ))}
                 {folder.subfolders.length > 0 && folder.shellScripts.length > 0 && (
@@ -203,6 +282,8 @@ export default function QuickNavDropdown() {
         skip: port === 0,
     });
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
+    const [createScript] = scriptApi.endpoints.createScript.useMutation();
+    const [createMarkdownScript] = scriptApi.endpoints.createMarkdownScript.useMutation();
 
     const [pendingDelete, setPendingDelete] = useState<{
         script: ShellScriptResponse;
@@ -211,12 +292,56 @@ export default function QuickNavDropdown() {
 
     const [pendingExecute, setPendingExecute] = useState<ShellScriptResponse | null>(null);
 
+    // Add markdown state
+    const [pendingAddMarkdown, setPendingAddMarkdown] = useState<ScriptsFolderResponse | null>(
+        null
+    );
+    const [markdownName, setMarkdownName] = useState("");
+    const [markdownContent, setMarkdownContent] = useState("");
+
+    // Add script state
+    const [pendingAddScript, setPendingAddScript] = useState<ScriptsFolderResponse | null>(null);
+    const [scriptName, setScriptName] = useState("");
+    const [scriptCommand, setScriptCommand] = useState("");
+
     const handleDeleteRequest = (script: ShellScriptResponse, folderId: number) => {
         setPendingDelete({ script, folderId });
     };
 
     const handleExecuteRequest = (script: ShellScriptResponse) => {
         setPendingExecute(script);
+    };
+
+    const handleAddMarkdownRequest = (folder: ScriptsFolderResponse) => {
+        setMarkdownName("");
+        setMarkdownContent("");
+        setPendingAddMarkdown(folder);
+    };
+
+    const handleAddScriptRequest = (folder: ScriptsFolderResponse) => {
+        setScriptName("");
+        setScriptCommand("");
+        setPendingAddScript(folder);
+    };
+
+    const confirmAddMarkdown = async () => {
+        if (!pendingAddMarkdown || !markdownName.trim()) return;
+        await createMarkdownScript({
+            name: markdownName,
+            content: markdownContent,
+            folderId: pendingAddMarkdown.id,
+        });
+        setPendingAddMarkdown(null);
+    };
+
+    const confirmAddScript = async () => {
+        if (!pendingAddScript || !scriptName.trim() || !scriptCommand.trim()) return;
+        await createScript({
+            name: scriptName,
+            content: scriptCommand,
+            folderId: pendingAddScript.id,
+        });
+        setPendingAddScript(null);
     };
 
     const confirmDelete = async () => {
@@ -238,7 +363,7 @@ export default function QuickNavDropdown() {
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                    className="dark:bg-neutral-800 dark:border-neutral-700"
+                    className="dark:bg-neutral-800 dark:border-neutral-700 z-[9999]"
                     align="end"
                 >
                     {(workspaces || []).length === 0 && (
@@ -264,6 +389,8 @@ export default function QuickNavDropdown() {
                                             folder={folder}
                                             onDeleteRequest={handleDeleteRequest}
                                             onExecuteRequest={handleExecuteRequest}
+                                            onAddMarkdownRequest={handleAddMarkdownRequest}
+                                            onAddScriptRequest={handleAddScriptRequest}
                                         />
                                     ))
                                 )}
@@ -295,6 +422,74 @@ export default function QuickNavDropdown() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Add Markdown Dialog */}
+            {pendingAddMarkdown && (
+                <AddMarkdownDialog
+                    isAddMarkdownOpen={pendingAddMarkdown !== null}
+                    setIsAddMarkdownOpen={(open) => {
+                        if (!open) setPendingAddMarkdown(null);
+                    }}
+                    folder={pendingAddMarkdown}
+                    markdownName={markdownName}
+                    setMarkdownName={setMarkdownName}
+                    markdownContent={markdownContent}
+                    setMarkdownContent={setMarkdownContent}
+                    handleAddMarkdown={confirmAddMarkdown}
+                />
+            )}
+
+            {/* Add Script Dialog */}
+            <Dialog
+                open={pendingAddScript !== null}
+                onOpenChange={(open) => {
+                    if (!open) setPendingAddScript(null);
+                }}
+            >
+                <DialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700 max-w-5xl">
+                    <DialogHeader>
+                        <DialogTitle>Add Script to "{pendingAddScript?.name}"</DialogTitle>
+                        <DialogDescription>
+                            Create a new script inside this folder.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="qs-script-name">Name</Label>
+                            <Input
+                                className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                                id="qs-script-name"
+                                autoFocus
+                                value={scriptName}
+                                onChange={(e) => setScriptName(e.target.value)}
+                                placeholder="Script name"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="qs-script-command">Command</Label>
+                            <Textarea
+                                id="qs-script-command"
+                                value={scriptCommand}
+                                onChange={(e) => setScriptCommand(e.target.value)}
+                                placeholder="Command to execute"
+                                rows={18}
+                                className="font-mono text-sm bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white resize-none"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPendingAddScript(null)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={confirmAddScript}
+                            disabled={!scriptName.trim() || !scriptCommand.trim()}
+                        >
+                            Create Script
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <ExecuteConfirmDialog
                 open={pendingExecute !== null}

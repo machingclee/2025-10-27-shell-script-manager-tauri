@@ -373,6 +373,55 @@ fn read_clipboard_text() -> Option<String> {
     clipboard.get_text().ok()
 }
 
+/// Called by the frontend after the user has confirmed they are OK to close
+/// (either because there are no unsaved changes, or they clicked OK on the dialog).
+/// Does the actual backend cleanup and then closes the window.
+#[tauri::command]
+async fn confirm_close(app: tauri::AppHandle) -> Result<(), String> {
+    // Guard against double-invocation
+    if let Some(cleanup_flag) = CLEANUP_DONE.get() {
+        let mut cleanup_done = cleanup_flag.lock().unwrap();
+        if *cleanup_done {
+            return Ok(());
+        }
+        *cleanup_done = true;
+    }
+
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "Main window not found".to_string())?;
+
+    // Show the closing spinner overlay
+    window.emit("app-closing", ()).ok();
+
+    // Spawn async shutdown
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        println!("confirm_close: shutting down backends...");
+        kill_spring_boot_backend();
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        verify_backend_killed();
+        println!("confirm_close: cleanup complete, terminating app");
+
+        // On macOS we must call [NSApp terminate:] to properly end the process.
+        // CLEANUP_DONE is already true so applicationShouldTerminate: will return
+        // NSTerminateNow on the second call, completing the quit cycle.
+        #[cfg(target_os = "macos")]
+        unsafe {
+            use cocoa::appkit::NSApplication;
+            use cocoa::base::{id, nil};
+            let ns_app: id = NSApplication::sharedApplication(nil);
+            let _: () = msg_send![ns_app, terminate: nil];
+        }
+
+        // On other platforms closing the last window exits the process.
+        #[cfg(not(target_os = "macos"))]
+        window.close().ok();
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -393,6 +442,7 @@ pub fn run() {
             read_clipboard_image,
             read_clipboard_text,
             setup_subwindow_appearance,
+            confirm_close,
         ])
         .setup(|app| {
             // 0. Initialize cleanup flag
@@ -440,49 +490,18 @@ pub fn run() {
                     return;
                 }
 
-                // Check if cleanup has already been done
+                // If cleanup is already done (second close call from confirm_close), allow it
                 if let Some(cleanup_flag) = CLEANUP_DONE.get() {
-                    let mut cleanup_done = cleanup_flag.lock().unwrap();
-
+                    let cleanup_done = cleanup_flag.lock().unwrap();
                     if *cleanup_done {
-                        // Cleanup already done, allow the close
                         println!("Cleanup already completed, allowing window to close");
                         return;
                     }
-
-                    // Mark cleanup as in progress
-                    *cleanup_done = true;
                 }
 
-                // Prevent default close behavior
+                // Prevent default close and ask the frontend to check for unsaved changes
                 api.prevent_close();
-
-                // Emit event to frontend to show loading spinner
-                window.emit("app-closing", ()).ok();
-
-                // Clone window for async task
-                let window_clone = window.clone();
-
-                // Spawn async task to handle shutdown
-                tauri::async_runtime::spawn(async move {
-                    // Give frontend time to show the spinner
-                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-
-                    // Kill Spring Boot backend
-                    println!("Window close requested, shutting down backends...");
-                    kill_spring_boot_backend();
-
-                    // Give it extra time to ensure cleanup is complete
-                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-                    // Verify the processes are actually dead
-                    verify_backend_killed();
-
-                    println!("Cleanup complete, closing window now");
-
-                    // Now allow the window to close
-                    window_clone.close().ok();
-                });
+                window.emit("check-unsaved-changes", ()).ok();
             }
         })
         .build(tauri::generate_context!())
@@ -1324,57 +1343,25 @@ fn setup_app_delegate() {
         extern "C" fn should_terminate(_: &Object, _: Sel, _sender: id) -> usize {
             eprintln!("=== applicationShouldTerminate called (Command+Q intercepted) ===");
 
-            // Check if cleanup has already been done
+            // If confirm_close already ran, allow termination immediately
             if let Some(cleanup_flag) = CLEANUP_DONE.get() {
-                let mut cleanup_done = cleanup_flag.lock().unwrap();
-
+                let cleanup_done = cleanup_flag.lock().unwrap();
                 if *cleanup_done {
                     eprintln!("=== Cleanup already completed, allowing termination ===");
                     return 1; // NSTerminateNow
                 }
-
-                // Mark cleanup as in progress
-                *cleanup_done = true;
             }
 
-            // Emit event to frontend to show loading spinner
+            // Ask the frontend to check for unsaved changes.
+            // UnsavedChangesDialog will call invoke("confirm_close") when it's OK to quit.
             if let Some(app_handle) = APP_HANDLE.get() {
                 if let Some(window) = app_handle.get_webview_window("main") {
-                    eprintln!("=== Emitting app-closing event ===");
-                    window.emit("app-closing", ()).ok();
+                    eprintln!("=== Emitting check-unsaved-changes ===");
+                    window.emit("check-unsaved-changes", ()).ok();
                 }
-
-                // Clone app_handle for async task
-                let app_handle_clone = app_handle.clone();
-
-                // Spawn async task for cleanup
-                tauri::async_runtime::spawn(async move {
-                    // Give frontend time to show the spinner
-                    tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
-
-                    // Kill backend synchronously
-                    eprintln!("=== Killing Spring Boot backend... ===");
-                    kill_spring_boot_backend();
-
-                    // Wait for cleanup
-                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-                    // Verify cleanup
-                    verify_backend_killed();
-
-                    eprintln!("=== Backend killed, terminating app ===");
-
-                    // Terminate the application
-                    unsafe {
-                        use cocoa::appkit::NSApplication;
-                        use cocoa::base::nil;
-                        let app: id = NSApplication::sharedApplication(nil);
-                        let _: () = msg_send![app, terminate: nil];
-                    }
-                });
             }
 
-            // Return NSTerminateLater (0) to allow async cleanup
+            // Return NSTerminateLater — confirm_close will call [NSApp terminate:] when ready
             0
         }
 

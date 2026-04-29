@@ -190,11 +190,11 @@ export default function ScriptItem({
                             <Terminal className="w-7 h-7 flex-shrink-0 text-green-500 dark:text-green-400" />
                             {script.name}
                         </div>
-                        {liteVersionDisplay && liteVersionDisplay}
                     </div>
 
                     {executingScript && <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />}
                 </div>
+
                 <div
                     className="flex items-center gap-2 flex-shrink-0"
                     onClick={(e) => e.stopPropagation()}
@@ -240,10 +240,12 @@ export default function ScriptItem({
                     )}
                 </div>
             </div>
-            <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)] max-h-16 overflow-y-auto overflow-x-hidden break-all whitespace-pre-wrap w-full">
-                {script.command}
-            </div>
-
+            {!liteVersionDisplay && (
+                <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)] max-h-16 overflow-y-auto overflow-x-hidden break-all whitespace-pre-wrap w-full">
+                    {script.command}
+                </div>
+            )}
+            {liteVersionDisplay && liteVersionDisplay}
             {/* Dialogs outside the main div */}
             <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
                 <AlertDialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">

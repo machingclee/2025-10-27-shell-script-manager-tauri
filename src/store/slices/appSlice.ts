@@ -56,10 +56,19 @@ interface TabState {
     fontSize: number;
     /** Shared across all tabs — dark/light preview mode toggle. */
     previewDarkMode: boolean;
+    /** Stack of recently closed markdown tabs; Cmd+Shift+T pops and reopens the last one. */
+    closedMarkdownQueue: { scriptId: number; scriptName: string }[];
 }
 
 interface AppState {
     tab: TabState;
+    rightPanel: {
+        mode: "SEARCH" | "HISTORY";
+        search: {
+            searchText: string;
+            searchPage: number;
+        };
+    };
 }
 
 export const DEFAULT_FONT_SIZE = 18;
@@ -73,6 +82,14 @@ const initialState: AppState = {
         previewer: {},
         fontSize: DEFAULT_FONT_SIZE,
         previewDarkMode: true,
+        closedMarkdownQueue: [],
+    },
+    rightPanel: {
+        mode: "HISTORY",
+        search: {
+            searchText: "",
+            searchPage: 0,
+        },
     },
 };
 
@@ -103,6 +120,13 @@ const appSlice = createSlice({
             const tabId = action.payload;
             const idx = state.tab.tabs.findIndex((t) => t.scriptId === tabId);
             if (idx === -1) return;
+            const closingTab = state.tab.tabs[idx];
+            if (closingTab.type === "markdown") {
+                state.tab.closedMarkdownQueue.push({
+                    scriptId: closingTab.scriptId,
+                    scriptName: closingTab.scriptName,
+                });
+            }
             state.tab.tabs.splice(idx, 1);
             if (state.tab.activeTabId === tabId) {
                 state.tab.activeTabId =
@@ -111,6 +135,18 @@ const appSlice = createSlice({
             delete state.tab.tabStates[tabId];
             delete state.tab.editor[String(tabId)];
             delete state.tab.previewer[String(tabId)];
+        },
+        reopenLastClosedTab(state) {
+            const last = state.tab.closedMarkdownQueue.pop();
+            if (!last) return;
+            const { scriptId, scriptName } = last;
+            const exists = state.tab.tabs.find((t) => t.scriptId === scriptId);
+            if (exists) {
+                state.tab.activeTabId = scriptId;
+                return;
+            }
+            state.tab.tabs.push({ scriptId, type: "markdown", scriptName });
+            state.tab.activeTabId = scriptId;
         },
         setActiveTab(state, action: PayloadAction<number>) {
             state.tab.activeTabId = action.payload;
@@ -171,6 +207,16 @@ const appSlice = createSlice({
             const [tab] = state.tab.tabs.splice(fromIndex, 1);
             state.tab.tabs.splice(toIndex, 0, tab);
         },
+        setSearchText(state, action: PayloadAction<string>) {
+            state.rightPanel.search.searchText = action.payload;
+            state.rightPanel.search.searchPage = 0;
+        },
+        setSearchPage(state, action: PayloadAction<number>) {
+            state.rightPanel.search.searchPage = action.payload;
+        },
+        setRightPanelMode(state, action: PayloadAction<"SEARCH" | "HISTORY">) {
+            state.rightPanel.mode = action.payload;
+        },
     },
 });
 
@@ -184,5 +230,9 @@ export const {
     setFontSize,
     setPreviewDarkMode,
     reorderTabs,
+    reopenLastClosedTab,
+    setSearchText,
+    setSearchPage,
+    setRightPanelMode,
 } = appSlice.actions;
 export default appSlice;

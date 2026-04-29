@@ -1,5 +1,6 @@
 package com.scriptmanager.common.dto
 
+import com.scriptmanager.common.domainutils.Query
 import com.scriptmanager.common.entity.*
 
 data class ApiResponse<T>(
@@ -240,4 +241,21 @@ data class SelectDefaultModelConfigRequest(
 
 data class UpdateWorkspaceStatusRequest(
     val statusName: WorkspaceStatusName
+)
+
+data class SearchScriptRequest(
+    val search: String,
+    val page: Int = 0,
+    val size: Int = 10
+)
+
+data class SearchScriptQuery(
+    val search: String,
+    val page: Int = 0,
+    val size: Int = 10
+) : Query<ScriptsWithTotal>
+
+data class ScriptsWithTotal(
+    val scripts: List<ShellScriptDTO>,
+    val total: Long
 )

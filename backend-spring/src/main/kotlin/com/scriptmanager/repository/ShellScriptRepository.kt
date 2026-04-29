@@ -1,6 +1,8 @@
 package com.scriptmanager.repository
 
 import com.scriptmanager.common.entity.ShellScript
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
@@ -25,4 +27,14 @@ interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
     )
     @Modifying
     fun resetAllScriptItemsIsEditingStatus(): Int
+
+    @Query(
+        """
+        SELECT s FROM ShellScript s
+        WHERE LOWER(s.name) LIKE LOWER('%' || :search || '%')
+           OR LOWER(s.command) LIKE LOWER('%' || :search || '%')
+        ORDER BY s.createdAt DESC
+        """
+    )
+    fun searchByNameOrCommand(@Param("search") search: String, pageable: Pageable): Page<ShellScript>
 }

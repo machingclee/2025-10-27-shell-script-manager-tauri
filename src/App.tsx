@@ -1,6 +1,15 @@
 import "./App.css";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { openMarkdownTab, closeTab, HOME_TAB_ID } from "./store/slices/appSlice";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import debounce from "lodash/debounce";
+import {
+    openMarkdownTab,
+    closeTab,
+    reopenLastClosedTab,
+    HOME_TAB_ID,
+    setSearchText,
+    setRightPanelMode,
+} from "./store/slices/appSlice";
+import { openHistory } from "./store/slices/historySlice";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { onOpenUrl, getCurrent } from "@tauri-apps/plugin-deep-link";
@@ -18,16 +27,45 @@ import rootFolderSlice from "./store/slices/rootFolderSlice";
 import configSlice from "./store/slices/configSlice";
 import HistoryButton from "./app-component/History/HistoryButton";
 import HistoryPanel from "./app-component/History/HistoryPanel";
+import SearchPanel from "./app-component/History/SearchPanel";
 import QuickNavDropdown from "./app-component/ScriptsColumn/QuickNavDropdown";
 import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
+import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
 import TabBar from "./components/TabBar";
+import { Search } from "lucide-react";
 // import AIProfileButton from "./app-component/AIProfile/AIProfileButton";
 
 function App() {
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const isHistoryOpen = useAppSelector((s) => s.history.isOpen);
+
+    // -----------------------------------------------------------------------
+    // Search panel state
+    // -----------------------------------------------------------------------
+    const searchText = useAppSelector((s) => s.app.rightPanel.search.searchText);
+    const rightPanelMode = useAppSelector((s) => s.app.rightPanel.mode);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    const debouncedDispatchSearch = useMemo(
+        () => debounce((val: string) => dispatch(setSearchText(val.trim())), 500),
+        [dispatch]
+    );
+
+    useEffect(() => {
+        return () => debouncedDispatchSearch.cancel();
+    }, [debouncedDispatchSearch]);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        debouncedDispatchSearch(e.target.value);
+    };
+
+    const clearSearch = () => {
+        if (searchInputRef.current) searchInputRef.current.value = "";
+        debouncedDispatchSearch.cancel();
+        dispatch(setSearchText(""));
+    };
 
     // -----------------------------------------------------------------------
     // Tab system (state lives in Redux)
@@ -59,6 +97,29 @@ function App() {
     useEffect(() => {
         notifyScriptExecutedRef.current = notifyScriptExecuted;
     }, [notifyScriptExecuted]);
+
+    const closedMarkdownQueue = useAppSelector((s) => s.app.tab.closedMarkdownQueue);
+    const closedMarkdownQueueRef = useRef(closedMarkdownQueue);
+    useEffect(() => {
+        closedMarkdownQueueRef.current = closedMarkdownQueue;
+    }, [closedMarkdownQueue]);
+
+    // Cmd+Shift+T — reopen the most recently closed markdown tab
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.metaKey && e.shiftKey && e.code === "KeyT") {
+                e.preventDefault();
+                const queue = closedMarkdownQueueRef.current;
+                const last = queue[queue.length - 1];
+                if (last) {
+                    dispatch(reopenLastClosedTab());
+                    notifyScriptExecutedRef.current({ scriptId: last.scriptId });
+                }
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown, { capture: true });
+        return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    }, [dispatch]);
 
     // Only fetch when backend port is available
     const { data: appState } = appStateApi.endpoints.getAppState.useQuery(undefined, {
@@ -154,12 +215,17 @@ function App() {
             "open-markdown-reference",
             ({ payload }) => {
                 openMarkdownTabRef.current(payload.scriptId, payload.scriptName);
+                dispatch(
+                    scriptApi.endpoints.notifyScriptExecuted.initiate({
+                        scriptId: payload.scriptId,
+                    })
+                );
             }
         );
         return () => {
             unlisten.then((fn) => fn());
         };
-    }, []);
+    }, [dispatch]);
 
     // Handle QuickNavDropdown actions — open as in-app tab
     useEffect(() => {
@@ -167,12 +233,17 @@ function App() {
             "quick-nav-open-markdown",
             ({ payload }) => {
                 openMarkdownTabRef.current(payload.scriptId, payload.scriptName);
+                dispatch(
+                    scriptApi.endpoints.notifyScriptExecuted.initiate({
+                        scriptId: payload.scriptId,
+                    })
+                );
             }
         );
         return () => {
             unlisten.then((fn) => fn());
         };
-    }, []);
+    }, [dispatch]);
 
     useEffect(() => {
         const unlisten = listen<{ scriptId: number; command: string; showShell: boolean }>(
@@ -445,6 +516,34 @@ function App() {
                 {activeTabId === HOME_TAB_ID && (
                     <div className="flex-1 right-4 z-10 flex items-center gap-2 px-4 justify-end">
                         {/* <AIProfileButton /> */}
+                        <div
+                            className="relative flex items-center"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        >
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                defaultValue=""
+                                onChange={handleSearchChange}
+                                onFocus={() => {
+                                    dispatch(setRightPanelMode("SEARCH"));
+                                    dispatch(openHistory());
+                                }}
+                                placeholder="Search scripts…"
+                                className="h-8 w-44 focus:w-64 rounded-md border border-gray-300 bg-white pl-7 pr-6 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:placeholder-neutral-400 dark:focus:ring-neutral-500 transition-[width] duration-300 ease-in-out"
+                            />
+                            <Search className="absolute left-2 w-3.5 h-3.5 text-gray-400 dark:text-neutral-400 pointer-events-none" />
+                            {searchText && (
+                                <button
+                                    tabIndex={-1}
+                                    onClick={clearSearch}
+                                    className="text-[18px] absolute right-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-neutral-400 dark:hover:text-neutral-200 bg-transparent active:bg-transparent focus:outline-none"
+                                    aria-label="Clear search"
+                                >
+                                    ×
+                                </button>
+                            )}
+                        </div>
                         <HistoryButton />
                     </div>
                 )}
@@ -480,8 +579,11 @@ function App() {
                             </ResizablePanel>
                         </ResizablePanelGroup>
                         {isHistoryOpen && (
-                            <div className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700">
-                                <HistoryPanel />
+                            <div
+                                key={rightPanelMode}
+                                className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700 animate-panel-in"
+                            >
+                                {rightPanelMode === "SEARCH" ? <SearchPanel /> : <HistoryPanel />}
                             </div>
                         )}
                     </>
@@ -503,6 +605,7 @@ function App() {
             </div>
             <Toaster />
             <AppClosingOverlay />
+            <UnsavedChangesDialog />
         </div>
     );
 }

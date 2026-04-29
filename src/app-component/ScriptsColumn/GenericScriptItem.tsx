@@ -22,6 +22,8 @@ export default function GenericScriptItem({
                 script={script}
                 parentFolderId={parentFolderId}
                 parentFolderPath={parentFolderPath}
+                liteVersionDisplay={liteVersionDisplay}
+                historyVersion={historyVersion}
             />
         );
     }

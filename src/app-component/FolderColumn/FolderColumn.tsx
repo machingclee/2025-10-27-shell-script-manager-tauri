@@ -412,11 +412,11 @@ export default function FolderColumn() {
     return (
         <div className="flex flex-col h-full dark:text-white">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 justify-end w-full pb-[13px]">
+                <div className="flex items-center gap-2 justify-end w-full pt-[6px] pb-[7px] pr-[10px]">
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="mr-4 bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
+                        className="bg-white p-1 !h-8 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
                         onClick={() => setIsCreateWorkspaceDialogOpen(true)}
                         title="Create new workspace"
                     >
@@ -425,7 +425,6 @@ export default function FolderColumn() {
                     </Button>
                 </div>
             </div>
-            <div className="h-px bg-gray-400 dark:bg-neutral-600" />
             {/* Status filter tabs */}
             <style>{`
                 @keyframes folder-filter-fade-down {

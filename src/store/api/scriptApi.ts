@@ -2,6 +2,8 @@ import {
     CreateScriptRequest,
     HistoricalShellScriptResponse,
     ScriptsFolderResponse,
+    ScriptsWithTotal,
+    SearchScriptRequest,
     ShellScriptDTO,
     ShellScriptResponse,
 } from "@/types/dto";
@@ -210,6 +212,13 @@ export const scriptApi = baseApi.injectEndpoints({
                 method: "GET",
             }),
             providesTags: ["ScriptHistory"],
+        }),
+        searchScript: builder.query<ScriptsWithTotal, SearchScriptRequest>({
+            query: (request) => ({
+                url: "/scripts/search",
+                method: "POST",
+                body: request,
+            }),
         }),
         notifyScriptExecuted: builder.mutation<void, { scriptId: number }>({
             query: ({ scriptId }) => ({

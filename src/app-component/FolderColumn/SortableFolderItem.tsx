@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { useState } from "react";
 import { CSS } from "@dnd-kit/utilities";
@@ -72,6 +72,7 @@ export default React.memo(
         const [scriptCommand, setScriptCommand] = useState("");
         const [markdownName, setMarkdownName] = useState("");
         const [markdownContent, setMarkdownContent] = useState("");
+        const contextMenuJustClosedRef = useRef(false);
 
         const style: React.CSSProperties = {
             transform: CSS.Transform.toString(transform),
@@ -135,15 +136,20 @@ export default React.memo(
                     {...attributes}
                     className="w-full flex-shrink-0"
                     onClick={() => {
-                        if (isSelected) {
-                            setNewName(folder.name);
-                            setIsRenameOpen(true);
-                        } else {
-                            onClick();
-                        }
+                        if (contextMenuJustClosedRef.current) return;
+                        onClick();
                     }}
                 >
-                    <ContextMenu>
+                    <ContextMenu
+                        onOpenChange={(open) => {
+                            if (!open) {
+                                contextMenuJustClosedRef.current = true;
+                                setTimeout(() => {
+                                    contextMenuJustClosedRef.current = false;
+                                }, 300);
+                            }
+                        }}
+                    >
                         <ContextMenuTrigger asChild>
                             <div
                                 className={clsx({

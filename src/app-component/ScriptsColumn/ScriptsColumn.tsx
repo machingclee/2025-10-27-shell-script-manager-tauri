@@ -320,12 +320,12 @@ export default function ScriptsColumn() {
                     <div className="flex items-center gap-2 mr-4">
                         <Button
                             variant="ghost"
-                            className="bg-white p-1 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
+                            className="bg-white p-1 mt-[6px] mb-[7px] h-8 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
                             disabled={!selectedRootFolderId}
                             onClick={handleCloseAllFolders}
                             title="Close all folders"
                         >
-                            <FoldVertical className="w-4 h-4" /> Close All
+                            <FoldVertical className="!w-3 !h-3" /> Close All
                         </Button>
                     </div>
                 </div>
@@ -336,7 +336,7 @@ export default function ScriptsColumn() {
     return (
         <div className="flex flex-col h-full dark:text-white">
             {header()}
-            <div className="mt-2 h-px bg-gray-400 dark:bg-neutral-600" />
+            <div className="mt-[0px] h-[3px] bg-gray-400 dark:bg-neutral-700/70" />
             <div className="space-y-2 p-4 overflow-y-auto flex-1 min-h-[400px] bg-gray-50 dark:bg-neutral-800">
                 {isLoading && <div>Loading...</div>}
 

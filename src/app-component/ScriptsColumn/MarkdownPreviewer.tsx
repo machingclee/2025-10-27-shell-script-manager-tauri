@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "@/hooks/use-toast";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
@@ -523,6 +524,42 @@ export default function MarkdownPreviewer({
                     />
                 );
             },
+            code: ({
+                children,
+                className,
+                node,
+                ...rest
+            }: {
+                children?: React.ReactNode;
+                className?: string;
+                node?: any;
+                [key: string]: any;
+            }) => {
+                const isInline = !className;
+                if (isInline) {
+                    const text = typeof children === "string" ? children : String(children ?? "");
+                    return (
+                        <code
+                            {...rest}
+                            style={{ cursor: "pointer" }}
+                            title="Click to copy"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(text).then(() => {
+                                    toast({ variant: "success", title: "Copied!", duration: 1500 });
+                                });
+                            }}
+                        >
+                            {children}
+                        </code>
+                    );
+                }
+                return (
+                    <code className={className} {...rest}>
+                        {children}
+                    </code>
+                );
+            },
             itemref: ({ id }: { id?: string }) => (
                 <ItemReference id={id} darkMode={previewDarkMode} fontSize={fontSize} />
             ),
@@ -798,15 +835,11 @@ export default function MarkdownPreviewer({
                             },
                         },
                     },
+                    // Tight task lists have no <p> wrapper, so this only fires for loose lists.
                     "& li.task-list-item > p": {
                         display: "block",
-                        marginTop: "0.3em",
-                        marginBottom: 0,
-                    },
-                    "& li.task-list-item > p:first-of-type": {
-                        display: "inline",
-                        marginTop: 0,
-                        marginBottom: 0,
+                        marginTop: "0.5em",
+                        marginBottom: "0.5em",
                     },
                     "& li.task-list-item > ul, & li.task-list-item > ol": {
                         marginTop: "0.4em",
@@ -819,6 +852,8 @@ export default function MarkdownPreviewer({
                         color: previewDarkMode ? "inherit" : "rgb(190, 50, 50)",
                         padding: "2px 6px",
                         borderRadius: "4px",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
                     },
                     "& pre": {
                         backgroundColor: previewDarkMode

@@ -31,20 +31,19 @@ function replaceCurrentSelection(
     const selection = editorInstance.getSelection();
     if (!model || !selection) return;
 
-    const insertionOffset = model.getOffsetAt(selection.getStartPosition()) + text.length;
-    const cursorPosition = model.getPositionAt(insertionOffset);
+    // Compute where the cursor should end up after pasting `text`, starting
+    // from the selection's start position. We do this from the text itself
+    // (not via model.getPositionAt) so that multi-line pastes land correctly.
+    const start = selection.getStartPosition();
+    const lines = text.split("\n");
+    const endLine = start.lineNumber + lines.length - 1;
+    const endColumn =
+        lines.length === 1 ? start.column + text.length : lines[lines.length - 1].length + 1;
 
     editorInstance.executeEdits(
         "paste",
         [{ range: selection, text, forceMoveMarkers: true }],
-        [
-            new monaco.Selection(
-                cursorPosition.lineNumber,
-                cursorPosition.column,
-                cursorPosition.lineNumber,
-                cursorPosition.column
-            ),
-        ]
+        [new monaco.Selection(endLine, endColumn, endLine, endColumn)]
     );
 }
 
@@ -86,7 +85,7 @@ export function registerMarkdownEditorBehaviors(
             out.getContext("2d")!.drawImage(src, 0, 0, w, h);
 
             const blob = await new Promise<Blob | null>((resolve) =>
-                out.toBlob(resolve, "image/jpeg", 0.85)
+                out.toBlob(resolve, "image/png")
             );
             if (!blob) return;
 

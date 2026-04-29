@@ -10,6 +10,9 @@ import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptExecutedEvent
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetAllScriptsQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetScriptByIdQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetScriptHistoriesQuery
+import com.scriptmanager.common.dto.ScriptsWithTotal
+import com.scriptmanager.common.dto.SearchScriptQuery
+import com.scriptmanager.common.dto.SearchScriptRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -167,5 +170,13 @@ class ScriptController(
         val query = GetScriptHistoriesQuery()
         val histories = queryInvoker.invoke(query)
         return ApiResponse(histories)
+    }
+
+    @Operation(summary = "Search scripts", description = "Search scripts by name or command with pagination")
+    @PostMapping("/search")
+    fun searchScripts(@RequestBody request: SearchScriptRequest): ApiResponse<ScriptsWithTotal> {
+        val query = SearchScriptQuery(search = request.search, page = request.page, size = request.size)
+        val result = queryInvoker.invoke(query)
+        return ApiResponse(result)
     }
 }

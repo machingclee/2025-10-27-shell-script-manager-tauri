@@ -1,4 +1,5 @@
 import "highlight.js/styles/github-dark.css";
+import React from "react";
 import { ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useState, useRef, useEffect } from "react";
@@ -29,11 +30,15 @@ export default function MarkdownItem({
     script,
     parentFolderId,
     parentFolderPath = "",
+    liteVersionDisplay,
+    historyVersion = false,
 }: {
     script: ShellScriptDTO;
     parentFolderId: number;
     parentFolderPath?: string;
     readOnly?: boolean;
+    liteVersionDisplay?: React.ReactNode;
+    historyVersion?: boolean;
 }) {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
@@ -66,7 +71,7 @@ export default function MarkdownItem({
             <ContextMenu>
                 <ContextMenuTrigger asChild>
                     <div
-                        className={`rounded-md border transition-colors cursor-pointer pt-4 ${
+                        className={`rounded-md border transition-colors cursor-pointer ${historyVersion ? "" : "pt-4"} ${
                             isSelected
                                 ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
                                 : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
@@ -86,50 +91,53 @@ export default function MarkdownItem({
                                 <FileText className="w-7 h-7 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                                 {script.name}
                             </div>
+                            {liteVersionDisplay && liteVersionDisplay}
                         </div>
-                        <Box
-                            className="markdown-editor-container px-3 pb-2"
-                            sx={{
-                                "& div[class*='contentEditable']": {
-                                    paddingTop: "0 !important",
-                                },
-                                "& .mdxeditor-root-contenteditable": {
-                                    backgroundColor: "rgb(209, 213, 219)",
-                                    padding: "0px",
-                                    borderRadius: "4px",
-                                    border: "1px solid rgba(0, 0, 0, 0.1)",
-                                    maxHeight: "6em",
-                                    overflow: "hidden",
-                                    position: "relative",
-                                    "&::after": {
-                                        content: '""',
-                                        position: "absolute",
-                                        bottom: 0,
-                                        right: 0,
-                                        width: "100%",
-                                        height: "1.5em",
-                                        background:
-                                            "linear-gradient(to bottom, transparent, rgb(209, 213, 219))",
-                                        pointerEvents: "none",
+                        {!historyVersion && (
+                            <Box
+                                className="markdown-editor-container px-3 pb-2"
+                                sx={{
+                                    "& div[class*='contentEditable']": {
+                                        paddingTop: "0 !important",
                                     },
-                                },
-                                ".dark & .mdxeditor-root-contenteditable": {
-                                    backgroundColor: "rgba(0, 0, 0, 0.1) !important",
-                                    borderColor: "rgba(255, 255, 255, 0.1) !important",
-                                    "&::after": {
-                                        background:
-                                            "linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1)) !important",
+                                    "& .mdxeditor-root-contenteditable": {
+                                        backgroundColor: "rgb(209, 213, 219)",
+                                        padding: "0px",
+                                        borderRadius: "4px",
+                                        border: "1px solid rgba(0, 0, 0, 0.1)",
+                                        maxHeight: "6em",
+                                        overflow: "hidden",
+                                        position: "relative",
+                                        "&::after": {
+                                            content: '""',
+                                            position: "absolute",
+                                            bottom: 0,
+                                            right: 0,
+                                            width: "100%",
+                                            height: "1.5em",
+                                            background:
+                                                "linear-gradient(to bottom, transparent, rgb(209, 213, 219))",
+                                            pointerEvents: "none",
+                                        },
                                     },
-                                },
-                                "& .mdxeditor, & .mdxeditor-root-contenteditable, & .mdxeditor-root-contenteditable *":
-                                    {
-                                        color: "rgb(212, 212, 212) !important",
+                                    ".dark & .mdxeditor-root-contenteditable": {
+                                        backgroundColor: "rgba(0, 0, 0, 0.1) !important",
+                                        borderColor: "rgba(255, 255, 255, 0.1) !important",
+                                        "&::after": {
+                                            background:
+                                                "linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1)) !important",
+                                        },
                                     },
-                                "& .cm-editor, & .cm-content, & .cm-line": {
-                                    color: "inherit !important",
-                                },
-                            }}
-                        ></Box>
+                                    "& .mdxeditor, & .mdxeditor-root-contenteditable, & .mdxeditor-root-contenteditable *":
+                                        {
+                                            color: "rgb(212, 212, 212) !important",
+                                        },
+                                    "& .cm-editor, & .cm-content, & .cm-line": {
+                                        color: "inherit !important",
+                                    },
+                                }}
+                            ></Box>
+                        )}
                     </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">

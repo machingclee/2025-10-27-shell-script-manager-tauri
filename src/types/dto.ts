@@ -130,6 +130,17 @@ export interface UpdateWorkspaceStatusRequest {
     statusName: WorkspaceStatusName;
 }
 
+export interface SearchScriptRequest {
+    search: string;
+    page?: number;
+    size?: number;
+}
+
+export type ScriptsWithTotal = {
+    scripts: ShellScriptDTO[];
+    total: number;
+};
+
 export type HistoricalShellScriptDTO = {
     id?: number;
     shellScriptId: number;

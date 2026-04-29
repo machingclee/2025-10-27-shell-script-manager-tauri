@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { History } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { closeHistory, openHistory } from "@/store/slices/historySlice";
+import { useAppDispatch } from "@/store/hooks";
+import { openHistory } from "@/store/slices/historySlice";
+import { setRightPanelMode } from "@/store/slices/appSlice";
 
 export default function HistoryButton() {
     const dispatch = useAppDispatch();
-    const isOpen = useAppSelector((state) => state.history.isOpen);
 
     return (
         <Button
@@ -15,13 +15,14 @@ export default function HistoryButton() {
             onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                dispatch(isOpen ? closeHistory() : openHistory());
+                dispatch(setRightPanelMode("HISTORY"));
+                dispatch(openHistory());
             }}
             onDoubleClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
             }}
-            title={isOpen ? "Hide history" : "View history"}
+            title="View history"
         >
             <History className="w-4 h-4" />
             History
