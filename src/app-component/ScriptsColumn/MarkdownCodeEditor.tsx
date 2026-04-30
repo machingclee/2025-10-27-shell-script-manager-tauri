@@ -74,13 +74,21 @@ export default function MarkdownCodeEditor({
                     hideCursorInOverviewRuler: true,
                     scrollbar: { vertical: "auto", horizontal: "hidden" },
                     padding: { top: 16, bottom: 16 },
-                    lineNumbers: "on",
+                    lineNumbers: "off",
                     glyphMargin: false,
                     folding: false,
                     tabSize: 2,
                     insertSpaces: true,
                     detectIndentation: false,
                     contextmenu: false,
+                    quickSuggestions: false,
+                    suggestOnTriggerCharacters: false,
+                    wordBasedSuggestions: "off",
+                    parameterHints: { enabled: false },
+                    // Disable Monaco's custom accessibility textarea input path so
+                    // that CJK IME composition (e.g. 倉頡) is handled natively by
+                    // the browser — prevents the double-text duplication bug.
+                    accessibilitySupport: "off",
                 }}
             />
         </div>
