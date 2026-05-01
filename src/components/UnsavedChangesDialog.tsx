@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import { useAppSelector } from "@/store/hooks";
 import {
     Dialog,
@@ -30,6 +31,12 @@ export default function UnsavedChangesDialog() {
                 invoke("confirm_close").catch(console.error);
             } else {
                 setUnsavedNames(unsaved);
+                // Bounce BEFORE setOpen so focus acquisition from the dialog
+                // doesn't cancel the attention request. Critical bounces
+                // continuously until the user interacts with the app.
+                getCurrentWindow()
+                    .requestUserAttention(UserAttentionType.Critical)
+                    .catch(console.error);
                 setOpen(true);
             }
         });
@@ -41,11 +48,13 @@ export default function UnsavedChangesDialog() {
 
     const handleCloseAnyway = () => {
         setOpen(false);
+        getCurrentWindow().requestUserAttention(null).catch(console.error);
         invoke("confirm_close").catch(console.error);
     };
 
     const handleStay = () => {
         setOpen(false);
+        getCurrentWindow().requestUserAttention(null).catch(console.error);
     };
 
     return (

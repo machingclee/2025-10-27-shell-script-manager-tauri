@@ -335,6 +335,7 @@ export default function FolderColumn() {
             ordering: folder.ordering,
             createdAt: folder.createdAt!,
             createdAtHk: folder.createdAtHk!,
+            systemLevel: folder.systemLevel ?? "USER",
             name: newName,
         });
     };

@@ -167,6 +167,7 @@ export default function SortableWorkspace({
                 ordering: folder.ordering,
                 createdAt: folder.createdAt || 0,
                 createdAtHk: folder.createdAtHk || "",
+                systemLevel: folder.systemLevel ?? "USER",
             });
         }
     };

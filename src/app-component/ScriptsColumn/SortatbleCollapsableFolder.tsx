@@ -75,6 +75,7 @@ export default function ({
             ordering: folder.ordering,
             createdAt: folder.createdAt!,
             createdAtHk: folder.createdAtHk!,
+            systemLevel: folder.systemLevel ?? "USER",
             name: newName,
         });
     };
@@ -262,7 +263,7 @@ export default function ({
                         </div>
                     </ContextMenuTrigger>
                     <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:border-neutral-700">
-                                              <ContextMenuItem
+                        <ContextMenuItem
                             className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                             onClick={() => {
                                 setMarkdownName("");
@@ -273,7 +274,7 @@ export default function ({
                             <Plus className="w-4 h-4 mr-2" />
                             Add Markdown
                         </ContextMenuItem>
-                          <ContextMenuItem
+                        <ContextMenuItem
                             className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
                             onClick={() => {
                                 setScriptName("");
