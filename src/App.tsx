@@ -1,5 +1,6 @@
 import "./App.css";
 import { useCallback, useEffect, useRef, useState } from "react";
+import dayjs from "dayjs";
 import {
     openMarkdownTab,
     closeTab,
@@ -7,6 +8,7 @@ import {
     HOME_TAB_ID,
     setSearchText,
     setRightPanelMode,
+    patchTabState,
 } from "./store/slices/appSlice";
 import { openHistory } from "./store/slices/historySlice";
 import { listen } from "@tauri-apps/api/event";
@@ -33,6 +35,16 @@ import AppClosingOverlay from "./components/AppClosingOverlay";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
 import TabBar from "./components/TabBar";
 import { Search } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "./components/ui/dialog";
+import { Button } from "./components/ui/button";
+import { folderApi } from "./store/api/folderApi";
 // import AIProfileButton from "./app-component/AIProfile/AIProfileButton";
 
 function App() {
@@ -74,11 +86,70 @@ function App() {
         [dispatch]
     );
 
+    const tabStates = useAppSelector((s) => s.app.tab.tabStates);
+    const [pendingCloseTabId, setPendingCloseTabId] = useState<number | null>(null);
+
+    const requestCloseTab = useCallback(
+        (tabId: number) => {
+            if (tabStates[tabId]?.hasChanges) {
+                setPendingCloseTabId(tabId);
+            } else {
+                closeTabDispatch(tabId);
+            }
+        },
+        [tabStates, closeTabDispatch]
+    );
+
     const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
     const notifyScriptExecutedRef = useRef(notifyScriptExecuted);
     useEffect(() => {
         notifyScriptExecutedRef.current = notifyScriptExecuted;
     }, [notifyScriptExecuted]);
+
+    const [createMarkdownScript] = scriptApi.endpoints.createMarkdownScript.useMutation();
+
+    const { data: draftFolder } = folderApi.endpoints.getDraftFolder.useQuery(undefined, {
+        skip: !backendPort,
+    });
+    console.log("Draft folder query result:", draftFolder);
+
+    // Cmd+N — create a new dangling draft markdown and open it in a tab
+    useEffect(() => {
+        const handleKeyDown = async (e: KeyboardEvent) => {
+            if (e.metaKey && !e.shiftKey && !e.altKey && e.code === "KeyN") {
+                e.preventDefault();
+
+                if (!draftFolder?.id) {
+                    console.log("Draft folder query result:", draftFolder);
+                    throw new Error("no draft folder Id");
+                }
+                try {
+                    const name = `Markdown ${dayjs().format("YYYY-MM-DD HH:mm:ss")}`;
+                    const result = await createMarkdownScript({
+                        folderId: draftFolder.id,
+                        name,
+                        content: "",
+                    }).unwrap();
+                    if (result?.id) {
+                        dispatch(openMarkdownTab({ scriptId: result.id, scriptName: name }));
+                        dispatch(
+                            patchTabState({
+                                tabId: result.id,
+                                isDraftNew: true,
+                                isEditMode: true,
+                                editViewMode: "mixed",
+                                editName: name,
+                            })
+                        );
+                    }
+                } catch (err) {
+                    console.error("[Cmd+N] Failed to create draft markdown:", err);
+                }
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown, { capture: true });
+        return () => window.removeEventListener("keydown", handleKeyDown, { capture: true });
+    }, [dispatch, createMarkdownScript, draftFolder]);
 
     const closedMarkdownQueue = useAppSelector((s) => s.app.tab.closedMarkdownQueue);
     const closedMarkdownQueueRef = useRef(closedMarkdownQueue);
@@ -572,8 +643,14 @@ function App() {
                         </ResizablePanelGroup>
                         {isHistoryOpen && (
                             <div className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700 animate-panel-in">
-                                <div className={rightPanelMode === "SEARCH" ? undefined : "hidden"}><SearchPanel /></div>
-                                <div className={rightPanelMode === "HISTORY" ? undefined : "hidden"}><HistoryPanel /></div>
+                                <div className={rightPanelMode === "SEARCH" ? undefined : "hidden"}>
+                                    <SearchPanel />
+                                </div>
+                                <div
+                                    className={rightPanelMode === "HISTORY" ? undefined : "hidden"}
+                                >
+                                    <HistoryPanel />
+                                </div>
                             </div>
                         )}
                     </>
@@ -587,7 +664,7 @@ function App() {
                                 scriptId={activeTab.scriptId}
                                 port={backendPort}
                                 embedded={true}
-                                onClose={() => closeTabDispatch(activeTab.scriptId)}
+                                onClose={() => requestCloseTab(activeTab.scriptId)}
                             />
                         );
                     })()
@@ -596,6 +673,38 @@ function App() {
             <Toaster />
             <AppClosingOverlay />
             <UnsavedChangesDialog />
+            <Dialog open={pendingCloseTabId !== null} onOpenChange={() => {}}>
+                <DialogContent
+                    className="dark:bg-neutral-800 dark:border-neutral-700"
+                    onPointerDownOutside={(e) => e.preventDefault()}
+                    onEscapeKeyDown={(e) => e.preventDefault()}
+                >
+                    <DialogHeader>
+                        <DialogTitle className="dark:text-white">Unsaved Changes</DialogTitle>
+                        <DialogDescription className="dark:text-neutral-400">
+                            This tab has unsaved changes. Close anyway?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setPendingCloseTabId(null)}
+                            className="dark:border-neutral-500 dark:text-neutral-200 dark:bg-neutral-700 dark:hover:bg-neutral-600"
+                        >
+                            Stay
+                        </Button>
+                        <Button
+                            className="bg-red-400/50 text-white hover:bg-red-400/70"
+                            onClick={() => {
+                                if (pendingCloseTabId !== null) closeTabDispatch(pendingCloseTabId);
+                                setPendingCloseTabId(null);
+                            }}
+                        >
+                            Close anyway
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

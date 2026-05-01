@@ -33,6 +33,9 @@ export default React.memo(
         onCreateSubfolder,
         type = CollisionType.ROOT_FOLDER,
         sortableId,
+        disableRename = false,
+        disableDelete = false,
+        disableDrag = false,
     }: {
         folder: ScriptsFolderResponse;
         isSelected: boolean;
@@ -42,6 +45,9 @@ export default React.memo(
         onCreateSubfolder: (parentId: number, subfolderName: string) => Promise<void>;
         type?: CollisionType;
         sortableId: string;
+        disableRename?: boolean;
+        disableDelete?: boolean;
+        disableDrag?: boolean;
     }) {
         const {
             attributes,
@@ -131,9 +137,9 @@ export default React.memo(
         return (
             <>
                 <div
-                    ref={setNodeRef}
+                    ref={disableDrag ? undefined : setNodeRef}
                     style={style}
-                    {...attributes}
+                    {...(disableDrag ? {} : attributes)}
                     className="w-full flex-shrink-0"
                     onClick={() => {
                         if (contextMenuJustClosedRef.current) return;
@@ -164,17 +170,20 @@ export default React.memo(
                                     "dark:active:bg-transparent": isReordering,
                                 })}
                             >
-                                <div
-                                    ref={setActivatorNodeRef}
-                                    {...listeners}
-                                    className={cn(
-                                        "cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-neutral-600",
-                                        isSelected && "hover:bg-gray-800 dark:hover:bg-neutral-700"
-                                    )}
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <GripVertical className="w-4 h-4" />
-                                </div>
+                                {!disableDrag && (
+                                    <div
+                                        ref={setActivatorNodeRef}
+                                        {...listeners}
+                                        className={cn(
+                                            "cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 flex-shrink-0 dark:hover:bg-neutral-600",
+                                            isSelected &&
+                                                "hover:bg-gray-800 dark:hover:bg-neutral-700"
+                                        )}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <GripVertical className="w-4 h-4" />
+                                    </div>
+                                )}
                                 <Folder className="w-5 h-5 flex-shrink-0" fill="currentColor" />
                                 <div className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis">
                                     {folder.name}
@@ -216,23 +225,27 @@ export default React.memo(
                                 <FolderPlus className="w-4 h-4 mr-2" />
                                 Create Subfolder
                             </ContextMenuItem>
-                            <ContextMenuItem
-                                className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
-                                onClick={() => {
-                                    setNewName(folder.name);
-                                    setIsRenameOpen(true);
-                                }}
-                            >
-                                <Pencil className="w-4 h-4 mr-2" />
-                                Rename
-                            </ContextMenuItem>
-                            <ContextMenuItem
-                                onClick={() => setIsDeleteOpen(true)}
-                                className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
-                            >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete
-                            </ContextMenuItem>
+                            {!disableRename && (
+                                <ContextMenuItem
+                                    className="dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                                    onClick={() => {
+                                        setNewName(folder.name);
+                                        setIsRenameOpen(true);
+                                    }}
+                                >
+                                    <Pencil className="w-4 h-4 mr-2" />
+                                    Rename
+                                </ContextMenuItem>
+                            )}
+                            {!disableDelete && (
+                                <ContextMenuItem
+                                    onClick={() => setIsDeleteOpen(true)}
+                                    className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete
+                                </ContextMenuItem>
+                            )}
                         </ContextMenuContent>
                     </ContextMenu>
                 </div>

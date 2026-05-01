@@ -90,6 +90,11 @@ export default function MarkdownItem({
                             <div className="font-bold text-lg mb-2 select-none text-gray-900 dark:text-neutral-300 flex items-center gap-2">
                                 <FileText className="w-7 h-7 flex-shrink-0 text-blue-500 dark:text-blue-400" />
                                 {script.name}
+                                {import.meta.env.DEV && (
+                                    <span className="text-sm font-normal" style={{ opacity: 0.3 }}>
+                                        (id: {script.id})
+                                    </span>
+                                )}
                             </div>
                             {liteVersionDisplay && liteVersionDisplay}
                         </div>

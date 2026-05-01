@@ -214,6 +214,13 @@ export const folderApi = baseApi.injectEndpoints({
             // Removed invalidatesTags - optimistic update handles the UI update
         }),
 
+        getDraftFolder: builder.query<ScriptsFolderResponse, void>({
+            query: () => ({
+                url: "/folders/draft",
+                method: "GET",
+            }),
+            providesTags: ["FolderContent"],
+        }),
         createSubfolder: builder.mutation<void, { parentFolderId: number; name: string }>({
             query: ({ parentFolderId, name }) => ({
                 url: `/folders/${parentFolderId}/subfolders`,

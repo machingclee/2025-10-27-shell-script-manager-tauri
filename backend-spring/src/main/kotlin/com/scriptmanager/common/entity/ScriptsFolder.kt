@@ -7,6 +7,10 @@ import org.hibernate.annotations.CascadeType
 import org.hibernate.annotations.DynamicInsert
 import org.hibernate.annotations.Generated
 
+enum class SystemLevel {
+    SYSTEM, USER
+}
+
 @Entity
 @GenerateDTO
 @DynamicInsert
@@ -28,7 +32,11 @@ class ScriptsFolder(
 
     @Column(name = "created_at_hk")
     @Generated
-    val createdAtHk: String? = null
+    val createdAtHk: String? = null,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "system_level", nullable = false)
+    var systemLevel: SystemLevel = SystemLevel.USER
 ) {
 
 

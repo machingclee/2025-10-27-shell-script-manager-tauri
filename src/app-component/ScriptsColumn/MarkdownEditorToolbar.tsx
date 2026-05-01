@@ -75,6 +75,10 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
 
     const handleSaveEdit = async () => {
         if (!script) return;
+        if (ts?.isDraftNew) {
+            patch({ saveDialogRequested: true });
+            return;
+        }
         await updateMarkdown({ ...script, name: editName, command: editContent }).unwrap();
         patch({ hasChanges: false, edited: true });
         setTimeout(() => dispatch(patchTabState({ tabId, edited: false })), 2000);

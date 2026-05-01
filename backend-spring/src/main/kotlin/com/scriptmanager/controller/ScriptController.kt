@@ -8,6 +8,7 @@ import com.scriptmanager.boundedcontext.scriptmanager.command.folder.ReorderScri
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptExecutedEvent
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetAllScriptsQuery
+import com.scriptmanager.boundedcontext.scriptmanager.query.GetDraftScriptsQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetScriptByIdQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetScriptHistoriesQuery
 import com.scriptmanager.common.dto.ScriptsWithTotal
@@ -176,6 +177,14 @@ class ScriptController(
     @PostMapping("/search")
     fun searchScripts(@RequestBody request: SearchScriptRequest): ApiResponse<ScriptsWithTotal> {
         val query = SearchScriptQuery(search = request.search, page = request.page, size = request.size)
+        val result = queryInvoker.invoke(query)
+        return ApiResponse(result)
+    }
+
+    @Operation(summary = "Get draft scripts", description = "Retrieves all scripts that are not in any folder (parentFolder is null)")
+    @GetMapping("/drafts")
+    fun getDraftScripts(): ApiResponse<List<ShellScriptResponse>> {
+        val query = GetDraftScriptsQuery()
         val result = queryInvoker.invoke(query)
         return ApiResponse(result)
     }

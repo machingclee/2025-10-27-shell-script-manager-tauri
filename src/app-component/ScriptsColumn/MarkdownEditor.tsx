@@ -1,5 +1,6 @@
 import React from "react";
 import { scriptApi } from "@/store/api/scriptApi";
+import SaveLocationDialog from "@/components/SaveLocationDialog";
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from "react";
 import QuickNavDropdown from "./QuickNavDropdown";
 import MarkdownEditorToolbar from "./MarkdownEditorToolbar";
@@ -73,6 +74,8 @@ export default function MarkdownEditor({
     // useEffect doesn't overwrite editContent with the server's script.command.
     const [editorReady, setEditorReady] = useState(() => ts?.hasChanges ?? false);
     const [updateMarkdown] = scriptApi.endpoints.updateMarkdownScript.useMutation();
+    const [moveScriptIntoFolder] = scriptApi.endpoints.moveScriptIntoFolder.useMutation();
+    const [saveLocationOpen, setSaveLocationOpen] = useState(false);
 
     // Fade-in when the tab is mounted (i.e. every time the user switches to this tab).
     const [visible, setVisible] = useState(false);
@@ -225,10 +228,27 @@ export default function MarkdownEditor({
         handleSaveEditRef.current = handleSaveEdit;
     }, [handleSaveEdit]);
 
+    const handleSaveRequest = useCallback(() => {
+        if (ts?.isDraftNew) {
+            setSaveLocationOpen(true);
+        } else {
+            handleSaveEdit();
+        }
+    }, [ts?.isDraftNew, handleSaveEdit]);
+
+    // Open the save-location dialog when the toolbar signals it (toolbar is a sibling in App.tsx)
+    useEffect(() => {
+        if (ts?.saveDialogRequested) {
+            setSaveLocationOpen(true);
+            patch({ saveDialogRequested: false });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ts?.saveDialogRequested]);
+
     // Shared window-level keyboard shortcuts
     useMarkdownShortcuts({
         onSave: () => {
-            handleSaveEdit();
+            handleSaveRequest();
         },
         onClose: () => {
             if (embedded) {
@@ -536,6 +556,28 @@ export default function MarkdownEditor({
                     </div>
                 )}
             </div>
+            <SaveLocationDialog
+                open={saveLocationOpen}
+                onCancel={() => setSaveLocationOpen(false)}
+                onSaveAsDraft={async () => {
+                    setSaveLocationOpen(false);
+                    patch({ isDraftNew: false });
+                    await handleSaveEdit();
+                    dispatch(scriptApi.util.invalidateTags(["FolderContent"]));
+                }}
+                onSaveInFolder={async (folderId, rootFolderId) => {
+                    setSaveLocationOpen(false);
+                    if (script?.id) {
+                        await moveScriptIntoFolder({
+                            scriptId: script.id,
+                            folderId,
+                            rootFolderId,
+                        });
+                    }
+                    patch({ isDraftNew: false });
+                    handleSaveEdit();
+                }}
+            />
         </div>
     );
 }

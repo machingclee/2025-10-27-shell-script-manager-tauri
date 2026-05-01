@@ -22,6 +22,7 @@ model application_state {
 
 model scripts_folder {
     id                            Int                             @id @default(autoincrement())
+    system_level                  String                          @default("USER") // Enum values: SYSTEM, USER
     name                          String
     ordering                      Int
     created_at                    Float                           @default(dbgenerated("(CAST((julianday('now') - 2440587.5) * 86400000.0 AS REAL))"))

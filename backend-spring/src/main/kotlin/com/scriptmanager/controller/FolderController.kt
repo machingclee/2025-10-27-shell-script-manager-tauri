@@ -125,4 +125,12 @@ class FolderController(
         commandInvoker.invoke(command)
         return ApiResponse()
     }
+
+    @Operation(summary = "Get Draft folder", description = "Retrieves the system-level Draft folder and its content")
+    @GetMapping("/draft")
+    fun getDraftFolder(): ApiResponse<ScriptsFolderResponse> {
+        val query = GetDraftFolderQuery()
+        val folder = queryInvoker.invoke(query)
+        return ApiResponse(folder)
+    }
 }

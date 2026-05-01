@@ -35,6 +35,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import rootFolderSlice from "../../store/slices/rootFolderSlice";
+import { DRAFT_WORKSPACE_ID } from "../../store/slices/rootFolderSlice";
 import SortableFolderItem from "./SortableFolderItem";
 import SortableWorkspace from "./SortableWorkspace";
 import {
@@ -87,6 +88,9 @@ export default function FolderColumn() {
                 data: result.data ?? [],
             }),
         });
+    const { data: draftFolder } = folderApi.endpoints.getDraftFolder.useQuery(undefined, {
+        skip: !backendPort,
+    });
     const { data: folders, isLoading } = folderApi.endpoints.getAllFolders.useQuery(undefined, {
         skip: !backendPort,
         // Stabilize the reference to prevent unnecessary re-renders
@@ -492,7 +496,7 @@ export default function FolderColumn() {
 
                                 {/* Separate SortableContext for Root Folders */}
                                 <RootFoldersDroppableArea
-                                    folders={folders}
+                                    folders={folders.filter((f) => f.systemLevel !== "SYSTEM")}
                                     isReordering={isReordering}
                                     selectedFolderId={selectedFolderId}
                                     handleFolderClick={handleFolderClick}
@@ -542,6 +546,34 @@ export default function FolderColumn() {
                         </DndContext>
                     )}
             </div>
+
+            {/* Drafts folder — SYSTEM folder, shown with context menu but no rename/delete/drag */}
+            {draftFolder && (
+                <div className="px-4 mb-3">
+                    <DndContext>
+                        <SortableContext items={["draft-folder"]}>
+                            <SortableFolderItem
+                                folder={draftFolder}
+                                sortableId="draft-folder"
+                                isSelected={selectedFolderId === DRAFT_WORKSPACE_ID}
+                                onClick={() =>
+                                    dispatch(
+                                        rootFolderSlice.actions.setSelectedRootFolderId(
+                                            DRAFT_WORKSPACE_ID
+                                        )
+                                    )
+                                }
+                                onRename={() => {}}
+                                onDelete={() => {}}
+                                onCreateSubfolder={handleCreateSubfolder}
+                                disableRename
+                                disableDelete
+                                disableDrag
+                            />
+                        </SortableContext>
+                    </DndContext>
+                </div>
+            )}
 
             {/* Backend Port Info */}
             <div

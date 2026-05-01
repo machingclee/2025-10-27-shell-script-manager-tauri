@@ -14,7 +14,11 @@ class ReorderScriptsHandler(
 ) : CommandHandler<ReorderScriptsCommand, Unit> {
 
     override fun handle(eventQueue: EventQueue, command: ReorderScriptsCommand) {
-        val scripts = scriptRepository.findByFolderId(command.folderId).toMutableList()
+        val scripts = if (command.folderId == null) {
+            scriptRepository.findDraftScripts().toMutableList()
+        } else {
+            scriptRepository.findByFolderId(command.folderId).toMutableList()
+        }
 
         // Validate indices
         if (command.fromIndex < 0 || command.fromIndex >= scripts.size ||

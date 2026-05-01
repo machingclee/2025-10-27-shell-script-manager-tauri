@@ -189,6 +189,11 @@ export default function ScriptItem({
                         <div className="font-bold text-lg break-words select-none flex items-center gap-2">
                             <Terminal className="w-7 h-7 flex-shrink-0 text-green-500 dark:text-green-400" />
                             {script.name}
+                            {import.meta.env.DEV && (
+                                <span className="text-sm font-normal" style={{ opacity: 0.3 }}>
+                                    (id: {script.id})
+                                </span>
+                            )}
                         </div>
                     </div>
 

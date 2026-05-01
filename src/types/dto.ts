@@ -31,6 +31,7 @@ export type ScriptsFolderResponse = {
     ordering: number;
     createdAt?: number;
     createdAtHk?: string;
+    systemLevel?: string | null;
     shellScripts: ShellScriptResponse[];
     parentFolder: ScriptsFolderDTO | null;
     parentWorkspace: WorkspaceDTO | null;

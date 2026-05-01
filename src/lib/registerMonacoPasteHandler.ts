@@ -101,6 +101,11 @@ export function registerMarkdownEditorBehaviors(
         }
     });
 
+    // Cmd+Y → redo (mirrors Cmd+Shift+Z).
+    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY, () => {
+        editorInstance.trigger("keyboard", "redo", null);
+    });
+
     // Pair-wrapping: standalone Monaco's markdown language does not register
     // these as auto-surround pairs, so we do it manually.
     Object.entries(WRAP_PAIRS).forEach(([open, close]) => {

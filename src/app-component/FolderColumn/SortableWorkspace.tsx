@@ -92,7 +92,7 @@ export default function SortableWorkspace({
         },
     });
 
-    const folders = workspace?.folders || [];
+    const folders = (workspace?.folders || []).filter((f) => f.systemLevel !== "SYSTEM");
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const selectedFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
     const [isExpanded, setIsExpanded] = useState(false);

@@ -1,5 +1,6 @@
 import { ScriptsFolderResponse } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
+import { folderApi } from "@/store/api/folderApi";
 import { workspaceApi } from "@/store/api/workspaceApi";
 import {
     ContextMenuItem,
@@ -8,7 +9,7 @@ import {
     ContextMenuSubContent,
     ContextMenuSubTrigger,
 } from "@/components/ui/context-menu";
-import { Folder, FolderInput } from "lucide-react";
+import { FileText, Folder, FolderInput } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 
 function containsFolder(folder: ScriptsFolderResponse, targetId: number): boolean {
@@ -90,6 +91,9 @@ export default function MoveToFolderMenu({
     const { data: workspaces } = workspaceApi.endpoints.getAllWorkspaces.useQuery(undefined, {
         skip: port === 0,
     });
+    const { data: draftFolder } = folderApi.endpoints.getDraftFolder.useQuery(undefined, {
+        skip: port === 0,
+    });
     const [moveScriptIntoFolder] = scriptApi.endpoints.moveScriptIntoFolder.useMutation();
 
     const handleMove = (folderId: number, rootFolderId: number) => {
@@ -109,17 +113,20 @@ export default function MoveToFolderMenu({
                             <div className="flex items-center mr-2">{workspace.name}</div>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-200">
-                            {workspace.folders.map((folder) => (
-                                <FolderItem
-                                    key={folder.id}
-                                    folder={folder}
-                                    rootFolderId={folder.id}
-                                    currentFolderId={currentFolderId}
-                                    scriptId={scriptId}
-                                    onMove={handleMove}
-                                />
-                            ))}
-                            {workspace.folders.length === 0 && (
+                            {workspace.folders
+                                .filter((f) => f.systemLevel !== "SYSTEM")
+                                .map((folder) => (
+                                    <FolderItem
+                                        key={folder.id}
+                                        folder={folder}
+                                        rootFolderId={folder.id}
+                                        currentFolderId={currentFolderId}
+                                        scriptId={scriptId}
+                                        onMove={handleMove}
+                                    />
+                                ))}
+                            {workspace.folders.filter((f) => f.systemLevel !== "SYSTEM").length ===
+                                0 && (
                                 <ContextMenuItem disabled className="dark:text-neutral-500">
                                     No folders
                                 </ContextMenuItem>
@@ -127,6 +134,26 @@ export default function MoveToFolderMenu({
                         </ContextMenuSubContent>
                     </ContextMenuSub>
                 ))}
+                {draftFolder && (
+                    <>
+                        <ContextMenuSeparator className="dark:bg-neutral-700" />
+                        <ContextMenuItem
+                            disabled={currentFolderId === draftFolder.id}
+                            className={
+                                currentFolderId === draftFolder.id
+                                    ? "opacity-40 cursor-default dark:text-neutral-500"
+                                    : "cursor-pointer dark:hover:bg-neutral-700 dark:text-neutral-200"
+                            }
+                            onClick={() =>
+                                currentFolderId !== draftFolder.id &&
+                                handleMove(draftFolder.id, draftFolder.id)
+                            }
+                        >
+                            <FileText className="w-4 h-4 mr-2" />
+                            Drafts
+                        </ContextMenuItem>
+                    </>
+                )}
             </ContextMenuSubContent>
         </ContextMenuSub>
     );

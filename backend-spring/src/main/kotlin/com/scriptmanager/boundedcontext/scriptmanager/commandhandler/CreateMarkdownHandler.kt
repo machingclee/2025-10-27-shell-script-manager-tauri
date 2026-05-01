@@ -25,7 +25,6 @@ class CreateMarkdownHandler(
     override fun handle(eventQueue: EventQueue, command: CreateMarkdownCommand): ShellScriptResponse {
 
         val folder = folderRepository.findByIdOrNull(command.folderId)
-            ?: throw ScriptManagerException("Folder not found")
 
         val script = ShellScript(
             name = command.name,
@@ -35,11 +34,16 @@ class CreateMarkdownHandler(
 
         val savedScript = scriptRepository.save(script)
         savedScript.ordering = -1
-        folder.addAndReorderScript(savedScript)
-        folderRepository.save(folder)
-        entityManager.flush()
-        entityManager.refresh(savedScript)
 
+        if (folder != null) {
+            folder.addAndReorderScript(savedScript)
+            folderRepository.save(folder)
+            folder.addAndReorderScript(savedScript)
+            folderRepository.save(folder)
+            entityManager.flush()
+        }
+        
+        entityManager.refresh(savedScript)
         val response = savedScript.toResponse()
 
         eventQueue.add(

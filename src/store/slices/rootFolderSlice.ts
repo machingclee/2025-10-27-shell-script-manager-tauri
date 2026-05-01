@@ -1,5 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+/** Sentinel ID for the virtual Drafts folder — never sent to the backend. */
+export const DRAFT_WORKSPACE_ID = -2;
+
 interface RootFolderState {
     selectedRootFolderId: number | null;
     isReorderingFolder: boolean;

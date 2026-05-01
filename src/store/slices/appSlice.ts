@@ -23,6 +23,16 @@ export interface MarkdownTabState {
      * on explicit commits (checkbox toggle, save, etc.).
      */
     previewContent: string;
+    /**
+     * True when this tab was created via Cmd+N as a new dangling draft.
+     * On first save, user is prompted to either save as draft or pick a folder.
+     */
+    isDraftNew?: boolean;
+    /**
+     * Set to true by MarkdownEditorToolbar when isDraftNew is true to signal
+     * MarkdownEditor to open the save-location dialog.
+     */
+    saveDialogRequested?: boolean;
 }
 
 // ---------------------------------------------------------------------------

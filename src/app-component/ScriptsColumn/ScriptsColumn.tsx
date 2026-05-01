@@ -20,6 +20,7 @@ import { scriptApi } from "@/store/api/scriptApi";
 import { folderApi } from "@/store/api/folderApi";
 import { ShellScriptDTO, ScriptsFolderResponse, ShellScriptResponse } from "@/types/dto";
 import rootFolderSlice from "@/store/slices/rootFolderSlice";
+import { DRAFT_WORKSPACE_ID } from "@/store/slices/rootFolderSlice";
 import SortableSubfoldersContext from "./SortableSubfoldersContext";
 import SortableScriptsContext from "./SortableScriptsContext";
 import GenericScriptItem from "./GenericScriptItem";
@@ -74,9 +75,19 @@ export default function ScriptsColumn() {
     const { data: folderResponse, isLoading } = folderApi.endpoints.getFolderById.useQuery(
         selectedRootFolderId ?? 0,
         {
-            skip: !backendPort || !selectedRootFolderId,
+            skip:
+                !backendPort ||
+                !selectedRootFolderId ||
+                selectedRootFolderId === DRAFT_WORKSPACE_ID,
         }
     );
+    const { data: draftScripts, isLoading: isDraftsLoading } =
+        scriptApi.endpoints.getDraftScripts.useQuery(undefined, {
+            skip: !backendPort || selectedRootFolderId !== DRAFT_WORKSPACE_ID,
+        });
+    const { data: draftFolder } = folderApi.endpoints.getDraftFolder.useQuery(undefined, {
+        skip: !backendPort || selectedRootFolderId !== DRAFT_WORKSPACE_ID,
+    });
     const [reorderScripts] = scriptApi.endpoints.reorderScripts.useMutation();
     const [reorderSubfolders] = folderApi.endpoints.reorderFolders.useMutation();
     const [moveScriptIntoFolder] = scriptApi.endpoints.moveScriptIntoFolder.useMutation();
@@ -179,10 +190,11 @@ export default function ScriptsColumn() {
         }
     };
 
-    const handleDragEnd = async (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent, effectiveFolder?: ScriptsFolderResponse) => {
         const { active, over } = event;
+        const activeFolderRoot = effectiveFolder ?? folderResponse;
 
-        if (!over || !folderResponse || !selectedRootFolderId) {
+        if (!over || !activeFolderRoot || !selectedRootFolderId) {
             dispatch(rootFolderSlice.actions.setIsReorderingFolder(false));
             return;
         }
@@ -200,7 +212,7 @@ export default function ScriptsColumn() {
             moveScriptIntoFolder({
                 scriptId: script.id,
                 folderId: targetFolderId,
-                rootFolderId: selectedRootFolderId,
+                rootFolderId: activeFolderRoot.id,
             })
                 .unwrap()
                 .catch((error) => {
@@ -213,8 +225,8 @@ export default function ScriptsColumn() {
             const overScript = overData.script as ShellScriptResponse;
 
             // Find which folders contain the scripts
-            const activeFolder = findFolderContainingScript(folderResponse, activeScript.id!);
-            const overFolder = findFolderContainingScript(folderResponse, overScript.id!);
+            const activeFolder = findFolderContainingScript(activeFolderRoot, activeScript.id!);
+            const overFolder = findFolderContainingScript(activeFolderRoot, overScript.id!);
 
             if (!activeFolder || !overFolder) {
                 console.error("Could not find folders containing scripts");
@@ -236,7 +248,7 @@ export default function ScriptsColumn() {
                         folderId: activeFolder.id,
                         fromIndex: oldIndex,
                         toIndex: newIndex,
-                        rootFolderId: selectedRootFolderId,
+                        rootFolderId: activeFolderRoot.id,
                     })
                         .unwrap()
                         .catch((error) => {
@@ -261,7 +273,7 @@ export default function ScriptsColumn() {
                     moveScriptIntoFolder({
                         scriptId: activeScript.id!,
                         folderId: overFolder.id,
-                        rootFolderId: selectedRootFolderId,
+                        rootFolderId: activeFolderRoot.id,
                     })
                         .unwrap()
                         .then(() => {
@@ -273,7 +285,7 @@ export default function ScriptsColumn() {
                                     folderId: overFolder.id,
                                     fromIndex: fromIndex,
                                     toIndex: targetIndex,
-                                    rootFolderId: selectedRootFolderId,
+                                    rootFolderId: activeFolderRoot.id,
                                 }).unwrap();
                             }
                         })
@@ -285,16 +297,16 @@ export default function ScriptsColumn() {
         }
         // Case 3: Reordering folders
         else if (activeData?.type === "folder" && overData?.type === "folder") {
-            const oldIndex = folderResponse.subfolders.findIndex((f) => f.id === active.id);
-            const newIndex = folderResponse.subfolders.findIndex((f) => f.id === over.id);
+            const oldIndex = activeFolderRoot.subfolders.findIndex((f) => f.id === active.id);
+            const newIndex = activeFolderRoot.subfolders.findIndex((f) => f.id === over.id);
 
             if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
                 console.log("Reordering folders");
                 reorderSubfolders({
-                    parentFolderId: selectedRootFolderId,
+                    parentFolderId: activeFolderRoot.id,
                     fromIndex: oldIndex,
                     toIndex: newIndex,
-                    rootFolderId: selectedRootFolderId,
+                    rootFolderId: activeFolderRoot.id,
                 })
                     .unwrap()
                     .catch((error) => {
@@ -338,64 +350,127 @@ export default function ScriptsColumn() {
             {header()}
             <div className="mt-[0px] h-[3px] bg-gray-400 dark:bg-neutral-700/70" />
             <div className="space-y-2 p-4 overflow-y-auto flex-1 min-h-[400px] bg-gray-50 dark:bg-neutral-800">
-                {isLoading && <div>Loading...</div>}
+                {(isLoading || isDraftsLoading) && <div>Loading...</div>}
 
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={customCollisionDetection}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                >
-                    {folderResponse && folderResponse.subfolders.length > 0 && (
-                        <SortableSubfoldersContext
-                            folderResponse={folderResponse}
-                            closeAllFoldersTrigger={closeAllFoldersTrigger}
-                        />
-                    )}
+                {/* Drafts view — sortable flat list + subfolders */}
+                {selectedRootFolderId === DRAFT_WORKSPACE_ID && (
+                    <div>
+                        {!isDraftsLoading &&
+                            (draftFolder?.shellScripts ?? []).length === 0 &&
+                            (draftFolder?.subfolders ?? []).length === 0 && (
+                                <div className="text-sm text-neutral-400 dark:text-neutral-500 py-4 text-center">
+                                    No drafts yet. Press ⌘N to create one.
+                                </div>
+                            )}
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={customCollisionDetection}
+                            onDragStart={handleDragStart}
+                            onDragEnd={(e) => handleDragEnd(e, draftFolder)}
+                        >
+                            {draftFolder && draftFolder.subfolders.length > 0 && (
+                                <SortableSubfoldersContext
+                                    folderResponse={draftFolder}
+                                    closeAllFoldersTrigger={closeAllFoldersTrigger}
+                                />
+                            )}
+                            {draftFolder && (
+                                <SortableScriptsContext
+                                    folderResponse={draftFolder}
+                                    selectedFolderId={draftFolder.id}
+                                />
+                            )}
+                            <DragOverlay>
+                                {activeId &&
+                                    activeType === "script" &&
+                                    (() => {
+                                        const info = draftFolder
+                                            ? findScriptRecursive(draftFolder, activeId)
+                                            : null;
+                                        const script =
+                                            info?.script ??
+                                            (draftScripts ?? []).find((s) => s.id === activeId);
+                                        const parentFolderId =
+                                            info?.parentFolderId ??
+                                            (draftScripts ?? []).find((s) => s.id === activeId)
+                                                ?.parentFolderId;
+                                        return script && parentFolderId != null ? (
+                                            <div className="opacity-80 cursor-grabbing">
+                                                <div className="bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700">
+                                                    <GenericScriptItem
+                                                        script={script as ShellScriptResponse}
+                                                        parentFolderId={parentFolderId}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ) : null;
+                                    })()}
+                            </DragOverlay>
+                        </DndContext>
+                    </div>
+                )}
 
-                    {folderResponse && selectedRootFolderId && (
-                        <SortableScriptsContext
-                            folderResponse={folderResponse}
-                            selectedFolderId={selectedRootFolderId}
-                        />
-                    )}
-                    <DragOverlay>
-                        {activeId &&
-                            activeType === "script" &&
-                            folderResponse &&
-                            (() => {
-                                const scriptInfo = findScriptRecursive(folderResponse, activeId);
-                                return scriptInfo ? (
-                                    <div className="opacity-80 cursor-grabbing">
-                                        <div
-                                            className={`bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700 ml-8`}
-                                        >
-                                            <GenericScriptItem
-                                                script={scriptInfo.script}
-                                                parentFolderId={scriptInfo.parentFolderId}
+                {selectedRootFolderId !== DRAFT_WORKSPACE_ID && (
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={customCollisionDetection}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                    >
+                        {folderResponse && folderResponse.subfolders.length > 0 && (
+                            <SortableSubfoldersContext
+                                folderResponse={folderResponse}
+                                closeAllFoldersTrigger={closeAllFoldersTrigger}
+                            />
+                        )}
+
+                        {folderResponse && selectedRootFolderId && (
+                            <SortableScriptsContext
+                                folderResponse={folderResponse}
+                                selectedFolderId={selectedRootFolderId}
+                            />
+                        )}
+                        <DragOverlay>
+                            {activeId &&
+                                activeType === "script" &&
+                                folderResponse &&
+                                (() => {
+                                    const scriptInfo = findScriptRecursive(
+                                        folderResponse,
+                                        activeId
+                                    );
+                                    return scriptInfo ? (
+                                        <div className="opacity-80 cursor-grabbing">
+                                            <div
+                                                className={`bg-white dark:bg-neutral-800 rounded-md shadow-lg border border-gray-200 dark:border-neutral-700 ml-8`}
+                                            >
+                                                <GenericScriptItem
+                                                    script={scriptInfo.script}
+                                                    parentFolderId={scriptInfo.parentFolderId}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : null;
+                                })()}
+                            {activeId &&
+                                activeType === "folder" &&
+                                folderResponse &&
+                                (() => {
+                                    const folder = folderResponse.subfolders.find(
+                                        (f) => f.id === activeId
+                                    );
+                                    return folder ? (
+                                        <div className="opacity-80 cursor-grabbing">
+                                            <CollapsableFolder
+                                                folder={folder}
+                                                closeAllFoldersTrigger={closeAllFoldersTrigger}
                                             />
                                         </div>
-                                    </div>
-                                ) : null;
-                            })()}
-                        {activeId &&
-                            activeType === "folder" &&
-                            folderResponse &&
-                            (() => {
-                                const folder = folderResponse.subfolders.find(
-                                    (f) => f.id === activeId
-                                );
-                                return folder ? (
-                                    <div className="opacity-80 cursor-grabbing">
-                                        <CollapsableFolder
-                                            folder={folder}
-                                            closeAllFoldersTrigger={closeAllFoldersTrigger}
-                                        />
-                                    </div>
-                                ) : null;
-                            })()}
-                    </DragOverlay>
-                </DndContext>
+                                    ) : null;
+                                })()}
+                        </DragOverlay>
+                    </DndContext>
+                )}
             </div>
         </div>
     );

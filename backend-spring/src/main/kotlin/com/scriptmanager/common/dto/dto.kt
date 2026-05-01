@@ -52,6 +52,7 @@ data class ScriptsFolderResponse(
     val createdAt: Double?,
     val createdAtHk: String?,
     val shellScripts: List<ShellScriptResponse>,
+    val systemLevel: SystemLevel,
     val parentFolder: ScriptsFolderDTO? = null,
     val parentWorkspace: WorkspaceDTO? = null,
     val subfolders: List<ScriptsFolderResponse>
@@ -66,6 +67,7 @@ fun ScriptsFolder.toResponse(): ScriptsFolderResponse {
             ordering = this.ordering,
             createdAt = this.createdAt,
             createdAtHk = this.createdAtHk,
+            systemLevel = this.systemLevel,
             shellScripts = this.shellScripts.sortedBy { it.ordering }.map { it.toResponse() },
             parentFolder = this.parentFolder?.toDTO(),
             parentWorkspace = this.parentWorkspace?.toDTO(),
@@ -82,6 +84,7 @@ fun ScriptsFolder.toResponse(): ScriptsFolderResponse {
         shellScripts = this.shellScripts.sortedBy { it.ordering }.map { it.toResponse() },
         parentFolder = this.parentFolder?.toDTO(),
         parentWorkspace = this.parentWorkspace?.toDTO(),
+        systemLevel = this.systemLevel,
         subfolders = this.subfolders?.map { it.toResponse() }?.toList()?.sortedBy { it.ordering } ?: emptyList()
     )
 }

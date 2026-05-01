@@ -227,5 +227,35 @@ export const scriptApi = baseApi.injectEndpoints({
             }),
             invalidatesTags: ["ScriptHistory"],
         }),
+        getDraftScripts: builder.query<ShellScriptResponse[], void>({
+            query: () => ({
+                url: "/scripts/drafts",
+                method: "GET",
+            }),
+            providesTags: ["FolderContent"],
+        }),
+        reorderDraftScripts: builder.mutation<
+            void,
+            { folderId: number; fromIndex: number; toIndex: number }
+        >({
+            query: ({ folderId, fromIndex, toIndex }) => ({
+                url: "/scripts/reorder",
+                method: "POST",
+                body: { folderId, fromIndex, toIndex },
+            }),
+            async onQueryStarted({ fromIndex, toIndex }, { dispatch, queryFulfilled }) {
+                const patchResult = dispatch(
+                    scriptApi.util.updateQueryData("getDraftScripts", undefined, (draft) => {
+                        const [moved] = draft.splice(fromIndex, 1);
+                        draft.splice(toIndex, 0, moved);
+                    })
+                );
+                try {
+                    await queryFulfilled;
+                } catch {
+                    patchResult.undo();
+                }
+            },
+        }),
     }),
 });

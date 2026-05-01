@@ -1,6 +1,7 @@
 package com.scriptmanager.repository
 
 import com.scriptmanager.common.entity.ScriptsFolder
+import com.scriptmanager.common.entity.SystemLevel
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
@@ -16,5 +17,7 @@ interface ScriptsFolderRepository : JpaRepository<ScriptsFolder, Int> {
     """
     )
     fun findAllRootLevelFolder(): MutableList<ScriptsFolder>
+
+    fun findByNameAndSystemLevel(name: String, systemLevel: SystemLevel): ScriptsFolder?
 }
 

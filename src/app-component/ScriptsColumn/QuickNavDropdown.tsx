@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { workspaceApi } from "@/store/api/workspaceApi";
 import { scriptApi } from "@/store/api/scriptApi";
 import { ScriptsFolderResponse, ShellScriptResponse } from "@/types/dto";
@@ -168,19 +168,21 @@ function FolderNode({
     onExecuteRequest,
     onAddMarkdownRequest,
     onAddScriptRequest,
+    onContextMenuOpenChange,
 }: {
     folder: ScriptsFolderResponse;
     onDeleteRequest: (script: ShellScriptResponse, folderId: number) => void;
     onExecuteRequest: (script: ShellScriptResponse) => void;
     onAddMarkdownRequest: (folder: ScriptsFolderResponse) => void;
     onAddScriptRequest: (folder: ScriptsFolderResponse) => void;
+    onContextMenuOpenChange: (open: boolean) => void;
 }) {
     const hasContent = folder.subfolders.length > 0 || folder.shellScripts.length > 0;
 
     if (!hasContent) {
         return (
             <DropdownMenuSub key={folder.id}>
-                <ContextMenu>
+                <ContextMenu onOpenChange={onContextMenuOpenChange}>
                     <ContextMenuTrigger asChild>
                         <DropdownMenuSubTrigger className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700 dark:hover:bg-neutral-700">
                             <Folder className="w-4 h-4 mr-2" />
@@ -206,7 +208,7 @@ function FolderNode({
 
     return (
         <DropdownMenuSub key={folder.id}>
-            <ContextMenu>
+            <ContextMenu onOpenChange={onContextMenuOpenChange}>
                 <ContextMenuTrigger asChild>
                     <DropdownMenuSubTrigger className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700 dark:hover:bg-neutral-700">
                         <Folder className="w-4 h-4 mr-2" />
@@ -230,13 +232,14 @@ function FolderNode({
                         onExecuteRequest={onExecuteRequest}
                         onAddMarkdownRequest={onAddMarkdownRequest}
                         onAddScriptRequest={onAddScriptRequest}
+                        onContextMenuOpenChange={onContextMenuOpenChange}
                     />
                 ))}
                 {folder.subfolders.length > 0 && folder.shellScripts.length > 0 && (
                     <DropdownMenuSeparator className="dark:bg-neutral-700" />
                 )}
                 {folder.shellScripts.map((script) => (
-                    <ContextMenu key={script.id}>
+                    <ContextMenu key={script.id} onOpenChange={onContextMenuOpenChange}>
                         <ContextMenuTrigger asChild>
                             <DropdownMenuItem
                                 className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
@@ -291,6 +294,9 @@ export default function QuickNavDropdown() {
     } | null>(null);
 
     const [pendingExecute, setPendingExecute] = useState<ShellScriptResponse | null>(null);
+
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const contextMenuOpenRef = useRef(false);
 
     // Add markdown state
     const [pendingAddMarkdown, setPendingAddMarkdown] = useState<ScriptsFolderResponse | null>(
@@ -352,19 +358,23 @@ export default function QuickNavDropdown() {
 
     return (
         <>
-            <DropdownMenu>
+            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                 <DropdownMenuTrigger asChild>
                     <button
                         className="p-1.5 rounded hover:bg-neutral-500 bg-neutral-600 transition-colors text-gray-400  outline-none! focus:outline-none! focus-visible:outline-none! focus:ring-0! border-0 ml-2"
                         title="Quick Navigate"
                         onMouseDown={(e) => e.stopPropagation()}
+                        onMouseEnter={() => setDropdownOpen(true)}
                     >
                         <Compass className="w-5 h-5" />
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                    className="dark:bg-neutral-800 dark:border-neutral-700 z-[9999]"
+                    className="dark:bg-neutral-800 dark:border-neutral-700"
                     align="end"
+                    onMouseLeave={() => {
+                        if (!contextMenuOpenRef.current) setDropdownOpen(false);
+                    }}
                 >
                     {(workspaces || []).length === 0 && (
                         <DropdownMenuItem disabled className="dark:text-neutral-500">
@@ -391,6 +401,9 @@ export default function QuickNavDropdown() {
                                             onExecuteRequest={handleExecuteRequest}
                                             onAddMarkdownRequest={handleAddMarkdownRequest}
                                             onAddScriptRequest={handleAddScriptRequest}
+                                            onContextMenuOpenChange={(open) => {
+                                                contextMenuOpenRef.current = open;
+                                            }}
                                         />
                                     ))
                                 )}
