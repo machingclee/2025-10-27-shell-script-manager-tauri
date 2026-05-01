@@ -1,4 +1,4 @@
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, FileText } from "lucide-react";
 import { folderApi } from "../../store/api/folderApi";
 import { workspaceApi } from "../../store/api/workspaceApi";
 import { appStateApi } from "../../store/api/appStateApi";
@@ -547,31 +547,22 @@ export default function FolderColumn() {
                     )}
             </div>
 
-            {/* Drafts folder — SYSTEM folder, shown with context menu but no rename/delete/drag */}
+            {/* Drafts folder — pinned row above the backend API row */}
             {draftFolder && (
-                <div className="px-4 mb-3">
-                    <DndContext>
-                        <SortableContext items={["draft-folder"]}>
-                            <SortableFolderItem
-                                folder={draftFolder}
-                                sortableId="draft-folder"
-                                isSelected={selectedFolderId === DRAFT_WORKSPACE_ID}
-                                onClick={() =>
-                                    dispatch(
-                                        rootFolderSlice.actions.setSelectedRootFolderId(
-                                            DRAFT_WORKSPACE_ID
-                                        )
-                                    )
-                                }
-                                onRename={() => {}}
-                                onDelete={() => {}}
-                                onCreateSubfolder={handleCreateSubfolder}
-                                disableRename
-                                disableDelete
-                                disableDrag
-                            />
-                        </SortableContext>
-                    </DndContext>
+                <div
+                    className={`border-t border-gray-400 dark:border-neutral-600 p-2 text-xs cursor-pointer select-none flex items-center gap-2 transition-colors duration-150 ${
+                        selectedFolderId === DRAFT_WORKSPACE_ID
+                            ? "bg-neutral-200 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-100"
+                            : "text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                    }`}
+                    onClick={() =>
+                        dispatch(
+                            rootFolderSlice.actions.setSelectedRootFolderId(DRAFT_WORKSPACE_ID)
+                        )
+                    }
+                >
+                    <FileText className="w-4 h-4 flex-shrink-0" />
+                    <span>{draftFolder.name}</span>
                 </div>
             )}
 

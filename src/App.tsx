@@ -642,12 +642,14 @@ function App() {
                             </ResizablePanel>
                         </ResizablePanelGroup>
                         {isHistoryOpen && (
-                            <div className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700 animate-panel-in">
-                                <div className={rightPanelMode === "SEARCH" ? undefined : "hidden"}>
+                            <div className="w-[350px] h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in">
+                                <div
+                                    className={`h-full ${rightPanelMode === "SEARCH" ? "" : "hidden"}`}
+                                >
                                     <SearchPanel />
                                 </div>
                                 <div
-                                    className={rightPanelMode === "HISTORY" ? undefined : "hidden"}
+                                    className={`h-full ${rightPanelMode === "HISTORY" ? "" : "hidden"}`}
                                 >
                                     <HistoryPanel />
                                 </div>

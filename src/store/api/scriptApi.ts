@@ -9,6 +9,7 @@ import {
 } from "@/types/dto";
 import { baseApi } from "./baseApi";
 import { folderApi } from "./folderApi";
+import { forceCloseTab } from "../slices/appSlice";
 
 const getSubfolder = (
     folderResponse: ScriptsFolderResponse,
@@ -150,7 +151,7 @@ export const scriptApi = baseApi.injectEndpoints({
                 url: `/scripts/${id}?folderId=${folderId}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["Script", { type: "FolderContent" }, "ScriptHistory"],
+            invalidatesTags: [{ type: "FolderContent" }, "ScriptHistory"],
             async onQueryStarted({ id, folderId }, { dispatch, queryFulfilled }) {
                 // Optimistically update the cache
                 const patchResult = dispatch(
@@ -168,6 +169,9 @@ export const scriptApi = baseApi.injectEndpoints({
 
                 try {
                     await queryFulfilled;
+                    // Close any open tab for the deleted script (also prevents any subscribed
+                    // getScriptById query from refetching a now-deleted script)
+                    dispatch(forceCloseTab(id));
                 } catch {
                     // Rollback on error
                     patchResult.undo();

@@ -570,13 +570,15 @@ export default function MarkdownPreviewer({
                             {...props}
                             style={{ cursor: "pointer" }}
                             type="checkbox"
-                            defaultChecked={checked}
+                            checked={!!checked}
                             disabled={false}
-                            onClick={(e) => {
+                            onChange={(e) => {
                                 e.stopPropagation();
                                 const target = e.target as HTMLInputElement;
+                                const container: Element | Document =
+                                    previewBoxRef.current ?? document;
                                 const allCheckboxes =
-                                    document.querySelectorAll('input[type="checkbox"]');
+                                    container.querySelectorAll('input[type="checkbox"]');
                                 let index = -1;
                                 for (let i = 0; i < allCheckboxes.length; i++) {
                                     if (allCheckboxes[i] === target) {
@@ -593,7 +595,8 @@ export default function MarkdownPreviewer({
                 return <input {...props} />;
             },
         }),
-        [imagesDir, previewDarkMode, fontSize, onImageWidthChange, onCheckboxToggle]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [imagesDir, previewDarkMode, fontSize, onImageWidthChange, onCheckboxToggle, previewBoxRef]
     );
 
     // ── Plugin arrays ─────────────────────────────────────────────────────────

@@ -23,7 +23,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, FileText, Link } from "lucide-react";
+import { Trash2, FileText, Link, ExternalLink } from "lucide-react";
 import MoveToFolderMenu from "./MoveToFolderMenu";
 
 export default function MarkdownItem({
@@ -146,6 +146,14 @@ export default function MarkdownItem({
                     </div>
                 </ContextMenuTrigger>
                 <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                    <ContextMenuItem
+                        onClick={handleViewClick}
+                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                    >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Open
+                    </ContextMenuItem>
+                    <ContextMenuSeparator className="dark:bg-neutral-700" />
                     <MoveToFolderMenu scriptId={script.id!} currentFolderId={parentFolderId} />
 
                     <ContextMenuItem

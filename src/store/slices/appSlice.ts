@@ -146,6 +146,20 @@ const appSlice = createSlice({
             delete state.tab.editor[String(tabId)];
             delete state.tab.previewer[String(tabId)];
         },
+        /** Like closeTab but does NOT push to closedMarkdownQueue — use when the script is permanently deleted. */
+        forceCloseTab(state, action: PayloadAction<number>) {
+            const tabId = action.payload;
+            const idx = state.tab.tabs.findIndex((t) => t.scriptId === tabId);
+            if (idx === -1) return;
+            state.tab.tabs.splice(idx, 1);
+            if (state.tab.activeTabId === tabId) {
+                state.tab.activeTabId =
+                    state.tab.tabs[idx - 1]?.scriptId ?? state.tab.tabs[0]?.scriptId ?? HOME_TAB_ID;
+            }
+            delete state.tab.tabStates[tabId];
+            delete state.tab.editor[String(tabId)];
+            delete state.tab.previewer[String(tabId)];
+        },
         reopenLastClosedTab(state) {
             const last = state.tab.closedMarkdownQueue.pop();
             if (!last) return;
@@ -233,6 +247,7 @@ const appSlice = createSlice({
 export const {
     openMarkdownTab,
     closeTab,
+    forceCloseTab,
     setActiveTab,
     patchTabState,
     patchEditorState,
