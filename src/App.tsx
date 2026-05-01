@@ -1,6 +1,5 @@
 import "./App.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import debounce from "lodash/debounce";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
     openMarkdownTab,
     closeTab,
@@ -46,24 +45,7 @@ function App() {
     // -----------------------------------------------------------------------
     const searchText = useAppSelector((s) => s.app.rightPanel.search.searchText);
     const rightPanelMode = useAppSelector((s) => s.app.rightPanel.mode);
-    const searchInputRef = useRef<HTMLInputElement>(null);
-
-    const debouncedDispatchSearch = useMemo(
-        () => debounce((val: string) => dispatch(setSearchText(val.trim())), 500),
-        [dispatch]
-    );
-
-    useEffect(() => {
-        return () => debouncedDispatchSearch.cancel();
-    }, [debouncedDispatchSearch]);
-
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        debouncedDispatchSearch(e.target.value);
-    };
-
     const clearSearch = () => {
-        if (searchInputRef.current) searchInputRef.current.value = "";
-        debouncedDispatchSearch.cancel();
         dispatch(setSearchText(""));
     };
 
@@ -518,19 +500,22 @@ function App() {
                         {/* <AIProfileButton /> */}
                         <div
                             className="relative flex items-center"
+                            style={{
+                                opacity: rightPanelMode === "SEARCH" ? 1 : 0.5,
+                                transition: "opacity 0.2s ease",
+                            }}
                             onMouseDown={(e) => e.stopPropagation()}
                         >
                             <input
-                                ref={searchInputRef}
                                 type="text"
-                                defaultValue=""
-                                onChange={handleSearchChange}
+                                value={searchText}
+                                onChange={(e) => dispatch(setSearchText(e.target.value))}
                                 onFocus={() => {
                                     dispatch(setRightPanelMode("SEARCH"));
                                     dispatch(openHistory());
                                 }}
                                 placeholder="Search scripts…"
-                                className="h-8 w-44 focus:w-64 rounded-md border border-gray-300 bg-white pl-7 pr-6 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:placeholder-neutral-400 dark:focus:ring-neutral-500 transition-[width] duration-300 ease-in-out"
+                                className="h-8 w-44 focus:w-64 rounded-md border !border-1 border-gray-300 bg-white pl-7 pr-6 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:placeholder-neutral-400 dark:focus:ring-neutral-500 transition-[width] duration-300 ease-in-out"
                             />
                             <Search className="absolute left-2 w-3.5 h-3.5 text-gray-400 dark:text-neutral-400 pointer-events-none" />
                             {searchText && (
@@ -544,7 +529,14 @@ function App() {
                                 </button>
                             )}
                         </div>
-                        <HistoryButton />
+                        <div
+                            style={{
+                                opacity: rightPanelMode === "HISTORY" ? 1 : 0.3,
+                                transition: "opacity 0.2s ease",
+                            }}
+                        >
+                            <HistoryButton />
+                        </div>
                     </div>
                 )}
             </div>
@@ -579,11 +571,9 @@ function App() {
                             </ResizablePanel>
                         </ResizablePanelGroup>
                         {isHistoryOpen && (
-                            <div
-                                key={rightPanelMode}
-                                className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700 animate-panel-in"
-                            >
-                                {rightPanelMode === "SEARCH" ? <SearchPanel /> : <HistoryPanel />}
+                            <div className="w-[350px] flex-shrink-0 border-l border-gray-200 dark:border-neutral-700 animate-panel-in">
+                                <div className={rightPanelMode === "SEARCH" ? undefined : "hidden"}><SearchPanel /></div>
+                                <div className={rightPanelMode === "HISTORY" ? undefined : "hidden"}><HistoryPanel /></div>
                             </div>
                         )}
                     </>

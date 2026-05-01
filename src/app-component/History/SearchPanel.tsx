@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import debounce from "lodash/debounce";
 import { scriptApi } from "@/store/api/scriptApi";
 import GenericScriptItem from "../ScriptsColumn/GenericScriptItem";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,20 @@ export default function SearchPanel() {
     const [triggerSearch, { data: results, isFetching: isSearching }] =
         scriptApi.endpoints.searchScript.useLazyQuery();
 
+    const debouncedSearch = useRef(
+        debounce((params: { search: string; page: number; size: number }) => {
+            triggerSearch(params);
+        }, 400)
+    ).current;
+
     useEffect(() => {
-        if (!search.trim() || backendPort === 0) return;
-        triggerSearch({ search, page, size: PAGE_SIZE });
+        return () => debouncedSearch.cancel();
+    }, [debouncedSearch]);
+
+    useEffect(() => {
+        if (backendPort === 0) return;
+        if (!search.trim()) return;
+        debouncedSearch({ search, page, size: PAGE_SIZE });
     }, [search, page, backendPort]);
 
     const totalPages = results ? Math.ceil(results.total / PAGE_SIZE) : 0;
@@ -86,7 +98,7 @@ export default function SearchPanel() {
                 {!isSearching && results?.scripts.length === 0 && (
                     <p className="text-sm text-gray-500 dark:text-neutral-400">No results found.</p>
                 )}
-                <div className="space-y-3" key={`${search}-${page}`}>
+                <div className="space-y-3" key={page}>
                     {results?.scripts.map((script, index) => (
                         <div
                             key={script.id}
