@@ -16,16 +16,18 @@ class DraftFolderInitialization(
     @Transactional
     override fun run(args: ApplicationArguments) {
         println("[DraftFolderInitialization] Checking if Drafts folder exists...")
-
-        // Migrate legacy "Draft" → "Drafts"
-        val legacy = scriptsFolderRepository.findByNameAndSystemLevel("Drafts", SystemLevel.SYSTEM)
-        if (legacy != null) {
-            println("[DraftFolderInitialization] Renaming legacy 'Draft' folder to 'Drafts'...")
-            legacy.name = "Drafts"
-            scriptsFolderRepository.save(legacy)
-            println("[DraftFolderInitialization] Renamed successfully.")
-            return
+        val existing = scriptsFolderRepository.findByNameAndSystemLevel("Drafts", SystemLevel.SYSTEM)
+        if (existing == null) {
+            println("[DraftFolderInitialization] Drafts folder not found. Creating...")
+            scriptsFolderRepository.save(
+                ScriptsFolder(
+                    name = "Drafts",
+                    systemLevel = SystemLevel.SYSTEM
+                )
+            )
+            println("[DraftFolderInitialization] Drafts folder created successfully.")
+        } else {
+            println("[DraftFolderInitialization] Drafts folder already exists (id=${existing.id}). Skipping.")
         }
     }
 }
-
