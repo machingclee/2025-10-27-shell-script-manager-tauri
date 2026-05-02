@@ -191,7 +191,7 @@ export default function MarkdownEditor({
 
     // Initialize editName when script loads (first time or when switching scripts)
     useEffect(() => {
-        if (script && !ts?.editName) {
+        if (script && ts?.editName == null) {
             patch({ editName: script.name || "" });
         }
     }, [script, ts?.editName, patch]);

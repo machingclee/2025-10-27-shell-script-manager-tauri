@@ -529,6 +529,7 @@ export default function FolderColumn() {
                                                 ordering: activeFolder.ordering,
                                                 createdAt: activeFolder.createdAt,
                                                 createdAtHk: activeFolder.createdAtHk,
+                                                systemLevel: "USER", // system level stuffs are fixed at the bottom, they are not sortable nor in this list
                                                 shellScripts: [],
                                                 subfolders: [],
                                                 parentFolder: null,
