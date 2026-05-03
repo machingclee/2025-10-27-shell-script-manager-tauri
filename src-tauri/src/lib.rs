@@ -11,6 +11,7 @@ use serde_json;
 use std::process::{Child, Command};
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager};
+use tauri_plugin_opener::OpenerExt;
 
 pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
 pub static PRISMA_CLIENT: OnceLock<PrismaClient> = OnceLock::new();
@@ -427,6 +428,29 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(
+            // Block any URL that would cause the webview to navigate away (e.g. window.open,
+            // <a target="_blank">, or direct location changes to external sites) and instead
+            // open them in the OS default browser via tauri-plugin-opener.
+            tauri::plugin::Builder::<tauri::Wry>::new("external-link-interceptor")
+                .on_navigation(|webview, url| {
+                    let s = url.as_str();
+                    // Allow all local / IPC / asset URLs to pass through normally.
+                    if s.starts_with("tauri://")
+                        || s.starts_with("http://localhost")
+                        || s.starts_with("http://tauri.localhost")
+                        || s.starts_with("https://tauri.localhost")
+                        || s.starts_with("asset://")
+                        || s.starts_with("ipc://")
+                    {
+                        return true;
+                    }
+                    // External URL — open in the OS default browser and cancel the navigation.
+                    let _ = webview.opener().open_url(s, None::<String>);
+                    false
+                })
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             close_subwindow,
             raise_subwindows,

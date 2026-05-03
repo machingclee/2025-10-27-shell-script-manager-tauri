@@ -850,7 +850,7 @@ export default function MarkdownPreviewer({
                     },
                     "& p": { marginTop: "0.5em", marginBottom: "0.5em" },
                     "& code:not(pre code)": {
-                        fontSize: "0.95em",
+                        fontSize: "0.82em",
                         backgroundColor: previewDarkMode ? LIGHT_WHITE_BG : "rgba(0, 0, 0, 0.07)",
                         color: previewDarkMode ? "inherit" : "rgb(190, 50, 50)",
                         padding: "2px 6px",

@@ -630,47 +630,51 @@ function App() {
             )}
             {/* Main content */}
             <div className="flex-1 overflow-hidden flex flex-row">
-                {activeTabId === HOME_TAB_ID ? (
-                    <>
-                        <ResizablePanelGroup direction="horizontal" className="flex-1">
-                            <ResizablePanel defaultSize={20} minSize={0} maxSize={50}>
-                                <FolderColumn />
-                            </ResizablePanel>
-                            <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={75}>
-                                <ScriptsColumn />
-                            </ResizablePanel>
-                        </ResizablePanelGroup>
-                        {isHistoryOpen && (
-                            <div className="w-[350px] h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in">
-                                <div
-                                    className={`h-full ${rightPanelMode === "SEARCH" ? "" : "hidden"}`}
-                                >
-                                    <SearchPanel />
-                                </div>
-                                <div
-                                    className={`h-full ${rightPanelMode === "HISTORY" ? "" : "hidden"}`}
-                                >
-                                    <HistoryPanel />
-                                </div>
+                {/* Home content - always mounted, hidden when a tab is active */}
+                <div
+                    className={`flex-1 overflow-hidden flex flex-row ${activeTabId !== HOME_TAB_ID ? "hidden" : ""}`}
+                >
+                    <ResizablePanelGroup direction="horizontal" className="flex-1">
+                        <ResizablePanel defaultSize={20} minSize={0} maxSize={50}>
+                            <FolderColumn />
+                        </ResizablePanel>
+                        <ResizableHandle withHandle />
+                        <ResizablePanel defaultSize={75}>
+                            <ScriptsColumn />
+                        </ResizablePanel>
+                    </ResizablePanelGroup>
+                    {isHistoryOpen && (
+                        <div className="w-[350px] h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in">
+                            <div
+                                className={`h-full ${rightPanelMode === "SEARCH" ? "" : "hidden"}`}
+                            >
+                                <SearchPanel />
                             </div>
-                        )}
-                    </>
-                ) : (
-                    (() => {
-                        const activeTab = tabs.find((t) => t.scriptId === activeTabId);
-                        if (!activeTab || activeTab.type !== "markdown") return null;
-                        return (
+                            <div
+                                className={`h-full ${rightPanelMode === "HISTORY" ? "" : "hidden"}`}
+                            >
+                                <HistoryPanel />
+                            </div>
+                        </div>
+                    )}
+                </div>
+                {/* Markdown editors - one per open tab, always mounted while tab exists */}
+                {tabs.map((tab) => {
+                    if (tab.type !== "markdown") return null;
+                    return (
+                        <div
+                            key={tab.scriptId}
+                            className={`flex-1 overflow-hidden ${activeTabId !== tab.scriptId ? "hidden" : ""}`}
+                        >
                             <MarkdownEditor
-                                key={activeTab.scriptId}
-                                scriptId={activeTab.scriptId}
+                                scriptId={tab.scriptId}
                                 port={backendPort}
                                 embedded={true}
-                                onClose={() => requestCloseTab(activeTab.scriptId)}
+                                onClose={() => requestCloseTab(tab.scriptId)}
                             />
-                        );
-                    })()
-                )}
+                        </div>
+                    );
+                })}
             </div>
             <Toaster />
             <AppClosingOverlay />

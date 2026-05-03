@@ -23,8 +23,19 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, FileText, Link, ExternalLink } from "lucide-react";
+import { Trash2, FileText, Link, ExternalLink, Pencil } from "lucide-react";
 import MoveToFolderMenu from "./MoveToFolderMenu";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function MarkdownItem({
     script,
@@ -41,7 +52,10 @@ export default function MarkdownItem({
     historyVersion?: boolean;
 }) {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isRenameOpen, setIsRenameOpen] = useState(false);
+    const [newName, setNewName] = useState(script.name);
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
+    const [updateMarkdownScript] = scriptApi.endpoints.updateMarkdownScript.useMutation();
 
     const imagesDirRef = useRef<string | null>(null);
     const [isSelected, setIsSelected] = useState(false);
@@ -59,6 +73,12 @@ export default function MarkdownItem({
 
     const handleDelete = async () => {
         setIsDeleteOpen(true);
+    };
+
+    const handleRename = async () => {
+        if (!newName.trim() || !script.id) return;
+        await updateMarkdownScript({ ...script, name: newName.trim() });
+        setIsRenameOpen(false);
     };
 
     const confirmDelete = async () => {
@@ -153,6 +173,16 @@ export default function MarkdownItem({
                         <ExternalLink className="w-4 h-4 mr-2" />
                         Open
                     </ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={() => {
+                            setNewName(script.name);
+                            setIsRenameOpen(true);
+                        }}
+                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                    >
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Rename
+                    </ContextMenuItem>
                     <ContextMenuSeparator className="dark:bg-neutral-700" />
                     <MoveToFolderMenu scriptId={script.id!} currentFolderId={parentFolderId} />
 
@@ -173,6 +203,46 @@ export default function MarkdownItem({
                     </ContextMenuItem>
                 </ContextMenuContent>
             </ContextMenu>
+
+            <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+                <DialogContent
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700"
+                >
+                    <DialogHeader>
+                        <DialogTitle>Rename Markdown</DialogTitle>
+                        <DialogDescription>Enter a new name for "{script.name}".</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="markdown-rename">Name</Label>
+                            <Input
+                                id="markdown-rename"
+                                autoFocus
+                                className="bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && newName.trim()) {
+                                        e.preventDefault();
+                                        handleRename();
+                                    }
+                                }}
+                                placeholder="Markdown name"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsRenameOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleRename} disabled={!newName.trim()}>
+                            Rename
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
                 <AlertDialogContent className="bg-white text-black dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
