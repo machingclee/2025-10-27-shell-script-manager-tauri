@@ -225,6 +225,135 @@ function ResizableImage({
     );
 }
 
+// ─── TOC utilities ────────────────────────────────────────────────────────────
+
+function slugify(text: string): string {
+    return text
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/[\s_]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+
+function extractNodeText(node: any): string {
+    if (node.type === "text") return node.value ?? "";
+    if (node.children) return node.children.map(extractNodeText).join("");
+    return "";
+}
+
+function rehypeHeadingIds() {
+    return (tree: any) => {
+        const counts: Record<string, number> = {};
+        function walk(node: any) {
+            if (node.type === "element" && /^h[1-6]$/.test(node.tagName)) {
+                const text = extractNodeText(node);
+                const slug = slugify(text);
+                const count = counts[slug] ?? 0;
+                counts[slug] = count + 1;
+                node.properties = node.properties ?? {};
+                if (!node.properties.id) {
+                    node.properties.id = count === 0 ? slug : `${slug}-${count}`;
+                }
+            }
+            if (node.children) node.children.forEach(walk);
+        }
+        walk(tree);
+    };
+}
+
+function extractHeadingsFromMd(content: string): { level: number; text: string; id: string }[] {
+    const headings: { level: number; text: string; id: string }[] = [];
+    const counts: Record<string, number> = {};
+    for (const line of content.split("\n")) {
+        const match = line.match(/^(#{1,6})\s+(.+)$/);
+        if (match) {
+            const level = match[1].length;
+            const text = match[2].trim();
+            const slug = slugify(text);
+            const count = counts[slug] ?? 0;
+            counts[slug] = count + 1;
+            headings.push({ level, text, id: count === 0 ? slug : `${slug}-${count}` });
+        }
+    }
+    return headings;
+}
+
+function TableOfContents({
+    headings,
+    previewBoxRef,
+    darkMode,
+}: {
+    headings: { level: number; text: string; id: string }[];
+    previewBoxRef: React.RefObject<HTMLDivElement | null>;
+    darkMode: boolean;
+}) {
+    if (headings.length === 0) return null;
+    const minLevel = Math.min(...headings.map((h) => h.level));
+    return (
+        <div
+            style={{
+                border: darkMode
+                    ? "1px solid rgba(255,255,255,0.15)"
+                    : "1px solid rgba(0,0,0,0.12)",
+                borderRadius: 6,
+                padding: "12px 16px",
+                marginBottom: "1em",
+                overflow: "hidden",
+                backgroundColor: darkMode ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+            }}
+        >
+            <div
+                style={{
+                    fontWeight: 600,
+                    marginBottom: 8,
+                    opacity: 0.6,
+                    fontSize: "0.85em",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                }}
+            >
+                Contents
+            </div>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+                {headings.map((h, i) => (
+                    <li
+                        key={i}
+                        style={{
+                            paddingLeft: `${(h.level - minLevel) * 16}px`,
+                            lineHeight: "1.8",
+                        }}
+                    >
+                        <a
+                            href={`#${h.id}`}
+                            style={{
+                                color: darkMode ? "rgb(96, 165, 250)" : "rgb(37, 99, 235)",
+                                textDecoration: "none",
+                                fontSize: "0.9em",
+                            }}
+                            onMouseEnter={(e) =>
+                                ((e.target as HTMLElement).style.textDecoration = "underline")
+                            }
+                            onMouseLeave={(e) =>
+                                ((e.target as HTMLElement).style.textDecoration = "none")
+                            }
+                            onClick={(e) => {
+                                e.preventDefault();
+                                const container = previewBoxRef.current;
+                                if (!container) return;
+                                const el = container.querySelector(`#${CSS.escape(h.id)}`);
+                                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }}
+                        >
+                            {h.text}
+                        </a>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface MarkdownPreviewerProps {
@@ -503,6 +632,19 @@ export default function MarkdownPreviewer({
                         </div>
                     );
                 }
+                const isToc =
+                    nodeChildren.length === 1 &&
+                    nodeChildren[0].type === "text" &&
+                    nodeChildren[0].value?.trim() === "[TOC]";
+                if (isToc) {
+                    return (
+                        <TableOfContents
+                            headings={extractHeadingsFromMd(editContent)}
+                            previewBoxRef={previewBoxRef}
+                            darkMode={previewDarkMode}
+                        />
+                    );
+                }
                 return <p {...rest}>{children}</p>;
             },
             img: ({ src, alt }: { src?: string; alt?: string }) => {
@@ -596,7 +738,15 @@ export default function MarkdownPreviewer({
             },
         }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [imagesDir, previewDarkMode, fontSize, onImageWidthChange, onCheckboxToggle, previewBoxRef]
+        [
+            imagesDir,
+            previewDarkMode,
+            fontSize,
+            editContent,
+            onImageWidthChange,
+            onCheckboxToggle,
+            previewBoxRef,
+        ]
     );
 
     // ── Plugin arrays ─────────────────────────────────────────────────────────
@@ -611,6 +761,7 @@ export default function MarkdownPreviewer({
                 rehypeHighlight,
                 rehypeMathjax,
                 rehypeAddSourceLines,
+                rehypeHeadingIds,
                 rehypeSearchHighlightPlugin,
             ] as any[],
         [rehypeSearchHighlightPlugin]

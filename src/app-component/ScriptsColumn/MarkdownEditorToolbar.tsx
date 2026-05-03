@@ -35,7 +35,7 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
     const tabId = scriptId;
     const dispatch = useAppDispatch();
 
-    const ts = useAppSelector((s) => s.app.tab.tabStates[tabId]);
+    const tabState = useAppSelector((s) => s.app.tab.tabStates[tabId]);
     const editorState = useAppSelector((s) => s.app.tab.editor[String(tabId)]);
 
     const { data: script } = scriptApi.endpoints.getScriptById.useQuery(scriptId, {
@@ -50,10 +50,10 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
         invoke<string>("get_images_dir").then(setImagesDir).catch(console.error);
     }, []);
 
-    const editViewMode = ts?.editViewMode ?? "mixed";
-    const editName = ts?.editName ?? "";
-    const hasChanges = ts?.hasChanges ?? false;
-    const edited = ts?.edited ?? false;
+    const editViewMode = tabState?.editViewMode ?? "mixed";
+    const editName = tabState?.editName ?? script?.name ?? "";
+    const hasChanges = tabState?.hasChanges ?? false;
+    const edited = tabState?.edited ?? false;
     const editContent = editorState?.editContent ?? "";
     const maxAvailableInputWidth = Math.max(0, windowWidth - INPUT_HORIZONTAL_PADDING);
     const inputWidth = Math.min(getResponsiveInputWidth(windowWidth), maxAvailableInputWidth);
@@ -75,7 +75,7 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
 
     const handleSaveEdit = async () => {
         if (!script) return;
-        if (ts?.isDraftNew) {
+        if (tabState?.isDraftNew) {
             patch({ saveDialogRequested: true });
             return;
         }

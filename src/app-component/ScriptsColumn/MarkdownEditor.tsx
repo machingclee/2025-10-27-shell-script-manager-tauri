@@ -54,7 +54,7 @@ export default function MarkdownEditor({
     const [isFullscreen, setIsFullscreen] = useState(false);
     // ─── Redux-backed tab state (live-synced; survives tab switches) ─────────
     const ts = savedState; // shorthand; undefined on first open
-    const editName: string = ts?.editName ?? "";
+    const editName: string = ts?.editName ?? script?.name ?? "";
     const splitRatio: number = ts?.splitRatio ?? 50;
     const editViewMode: "plain" | "mixed" | "preview" =
         ts?.editViewMode ?? (editModeFromUrl ? "mixed" : "preview");
@@ -194,7 +194,7 @@ export default function MarkdownEditor({
         if (script && ts?.editName == null) {
             patch({ editName: script.name || "" });
         }
-    }, [script, ts?.editName, patch]);
+    }, [script, editName, patch]);
 
     // Debounce-sync editContent to editor Redux slice so the toolbar component can read it for saving.
     // Also debounce update previewContent in tabStates for the previewer.

@@ -37,6 +37,18 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+function parseNameTags(name: string): { tags: string[]; rest: string } {
+    const tags: string[] = [];
+    let rest = name;
+    const tagRegex = /^\[([^\]]+)\]\s*/;
+    let match;
+    while ((match = tagRegex.exec(rest)) !== null) {
+        tags.push(match[1]);
+        rest = rest.slice(match[0].length);
+    }
+    return { tags, rest };
+}
+
 export default function MarkdownItem({
     script,
     parentFolderId,
@@ -107,9 +119,24 @@ export default function MarkdownItem({
                             </div>
                         )}
                         <div className="px-3 py-2 ">
-                            <div className="font-bold text-lg mb-2 select-none text-gray-900 dark:text-neutral-300 flex items-center gap-2">
+                            <div className="font-bold text-lg mb-2 select-none text-gray-900 dark:text-neutral-300 flex items-center gap-2 flex-wrap">
                                 <FileText className="w-7 h-7 flex-shrink-0 text-blue-500 dark:text-blue-400" />
-                                {script.name}
+                                {(() => {
+                                    const { tags, rest } = parseNameTags(script.name);
+                                    return (
+                                        <>
+                                            {tags.map((tag, i) => (
+                                                <span
+                                                    key={i}
+                                                    className="text-[0.9em] font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-700 dark:bg-neutral-600 dark:text-neutral-200"
+                                                >
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                            {rest || script.name}
+                                        </>
+                                    );
+                                })()}
                                 {import.meta.env.DEV && (
                                     <span className="text-sm font-normal" style={{ opacity: 0.3 }}>
                                         (id: {script.id})
