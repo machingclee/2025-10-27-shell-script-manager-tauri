@@ -36,6 +36,7 @@ import { scriptApi } from "@/store/api/scriptApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 import MoveToFolderMenu from "./MoveToFolderMenu";
+import { parseNameTags, TAG_BADGE_CLASS } from "@/lib/nameTag";
 
 export default function ScriptItem({
     script,
@@ -186,9 +187,21 @@ export default function ScriptItem({
             <div className="flex items-center gap-2 justify-between mb-4 min-w-0 pt-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="min-w-0 flex-1">
-                        <div className="font-bold text-lg break-words select-none flex items-center gap-2">
+                        <div className="font-bold text-lg break-words select-none flex items-center gap-2 flex-wrap">
                             <Terminal className="w-7 h-7 flex-shrink-0 text-green-500 dark:text-green-400" />
-                            {script.name}
+                            {(() => {
+                                const { tags, rest } = parseNameTags(script.name);
+                                return (
+                                    <>
+                                        {tags.map((tag, i) => (
+                                            <span key={i} className={TAG_BADGE_CLASS}>
+                                                {tag}
+                                            </span>
+                                        ))}
+                                        {rest}
+                                    </>
+                                );
+                            })()}
                             {import.meta.env.DEV && (
                                 <span className="text-sm font-normal" style={{ opacity: 0.3 }}>
                                     (id: {script.id})

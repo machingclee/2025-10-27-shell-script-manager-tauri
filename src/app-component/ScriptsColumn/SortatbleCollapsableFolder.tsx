@@ -42,6 +42,7 @@ import clsx from "clsx";
 import SortableScriptItem from "./SortableScriptItem";
 import { AddMarkdownDialog } from "../FolderColumn/Dialog/AddMarkdownDialog";
 import { Textarea } from "@/components/ui/textarea";
+import { parseNameTags, TAG_BADGE_CLASS } from "@/lib/nameTag";
 
 export default function ({
     folder: folder,
@@ -242,7 +243,7 @@ export default function ({
                             >
                                 <GripVertical className="w-4 h-4" />
                             </div>
-                            <div className="flex-1 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-2">
+                            <div className="flex-1 cursor-pointer overflow-hidden flex items-center gap-2 flex-wrap">
                                 {folder.shellScripts.length > 0 ? (
                                     isExpanded ? (
                                         <ChevronDown className="w-4 h-4 flex-shrink-0" />
@@ -253,7 +254,21 @@ export default function ({
                                     <div className="w-4 h-4 flex-shrink-0" />
                                 )}
                                 <Folder className="w-4 h-4 flex-shrink-0" fill="currentColor" />
-                                {folder.name}
+                                {(() => {
+                                    const { tags, rest } = parseNameTags(folder.name);
+                                    return (
+                                        <>
+                                            {tags.map((tag, i) => (
+                                                <span key={i} className={TAG_BADGE_CLASS}>
+                                                    {tag}
+                                                </span>
+                                            ))}
+                                            <span className="whitespace-nowrap overflow-hidden text-ellipsis">
+                                                {rest || folder.name}
+                                            </span>
+                                        </>
+                                    );
+                                })()}
                                 {folder.shellScripts.length > 0 && (
                                     <span className="text-xs text-gray-500 dark:text-gray-400">
                                         ({folder.shellScripts.length})

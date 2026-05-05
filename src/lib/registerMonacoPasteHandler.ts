@@ -61,7 +61,14 @@ export function registerMarkdownEditorBehaviors(
     options: MarkdownEditorBehaviorOptions = {}
 ): void {
     // Cmd+V: image via Rust, then text via Rust — no macOS permission dialog.
-    editorInstance.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, async () => {
+    // Use onKeyDown (per-instance) instead of addCommand, because addCommand registers
+    // into Monaco's shared global keybinding service and later editor instances silently
+    // override earlier ones — making Cmd+V stop working in all but the newest tab.
+    editorInstance.onKeyDown(async (e) => {
+        if (!(e.metaKey || e.ctrlKey) || e.code !== "KeyV") return;
+        e.preventDefault();
+        e.stopPropagation();
+
         const imgData = await invoke<RawImage | null>("read_clipboard_image").catch(() => null);
 
         if (imgData) {

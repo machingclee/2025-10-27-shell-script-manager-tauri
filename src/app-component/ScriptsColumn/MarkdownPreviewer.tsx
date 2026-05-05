@@ -8,7 +8,7 @@ import rehypeMathjax from "rehype-mathjax";
 import { Box } from "@mui/material";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Sun, Moon, Presentation, ChevronRight } from "lucide-react";
+import { Sun, Moon, Presentation, ChevronRight, ChevronLeft } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setPreviewDarkMode } from "@/store/slices/appSlice";
 import { remarkItemReference } from "@/lib/remarkItemReference";
@@ -496,6 +496,10 @@ export default function MarkdownPreviewer({
                     return next;
                 });
             }
+            if (e.key === "Backspace") {
+                e.preventDefault();
+                setPresentationIndex((idx) => Math.max(0, idx - 1));
+            }
         };
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
@@ -848,6 +852,34 @@ export default function MarkdownPreviewer({
                     }}
                 >
                     <ChevronRight size={15} />
+                </button>
+            )}
+
+            {/* Back button (presentation mode only) */}
+            {presentationMode && (
+                <button
+                    onClick={() => {
+                        setPresentationIndex((idx) => Math.max(0, idx - 1));
+                    }}
+                    title="Hide last revealed"
+                    className="preview-toolbar-btn"
+                    disabled={presentationIndex === 0}
+                    style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 130,
+                        zIndex: 10,
+                        background: previewDarkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.10)",
+                        border: "none",
+                        borderRadius: 6,
+                        padding: "4px 8px",
+                        cursor: presentationIndex === 0 ? "default" : "pointer",
+                        lineHeight: 1,
+                        opacity: presentationIndex === 0 ? 0.35 : 1,
+                        color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
+                    }}
+                >
+                    <ChevronLeft size={15} />
                 </button>
             )}
 

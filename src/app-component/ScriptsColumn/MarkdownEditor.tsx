@@ -245,8 +245,13 @@ export default function MarkdownEditor({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ts?.saveDialogRequested]);
 
+    const activeTabId = useAppSelector((s) => s.app.tab.activeTabId);
+
     // Shared window-level keyboard shortcuts
+    // Only the active tab (or a subwindow) should respond — all tab editors are mounted
+    // simultaneously, so without this guard every hidden tab also fires Cmd+S / Cmd+W etc.
     useMarkdownShortcuts({
+        enabled: !embedded || tabId === activeTabId,
         onSave: () => {
             handleSaveRequest();
         },

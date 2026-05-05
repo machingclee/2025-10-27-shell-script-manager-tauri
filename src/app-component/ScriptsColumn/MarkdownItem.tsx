@@ -36,18 +36,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-function parseNameTags(name: string): { tags: string[]; rest: string } {
-    const tags: string[] = [];
-    let rest = name;
-    const tagRegex = /^\[([^\]]+)\]\s*/;
-    let match;
-    while ((match = tagRegex.exec(rest)) !== null) {
-        tags.push(match[1]);
-        rest = rest.slice(match[0].length);
-    }
-    return { tags, rest };
-}
+import { parseNameTags, TAG_BADGE_CLASS } from "@/lib/nameTag";
 
 export default function MarkdownItem({
     script,
@@ -126,10 +115,7 @@ export default function MarkdownItem({
                                     return (
                                         <>
                                             {tags.map((tag, i) => (
-                                                <span
-                                                    key={i}
-                                                    className="text-[0.9em] font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-700 dark:bg-neutral-600 dark:text-neutral-200"
-                                                >
+                                                <span key={i} className={TAG_BADGE_CLASS}>
                                                     {tag}
                                                 </span>
                                             ))}
