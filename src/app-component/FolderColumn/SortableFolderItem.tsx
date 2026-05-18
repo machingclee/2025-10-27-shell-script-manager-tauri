@@ -22,7 +22,7 @@ import { CreateSubfolderDialog } from "./Dialog/CreateSubfolderDialog";
 import { DeleteFolderDialog } from "./Dialog/DeleteFolderDialog";
 import { RenameFolderDialog } from "./Dialog/RenameFolderDialog";
 import { AIProfilesDialog } from "../AIProfile/Dialog/AIProfilesDialog";
-import { parseNameTags, TAG_BADGE_CLASS } from "@/lib/nameTag";
+import NameTagDisplay from "@/lib/NameTagDisplay";
 
 export default React.memo(
     function SortableFolderItem({
@@ -187,21 +187,10 @@ export default React.memo(
                                 )}
                                 <Folder className="w-5 h-5 flex-shrink-0" fill="currentColor" />
                                 <div className="flex-1 cursor-pointer flex items-center gap-1.5 flex-wrap overflow-hidden">
-                                    {(() => {
-                                        const { tags, rest } = parseNameTags(folder.name);
-                                        return (
-                                            <>
-                                                {tags.map((tag, i) => (
-                                                    <span key={i} className={TAG_BADGE_CLASS}>
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                                <span className="whitespace-nowrap overflow-hidden text-ellipsis">
-                                                    {rest || folder.name}
-                                                </span>
-                                            </>
-                                        );
-                                    })()}
+                                    <NameTagDisplay
+                                        name={folder.name}
+                                        restClassName="whitespace-nowrap overflow-hidden text-ellipsis"
+                                    />
                                 </div>
                             </div>
                         </ContextMenuTrigger>

@@ -36,7 +36,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { parseNameTags, TAG_BADGE_CLASS } from "@/lib/nameTag";
+import NameTagDisplay from "@/lib/NameTagDisplay";
 
 export default function MarkdownItem({
     script,
@@ -110,19 +110,7 @@ export default function MarkdownItem({
                         <div className="px-3 py-2 ">
                             <div className="font-bold text-lg mb-2 select-none text-gray-900 dark:text-neutral-300 flex items-center gap-2 flex-wrap">
                                 <FileText className="w-7 h-7 flex-shrink-0 text-blue-500 dark:text-blue-400" />
-                                {(() => {
-                                    const { tags, rest } = parseNameTags(script.name);
-                                    return (
-                                        <>
-                                            {tags.map((tag, i) => (
-                                                <span key={i} className={TAG_BADGE_CLASS}>
-                                                    {tag}
-                                                </span>
-                                            ))}
-                                            {rest || script.name}
-                                        </>
-                                    );
-                                })()}
+                                <NameTagDisplay name={script.name} />
                                 {import.meta.env.DEV && (
                                     <span className="text-sm font-normal" style={{ opacity: 0.3 }}>
                                         (id: {script.id})
