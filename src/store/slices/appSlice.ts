@@ -241,6 +241,13 @@ const appSlice = createSlice({
         setRightPanelMode(state, action: PayloadAction<"SEARCH" | "HISTORY">) {
             state.rightPanel.mode = action.payload;
         },
+        renameTab(state, action: PayloadAction<{ scriptId: number; scriptName: string }>) {
+            const { scriptId, scriptName } = action.payload;
+            const tab = state.tab.tabs.find((t) => t.scriptId === scriptId);
+            if (tab && tab.type === "markdown") {
+                tab.scriptName = scriptName;
+            }
+        },
     },
 });
 
@@ -259,5 +266,6 @@ export const {
     setSearchText,
     setSearchPage,
     setRightPanelMode,
+    renameTab,
 } = appSlice.actions;
 export default appSlice;

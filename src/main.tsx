@@ -7,6 +7,7 @@ import { BackendLoadingScreen } from "./components/BackendLoadingScreen";
 import "./index.css";
 import { StyledEngineProvider } from "@mui/material/styles";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { TauriClickToComponent } from "./components/TauriClickToComponent";
 
 // Intercept all link clicks and open them in the default browser
 document.addEventListener("click", (e) => {
@@ -20,6 +21,7 @@ document.addEventListener("click", (e) => {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
+        <TauriClickToComponent />
         <StyledEngineProvider injectFirst>
             <Provider store={store}>
                 <BackendLoadingScreen>

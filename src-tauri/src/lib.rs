@@ -374,6 +374,21 @@ fn read_clipboard_text() -> Option<String> {
     clipboard.get_text().ok()
 }
 
+/// Open a file in VS Code via the vscode:// URL scheme.
+/// Used by TauriClickToComponent in dev mode — WKWebView can't navigate
+/// vscode:// URLs directly, so the frontend invokes this command instead.
+#[tauri::command]
+async fn open_in_vscode(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    let url = if path.starts_with('/') {
+        format!("vscode://file{}", path)
+    } else {
+        format!("vscode://file/{}", path)
+    };
+    app.opener()
+        .open_url(&url, None::<String>)
+        .map_err(|e| e.to_string())
+}
+
 /// Called by the frontend after the user has confirmed they are OK to close
 /// (either because there are no unsaved changes, or they clicked OK on the dialog).
 /// Does the actual backend cleanup and then closes the window.
@@ -467,6 +482,7 @@ pub fn run() {
             read_clipboard_text,
             setup_subwindow_appearance,
             confirm_close,
+            open_in_vscode,
         ])
         .setup(|app| {
             // 0. Initialize cleanup flag

@@ -86,6 +86,15 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
         await emit("markdown-updated", { scriptId: script.id });
     };
 
+    useEffect(() => {
+        // quick patch when tab name is changed from somewhere else.
+        if (script) {
+            if (script.name !== editName) {
+                patch({ editName: script.name });
+            }
+        }
+    }, [script]);
+
     return (
         <div className="relative flex items-center gap-2 flex-1 min-w-0 px-4 py-1 justify-between">
             <div className="relative z-10 flex items-center rounded-lg overflow-hidden border-0">

@@ -7,6 +7,11 @@ const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(() => ({
+    // Inject the project root so TauriClickToComponent can convert Vite dev-server
+    // URL paths (e.g. /src/Foo.tsx) back to absolute filesystem paths.
+    define: {
+        __VITE_ROOT__: JSON.stringify(process.cwd()),
+    },
     plugins: [
         react(),
         (monacoEditorPlugin as any).default({
@@ -40,12 +45,12 @@ export default defineConfig(() => ({
                 },
                 // Ensure consistent asset naming
                 assetFileNames: (assetInfo) => {
-                    const info = assetInfo.name.split(".");
-                    const ext = info[info.length - 1];
-                    if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i.test(assetInfo.name)) {
+                    const info = assetInfo?.name?.split(".") || [];
+                    const ext = info[info?.length - 1];
+                    if (/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i.test(assetInfo?.name || "")) {
                         return `assets/images/[name]-[hash][extname]`;
                     }
-                    if (/\.css$/i.test(assetInfo.name)) {
+                    if (/\.css$/i.test(assetInfo?.name || "")) {
                         return `assets/[name]-[hash][extname]`;
                     }
                     return `assets/[name]-[hash][extname]`;
