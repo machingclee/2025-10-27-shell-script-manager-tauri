@@ -290,6 +290,17 @@ function TableOfContents({
 }) {
     if (headings.length === 0) return null;
     const minLevel = Math.min(...headings.map((h) => h.level));
+
+    // Components for rendering only inline markdown formatting inside a TOC link.
+    // p / a are unwrapped (TOC items are already links, so nested <a> is invalid).
+    const tocInlineComponents = useMemo(
+        () => ({
+            p: ({ children }: any) => <>{children}</>,
+            a: ({ children }: any) => <>{children}</>,
+        }),
+        [],
+    );
+
     return (
         <div
             style={{
@@ -345,7 +356,9 @@ function TableOfContents({
                                 if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
                             }}
                         >
-                            {h.text}
+                            <ReactMarkdown components={tocInlineComponents}>
+                                {h.text}
+                            </ReactMarkdown>
                         </a>
                     </li>
                 ))}
