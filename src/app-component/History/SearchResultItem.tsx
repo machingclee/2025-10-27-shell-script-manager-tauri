@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { FileText, FolderOpen, Terminal } from "lucide-react";
+import { FileText, FolderOpen, Loader2, Terminal } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { emit } from "@tauri-apps/api/event";
 import {
     ContextMenu,
     ContextMenuContent,
@@ -7,20 +9,23 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import NameTagDisplay from "@/lib/NameTagDisplay";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 import { appStateApi } from "@/store/api/appStateApi";
+import { scriptApi } from "@/store/api/scriptApi";
 
 type SearchResultScript = {
     id?: number | null;
     name: string;
+    command?: string;
+    showShell?: boolean;
     isMarkdown: boolean;
 };
 
 /**
  * Lite card for search/history side panels.
- * Context menu + double-click only navigate to the workspace-level root folder
- * (direct child of a workspace). No Open / Execute / Edit.
+ * - Double-click: execute shell script / open markdown
+ * - Context menu: only navigate to workspace-level root folder
  */
 export default function SearchResultItem({
     script,
@@ -37,7 +42,11 @@ export default function SearchResultItem({
     const dispatch = useAppDispatch();
     const [isSelected, setIsSelected] = useState(false);
     const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
+    const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
     const { data: appState } = appStateApi.endpoints.getAppState.useQueryState();
+    const executing = useAppSelector(
+        (state) => (state.folder.scripts.executing?.[script.id ?? 0] ?? { loading: false }).loading
+    );
 
     const folderId = rootFolderId ?? 0;
 
@@ -52,6 +61,50 @@ export default function SearchResultItem({
         }
     };
 
+    const handleRun = async () => {
+        if (!script.id || script.isMarkdown) return;
+        try {
+            dispatch(
+                rootFolderSlice.actions.setExecutingScript({
+                    script_id: script.id,
+                    loading: true,
+                })
+            );
+            const command = script.command ?? "";
+            if (script.showShell) {
+                await invoke("execute_command_in_shell", { command });
+            } else {
+                await invoke("execute_command", { command });
+            }
+            await notifyScriptExecuted({ scriptId: script.id });
+        } catch (error) {
+            console.error("Failed to run script:", error);
+        } finally {
+            dispatch(
+                rootFolderSlice.actions.setExecutingScript({
+                    script_id: script.id,
+                    loading: false,
+                })
+            );
+        }
+    };
+
+    const handleOpenMarkdown = async () => {
+        if (!script.id || !script.isMarkdown) return;
+        await emit("open-markdown-reference", {
+            scriptId: script.id,
+            scriptName: script.name,
+        });
+    };
+
+    const handleDoubleClick = () => {
+        if (script.isMarkdown) {
+            handleOpenMarkdown();
+            return;
+        }
+        handleRun();
+    };
+
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild>
@@ -64,7 +117,7 @@ export default function SearchResultItem({
                     onMouseDown={() => setIsSelected(true)}
                     onMouseUp={() => setIsSelected(false)}
                     onMouseLeave={() => setIsSelected(false)}
-                    onDoubleClick={goToRootFolder}
+                    onDoubleClick={handleDoubleClick}
                 >
                     {parentFolderPath ? (
                         <div className="text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)] flex flex-row justify-start truncate">
@@ -79,6 +132,9 @@ export default function SearchResultItem({
                                 <Terminal className="w-7 h-7 flex-shrink-0 text-green-500 dark:text-green-400" />
                             )}
                             <NameTagDisplay name={script.name} />
+                            {executing && (
+                                <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />
+                            )}
                             {import.meta.env.DEV && (
                                 <span className="text-sm font-normal" style={{ opacity: 0.3 }}>
                                     (id: {script.id}
