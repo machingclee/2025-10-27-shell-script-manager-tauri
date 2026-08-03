@@ -21,12 +21,14 @@ class GetScriptHistoriesQueryHandler(
 
                 var currentFolder: ScriptsFolder? = it.shellScript?.parentFolder
                 var currentWorkspace: String? = null
+                var rootFolderId: Int? = null
                 while (currentFolder != null) {
                     folderPath.add(0, currentFolder.name ?: "")
                     if (currentFolder.parentFolder != null) {
                         currentFolder = currentFolder.parentFolder
                     } else {
-                        // root level folder now, it has workspace
+                        // Root-level folder (direct child of workspace / top-level root)
+                        rootFolderId = currentFolder.id
                         currentWorkspace = currentFolder.parentWorkspace?.name?.value
                         break
                     }
@@ -40,10 +42,10 @@ class GetScriptHistoriesQueryHandler(
 
                 HistoricalShellScriptResponse(
                     parentFolderPath = parentFolderPath,
+                    rootFolderId = rootFolderId,
                     history = it.toDTO(),
                     shellScript = it.shellScript!!.toDTO()
                 )
             }
     }
 }
-

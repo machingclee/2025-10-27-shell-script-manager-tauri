@@ -19,6 +19,7 @@ class DeleteFolderHandler(
     override fun handle(eventQueue: EventQueue, command: DeleteFolderCommand) {
         val folder = folderRepository.findByIdOrNull(command.folderId)
             ?: throw ScriptManagerException("Folder not found")
+
         val folderDTOToDelete = folder.toDTO()
 
         val parentFolder = folder.parentFolder

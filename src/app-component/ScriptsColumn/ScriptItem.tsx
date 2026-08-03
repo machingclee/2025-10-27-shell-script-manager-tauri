@@ -1,5 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Edit, Loader2, Play, Trash, Lock, LockOpen, Terminal, Link } from "lucide-react";
+import {
+    Edit,
+    Loader2,
+    Play,
+    Trash,
+    Lock,
+    LockOpen,
+    Terminal,
+    Link,
+    FolderOpen,
+} from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
     ContextMenu,
@@ -33,28 +43,34 @@ import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
 import { ScriptsFolderDTO, ShellScriptDTO } from "@/types/dto";
 import { scriptApi } from "@/store/api/scriptApi";
+import { appStateApi } from "@/store/api/appStateApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 import MoveToFolderMenu from "./MoveToFolderMenu";
 import NameTagDisplay from "@/lib/NameTagDisplay";
+import type { ScriptItemVariant } from "./GenericScriptItem";
 
 export default function ScriptItem({
     script,
     parentFolderId,
     liteVersionDisplay,
-    historyVersion = false,
     parentFolderPath = "",
+    variant = "default",
 }: {
     script: ShellScriptDTO;
     parentFolderId: number;
     liteVersionDisplay?: React.ReactNode;
-    historyVersion?: boolean;
     parentFolderPath?: string;
+    variant?: ScriptItemVariant;
 }) {
+    const isSearch = variant === "search";
+    const isHistory = variant === "history";
     const dispatch = useAppDispatch();
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateScript] = scriptApi.endpoints.updateScript.useMutation();
     const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
+    const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
+    const { data: appState } = appStateApi.endpoints.getAppState.useQueryState();
 
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -75,6 +91,15 @@ export default function ScriptItem({
             setEditCommand(script.command);
         }
     }, [isEditOpen, script.name, script.command]);
+
+    /** Navigate to workspace-level root folder (direct child of workspace). */
+    const handleGoToRootFolder = () => {
+        if (!parentFolderId) return;
+        dispatch(rootFolderSlice.actions.setSelectedRootFolderId(parentFolderId));
+        if (appState) {
+            updateAppState({ ...appState, lastOpenedFolderId: parentFolderId });
+        }
+    };
 
     const handleRun = async (e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -177,7 +202,14 @@ export default function ScriptItem({
             onMouseDown={() => setIsSelected(true)}
             onMouseUp={() => setIsSelected(false)}
             onMouseLeave={() => setIsSelected(false)}
-            onDoubleClick={(e) => handleRun(e)}
+            onDoubleClick={(e) => {
+                if (isSearch) {
+                    e.stopPropagation();
+                    handleGoToRootFolder();
+                    return;
+                }
+                handleRun(e);
+            }}
         >
             {parentFolderPath && (
                 <div className="text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)] flex flex-row justify-start truncate">
@@ -341,6 +373,25 @@ export default function ScriptItem({
         </div>
     );
 
+    // Search results: only navigate to workspace root folder
+    if (isSearch) {
+        return (
+            <ContextMenu>
+                <ContextMenuTrigger asChild>{scriptCard}</ContextMenuTrigger>
+                <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                    <ContextMenuItem
+                        onClick={handleGoToRootFolder}
+                        disabled={!parentFolderId}
+                        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                    >
+                        <FolderOpen className="w-4 h-4 mr-2" />
+                        Go to root folder
+                    </ContextMenuItem>
+                </ContextMenuContent>
+            </ContextMenu>
+        );
+    }
+
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild>{scriptCard}</ContextMenuTrigger>
@@ -353,7 +404,7 @@ export default function ScriptItem({
                     Execute
                 </ContextMenuItem>
 
-                {!historyVersion && !locked && (
+                {!isHistory && !locked && (
                     <>
                         <ContextMenuItem
                             onClick={handleEditClick}
@@ -362,9 +413,14 @@ export default function ScriptItem({
                             <Edit className="w-4 h-4 mr-2" />
                             Edit
                         </ContextMenuItem>
-                        <MoveToFolderMenu scriptId={script.id!} currentFolderId={parentFolderId} />
+                        <MoveToFolderMenu
+                            scriptId={script.id!}
+                            currentFolderId={parentFolderId}
+                        />
                         <ContextMenuItem
-                            onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
+                            onClick={() =>
+                                navigator.clipboard.writeText(`[item#${script.id}]`)
+                            }
                             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 pr-4"
                         >
                             <Link className="w-4 h-4 mr-2" />

@@ -200,6 +200,8 @@ data class WorkspaceResponse(
 
 data class HistoricalShellScriptResponse(
     val parentFolderPath: String,
+    /** Workspace-level root folder id (direct child of workspace), used for navigation */
+    val rootFolderId: Int? = null,
     val history: HistoricalShellScriptDTO,
     val shellScript: ShellScriptDTO
 )
@@ -259,6 +261,6 @@ data class SearchScriptQuery(
 ) : Query<ScriptsWithTotal>
 
 data class ScriptsWithTotal(
-    val scripts: List<ShellScriptDTO>,
+    val scripts: List<ShellScriptResponse>,
     val total: Long
 )

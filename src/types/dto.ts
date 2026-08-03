@@ -48,7 +48,7 @@ export type ShellScriptResponse = {
     locked: boolean;
     createdAt: number;
     createdAtHk: string;
-    parentFolderId: number;
+    parentFolderId: number | null;
     isMarkdown: boolean;
 };
 
@@ -139,7 +139,7 @@ export interface SearchScriptRequest {
 }
 
 export type ScriptsWithTotal = {
-    scripts: ShellScriptDTO[];
+    scripts: ShellScriptResponse[];
     total: number;
 };
 
@@ -153,6 +153,8 @@ export type HistoricalShellScriptDTO = {
 
 export type HistoricalShellScriptResponse = {
     parentFolderPath: string;
+    /** Workspace-level root folder id (direct child of workspace) */
+    rootFolderId?: number | null;
     history: HistoricalShellScriptDTO;
     shellScript: ShellScriptDTO;
 };

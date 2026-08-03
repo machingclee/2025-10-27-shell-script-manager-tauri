@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import debounce from "lodash/debounce";
 import { scriptApi } from "@/store/api/scriptApi";
-import GenericScriptItem from "../ScriptsColumn/GenericScriptItem";
+import SearchResultItem from "./SearchResultItem";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -105,11 +105,10 @@ export default function SearchPanel() {
                             className="animate-search-item"
                             style={{ animationDelay: `${index * 50}ms` }}
                         >
-                            <GenericScriptItem
+                            <SearchResultItem
                                 script={script}
-                                parentFolderId={0}
-                                historyVersion={true}
-                                liteVersionDisplay={
+                                rootFolderId={script.parentFolderId}
+                                preview={
                                     <div className="mt-1 border border-black/10 text-xs text-gray-600 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-black/10 dark:border-white/10 max-h-16 overflow-hidden break-all whitespace-pre-wrap w-full">
                                         {previewContent(script.command)}
                                     </div>

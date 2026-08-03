@@ -38,8 +38,8 @@ interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
     @Query(
         """
         SELECT s FROM ShellScript s
-        WHERE LOWER(s.name) LIKE LOWER('%' || :search || '%')
-           OR LOWER(s.command) LIKE LOWER('%' || :search || '%')
+        WHERE LOWER(s.name) LIKE LOWER(CONCAT('%', :search, '%'))
+           OR LOWER(s.command) LIKE LOWER(CONCAT('%', :search, '%'))
         ORDER BY s.createdAt DESC
         """
     )

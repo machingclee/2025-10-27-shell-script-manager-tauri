@@ -1,5 +1,5 @@
 import { scriptApi } from "@/store/api/scriptApi";
-import GenericScriptItem from "../ScriptsColumn/GenericScriptItem";
+import SearchResultItem from "./SearchResultItem";
 import dayjs from "dayjs";
 import { useAppSelector } from "@/store/hooks";
 
@@ -26,11 +26,11 @@ export default function HistoryPanel() {
                 <div className="space-y-3">
                     {histories?.map((item) => (
                         <div key={item.history.id}>
-                            <GenericScriptItem
-                                parentFolderPath={item.parentFolderPath}
+                            <SearchResultItem
                                 script={item.shellScript}
-                                parentFolderId={0}
-                                liteVersionDisplay={
+                                rootFolderId={item.rootFolderId}
+                                parentFolderPath={item.parentFolderPath}
+                                preview={
                                     <div className="flex text-xs text-neutral-500 dark:text-neutral-400 italic items-center gap-2">
                                         <div>Executed at</div>
                                         <div className="font-medium bg-gray-100 dark:bg-[rgba(255,255,255,0.08)] p-1 rounded-md text-black dark:text-[rgba(255,255,255,0.5)]">
@@ -40,7 +40,6 @@ export default function HistoryPanel() {
                                         </div>
                                     </div>
                                 }
-                                historyVersion={true}
                             />
                         </div>
                     ))}

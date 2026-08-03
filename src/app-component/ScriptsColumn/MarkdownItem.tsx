@@ -23,7 +23,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, FileText, Link, ExternalLink, Pencil } from "lucide-react";
+import { Trash2, FileText, Link, ExternalLink, Pencil, FolderOpen } from "lucide-react";
 import MoveToFolderMenu from "./MoveToFolderMenu";
 import {
     Dialog,
@@ -37,26 +37,35 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import NameTagDisplay from "@/lib/NameTagDisplay";
+import { appStateApi } from "@/store/api/appStateApi";
+import { useAppDispatch } from "@/store/hooks";
+import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
+import type { ScriptItemVariant } from "./GenericScriptItem";
 
 export default function MarkdownItem({
     script,
     parentFolderId,
     parentFolderPath = "",
     liteVersionDisplay,
-    historyVersion = false,
+    variant = "default",
 }: {
     script: ShellScriptDTO;
     parentFolderId: number;
     parentFolderPath?: string;
     readOnly?: boolean;
     liteVersionDisplay?: React.ReactNode;
-    historyVersion?: boolean;
+    variant?: ScriptItemVariant;
 }) {
+    const isSearch = variant === "search";
+    const isHistory = variant === "history";
+    const dispatch = useAppDispatch();
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [newName, setNewName] = useState(script.name);
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateMarkdownScript] = scriptApi.endpoints.updateMarkdownScript.useMutation();
+    const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
+    const { data: appState } = appStateApi.endpoints.getAppState.useQueryState();
 
     const imagesDirRef = useRef<string | null>(null);
     const [isSelected, setIsSelected] = useState(false);
@@ -66,6 +75,15 @@ export default function MarkdownItem({
             imagesDirRef.current = dir;
         });
     }, []);
+
+    /** Navigate to workspace-level root folder (direct child of workspace). */
+    const handleGoToRootFolder = () => {
+        if (!parentFolderId) return;
+        dispatch(rootFolderSlice.actions.setSelectedRootFolderId(parentFolderId));
+        if (appState) {
+            updateAppState({ ...appState, lastOpenedFolderId: parentFolderId });
+        }
+    };
 
     const handleViewClick = async () => {
         if (!script.id) return;
@@ -92,7 +110,9 @@ export default function MarkdownItem({
             <ContextMenu>
                 <ContextMenuTrigger asChild>
                     <div
-                        className={`rounded-md border transition-colors cursor-pointer ${historyVersion ? "" : "pt-4"} ${
+                        className={`rounded-md border transition-colors cursor-pointer ${
+                            isHistory || isSearch ? "" : "pt-4"
+                        } ${
                             isSelected
                                 ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
                                 : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
@@ -100,7 +120,13 @@ export default function MarkdownItem({
                         onMouseDown={() => setIsSelected(true)}
                         onMouseUp={() => setIsSelected(false)}
                         onMouseLeave={() => setIsSelected(false)}
-                        onDoubleClick={handleViewClick}
+                        onDoubleClick={() => {
+                            if (isSearch) {
+                                handleGoToRootFolder();
+                                return;
+                            }
+                            handleViewClick();
+                        }}
                     >
                         {parentFolderPath && (
                             <div className="px-3 pt-2 text-xs text-gray-600 dark:text-[rgba(255,255,255,0.23)]">
@@ -119,7 +145,7 @@ export default function MarkdownItem({
                             </div>
                             {liteVersionDisplay && liteVersionDisplay}
                         </div>
-                        {!historyVersion && (
+                        {variant === "default" && (
                             <Box
                                 className="markdown-editor-container px-3 pb-2"
                                 sx={{
@@ -166,43 +192,70 @@ export default function MarkdownItem({
                         )}
                     </div>
                 </ContextMenuTrigger>
-                <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
-                    <ContextMenuItem
-                        onClick={handleViewClick}
-                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
-                    >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Open
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                        onClick={() => {
-                            setNewName(script.name);
-                            setIsRenameOpen(true);
-                        }}
-                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
-                    >
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Rename
-                    </ContextMenuItem>
-                    <ContextMenuSeparator className="dark:bg-neutral-700" />
-                    <MoveToFolderMenu scriptId={script.id!} currentFolderId={parentFolderId} />
-
-                    <ContextMenuItem
-                        onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
-                        className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
-                    >
-                        <Link className="w-4 h-4 mr-2" />
-                        Copy as Markdown Reference
-                    </ContextMenuItem>
-                    <ContextMenuSeparator className="dark:bg-neutral-700" />
-                    <ContextMenuItem
-                        onClick={handleDelete}
-                        className="text-red-600 dark:text-red-400 dark:focus:bg-neutral-700 cursor-pointer"
-                    >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                    </ContextMenuItem>
-                </ContextMenuContent>
+                {isSearch ? (
+                    <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                        <ContextMenuItem
+                            onClick={handleGoToRootFolder}
+                            disabled={!parentFolderId}
+                            className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                        >
+                            <FolderOpen className="w-4 h-4 mr-2" />
+                            Go to root folder
+                        </ContextMenuItem>
+                    </ContextMenuContent>
+                ) : isHistory ? (
+                    <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                        <ContextMenuItem
+                            onClick={handleViewClick}
+                            className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                        >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open
+                        </ContextMenuItem>
+                    </ContextMenuContent>
+                ) : (
+                    <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                        <ContextMenuItem
+                            onClick={handleViewClick}
+                            className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                        >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open
+                        </ContextMenuItem>
+                        <ContextMenuItem
+                            onClick={() => {
+                                setNewName(script.name);
+                                setIsRenameOpen(true);
+                            }}
+                            className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                        >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Rename
+                        </ContextMenuItem>
+                        <ContextMenuSeparator className="dark:bg-neutral-700" />
+                        <MoveToFolderMenu
+                            scriptId={script.id!}
+                            currentFolderId={parentFolderId}
+                        />
+                        <ContextMenuItem
+                            onClick={() =>
+                                navigator.clipboard.writeText(`[item#${script.id}]`)
+                            }
+                            className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                        >
+                            <Link className="w-4 h-4 mr-2" />
+                            Copy as Markdown Reference
+                        </ContextMenuItem>
+                        <ContextMenuSeparator className="dark:bg-neutral-700" />
+                        <ContextMenuItem
+                            onClick={handleDelete}
+                            className="text-red-600 dark:text-red-400 dark:focus:bg-neutral-700 cursor-pointer"
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                        </ContextMenuItem>
+                    </ContextMenuContent>
+                )}
             </ContextMenu>
 
             <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
