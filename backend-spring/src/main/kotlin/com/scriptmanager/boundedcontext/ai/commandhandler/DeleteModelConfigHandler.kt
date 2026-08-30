@@ -1,10 +1,10 @@
 package com.scriptmanager.boundedcontext.ai.commandhandler
 
-import com.scriptmanager.common.exception.AIException
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.ai.command.modelconfig.DeleteModelConfigCommand
 import com.scriptmanager.boundedcontext.ai.event.ModelConfigDeletedEvent
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.scriptmanager.common.exception.AIException
 import com.scriptmanager.repository.AIProfileRepository
 import com.scriptmanager.repository.ModelConfigRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -39,7 +39,4 @@ class DeleteModelConfigHandler(
         )
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        ModelConfigDeletedEvent::class.java
-    )
 }

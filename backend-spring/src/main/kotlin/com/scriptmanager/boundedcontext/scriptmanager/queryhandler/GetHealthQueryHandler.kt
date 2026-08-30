@@ -1,6 +1,6 @@
 package com.scriptmanager.boundedcontext.scriptmanager.queryhandler
 
-import com.scriptmanager.common.domainutils.QueryHandler
+import com.machingclee.domain.util.common.query.interfaces.QueryHandler
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetHealthQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.HealthResponse
 import org.springframework.beans.factory.annotation.Value

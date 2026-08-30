@@ -1,7 +1,7 @@
 package com.scriptmanager.boundedcontext.scriptmanager.query
 
+import com.machingclee.domain.util.common.query.interfaces.Query
 import com.scriptmanager.common.entity.ApplicationStateDTO
-import com.scriptmanager.common.domainutils.Query
 
 /**
  * Query to get the application state

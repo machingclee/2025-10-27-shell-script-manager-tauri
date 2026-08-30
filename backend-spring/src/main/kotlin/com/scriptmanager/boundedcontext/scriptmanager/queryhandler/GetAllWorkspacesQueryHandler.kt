@@ -1,9 +1,9 @@
 package com.scriptmanager.boundedcontext.scriptmanager.queryhandler
 
+import com.machingclee.domain.util.common.query.interfaces.QueryHandler
+import com.scriptmanager.boundedcontext.scriptmanager.query.GetAllWorkspacesQuery
 import com.scriptmanager.common.dto.WorkspaceResponse
 import com.scriptmanager.common.dto.toResponse
-import com.scriptmanager.common.domainutils.QueryHandler
-import com.scriptmanager.boundedcontext.scriptmanager.query.GetAllWorkspacesQuery
 import com.scriptmanager.repository.WorkspaceRepository
 import org.springframework.stereotype.Component
 

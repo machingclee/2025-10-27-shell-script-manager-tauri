@@ -1,6 +1,6 @@
 package com.scriptmanager.boundedcontext.ai.command.scriptedtool
 
-import com.scriptmanager.common.domainutils.Command
+import com.machingclee.domain.util.common.interfaces.Command
 
 data class DeleteAiScriptedToolCommand(
     val aiScriptedToolId: Int,

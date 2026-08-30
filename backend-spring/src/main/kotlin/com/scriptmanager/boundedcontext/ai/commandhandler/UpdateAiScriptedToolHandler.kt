@@ -1,12 +1,12 @@
 package com.scriptmanager.boundedcontext.ai.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.ai.command.scriptedtool.UpdateAiScriptedToolCommand
+import com.scriptmanager.boundedcontext.ai.event.AiScriptedToolUpdatedEvent
 import com.scriptmanager.common.entity.AiScriptedTool
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.common.exception.AIException
-import com.scriptmanager.boundedcontext.ai.command.scriptedtool.UpdateAiScriptedToolCommand
-import com.scriptmanager.boundedcontext.ai.event.AiScriptedToolUpdatedEvent
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
 import com.scriptmanager.repository.AIScriptedToolRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
@@ -33,7 +33,4 @@ class UpdateAiScriptedToolHandler(
         return aiScriptedTool
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        AiScriptedToolUpdatedEvent::class.java
-    )
 }

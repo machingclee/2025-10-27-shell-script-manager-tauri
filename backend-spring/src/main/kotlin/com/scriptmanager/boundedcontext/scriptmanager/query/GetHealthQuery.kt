@@ -1,6 +1,6 @@
 package com.scriptmanager.boundedcontext.scriptmanager.query
 
-import com.scriptmanager.common.domainutils.Query
+import com.machingclee.domain.util.common.query.interfaces.Query
 
 /**
  * Health check response

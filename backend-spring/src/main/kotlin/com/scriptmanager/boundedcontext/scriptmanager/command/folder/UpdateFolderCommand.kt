@@ -1,7 +1,7 @@
 package com.scriptmanager.boundedcontext.scriptmanager.command.folder
 
+import com.machingclee.domain.util.common.interfaces.Command
 import com.scriptmanager.common.entity.ScriptsFolderDTO
-import com.scriptmanager.common.domainutils.Command
 
 data class UpdateFolderCommand(
     val id: Int,

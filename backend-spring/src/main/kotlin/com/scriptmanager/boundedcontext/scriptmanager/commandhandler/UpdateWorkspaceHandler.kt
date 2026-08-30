@@ -1,13 +1,13 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.UpdateWorkspaceCommand
+import com.scriptmanager.boundedcontext.scriptmanager.event.WorkspaceUpdatedEvent
 import com.scriptmanager.common.entity.Workspace
 import com.scriptmanager.common.entity.WorkspaceDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
-import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.UpdateWorkspaceCommand
-import com.scriptmanager.boundedcontext.scriptmanager.event.WorkspaceUpdatedEvent
 import com.scriptmanager.repository.WorkspaceRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
@@ -32,7 +32,4 @@ class UpdateWorkspaceHandler(
         return dto
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        WorkspaceUpdatedEvent::class.java
-    )
 }

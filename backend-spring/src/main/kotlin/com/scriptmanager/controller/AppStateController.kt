@@ -1,11 +1,11 @@
 package com.scriptmanager.controller
 
-import com.scriptmanager.common.dto.ApiResponse
-import com.scriptmanager.common.entity.ApplicationStateDTO
-import com.scriptmanager.common.domainutils.CommandInvoker
-import com.scriptmanager.common.domainutils.QueryInvoker
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
 import com.scriptmanager.boundedcontext.scriptmanager.command.appstate.UpdateAppStateCommand
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetAppStateQuery
+import com.scriptmanager.common.dto.ApiResponse
+import com.scriptmanager.common.entity.ApplicationStateDTO
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.transaction.Transactional

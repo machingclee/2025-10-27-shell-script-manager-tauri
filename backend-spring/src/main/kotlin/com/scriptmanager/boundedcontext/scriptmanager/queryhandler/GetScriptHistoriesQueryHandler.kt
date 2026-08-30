@@ -1,10 +1,10 @@
 package com.scriptmanager.boundedcontext.scriptmanager.queryhandler
 
+import com.machingclee.domain.util.common.query.interfaces.QueryHandler
+import com.scriptmanager.boundedcontext.scriptmanager.query.GetScriptHistoriesQuery
 import com.scriptmanager.common.dto.HistoricalShellScriptResponse
 import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.common.domainutils.QueryHandler
-import com.scriptmanager.boundedcontext.scriptmanager.query.GetScriptHistoriesQuery
 import com.scriptmanager.repository.HistoricalShellScriptRepository
 import org.springframework.stereotype.Component
 

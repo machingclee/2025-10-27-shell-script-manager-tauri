@@ -127,6 +127,7 @@ model event {
     request_user_email String
     success            Boolean @default(true)
     failure_reason     String  @default("")
+    event_order        Int     @default(1)
 }
 
 model ai_profile {

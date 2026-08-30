@@ -1,9 +1,8 @@
 package com.scriptmanager.boundedcontext.scriptmanager.policy
 
-import com.scriptmanager.common.domainutils.CommandInvoker
-import com.scriptmanager.common.domainutils.Invariant
-import com.scriptmanager.common.domainutils.NextCommand
-import com.scriptmanager.common.domainutils.Policy
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.interfaces.Invariant
+import com.machingclee.domain.util.common.interfaces.Policy
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.CreateScriptHistoryCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptExecutedEvent
 import org.springframework.context.event.EventListener
@@ -20,7 +19,6 @@ class RecordExecutedCommandIntoHistoryPolicy(
 
     @EventListener
     @Invariant("Whenever a script is executed, create a history record to capture the event")
-    @NextCommand(CreateScriptHistoryCommand::class)
     fun onScriptExecuted(event: ScriptExecutedEvent) {
         val command = CreateScriptHistoryCommand(
             scriptId = event.scriptId,

@@ -1,7 +1,7 @@
 package com.scriptmanager.boundedcontext.scriptmanager.command.script
 
+import com.machingclee.domain.util.common.interfaces.Command
 import com.scriptmanager.common.dto.ShellScriptResponse
-import com.scriptmanager.common.domainutils.Command
 
 data class CreateScriptCommand(
     val folderId: Int,

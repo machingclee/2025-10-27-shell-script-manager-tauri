@@ -1,11 +1,11 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
-import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.DeleteScriptCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptDeletedEvent
+import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.repository.ShellScriptRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
@@ -38,7 +38,4 @@ class DeleteScriptHandler(
         )
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        ScriptDeletedEvent::class.java
-    )
 }

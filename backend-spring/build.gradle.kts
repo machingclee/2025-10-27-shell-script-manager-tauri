@@ -24,6 +24,7 @@ repositories {
 dependencies {
     // Core Dependency
     implementation("io.micrometer:micrometer-core")
+    implementation("com.machingclee:domain-util:0.2.6")
 
     // Micrometer Tracing with OpenTelemetry
     implementation("io.micrometer:micrometer-tracing-bridge-otel")

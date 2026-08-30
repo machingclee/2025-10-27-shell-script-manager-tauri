@@ -1,11 +1,11 @@
 package com.scriptmanager.boundedcontext.ai.commandhandler
 
-import com.scriptmanager.common.exception.AIException
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.ai.command.aiprofile.ResetModelConfigOfAIProfileCommand
 import com.scriptmanager.boundedcontext.ai.event.AiProfileModelConfigResetEvent
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
 import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.AIException
 import com.scriptmanager.repository.AIProfileRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
@@ -31,7 +31,4 @@ class ResetModelConfigOfAIProfileHandler(
         )
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        AiProfileModelConfigResetEvent::class.java
-    )
 }

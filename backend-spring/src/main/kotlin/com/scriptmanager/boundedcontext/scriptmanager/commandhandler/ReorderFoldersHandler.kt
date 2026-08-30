@@ -1,11 +1,11 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
-import com.scriptmanager.common.entity.ScriptsFolder
-import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.ReorderFoldersCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.FoldersReorderedEvent
+import com.scriptmanager.common.entity.ScriptsFolder
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.WorkspaceRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -92,7 +92,4 @@ class ReorderFoldersHandler(
         }
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        FoldersReorderedEvent::class.java
-    )
 }

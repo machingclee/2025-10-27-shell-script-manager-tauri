@@ -1,10 +1,10 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
-import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.ReorderScriptsCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptsReorderedEvent
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.repository.ShellScriptRepository
 import org.springframework.stereotype.Component
 
@@ -45,7 +45,4 @@ class ReorderScriptsHandler(
         )
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        ScriptsReorderedEvent::class.java
-    )
 }

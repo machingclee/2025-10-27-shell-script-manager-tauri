@@ -1,11 +1,11 @@
 package com.scriptmanager.integration
 
+import com.scriptmanager.config.TestcontainersConfiguration
 import com.scriptmanager.repository.EventRepository
 import org.junit.jupiter.api.BeforeEach
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
-import com.scriptmanager.config.TestcontainersConfiguration
 
 
 @SpringBootTest

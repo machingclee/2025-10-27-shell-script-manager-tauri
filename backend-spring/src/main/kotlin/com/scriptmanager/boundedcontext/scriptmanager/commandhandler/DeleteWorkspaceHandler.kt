@@ -1,13 +1,13 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
-import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.DeleteWorkspaceCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.FolderDeletedEvent
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptDeletedEvent
 import com.scriptmanager.boundedcontext.scriptmanager.event.WorkspaceDeletedEvent
+import com.scriptmanager.common.entity.toDTO
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.repository.WorkspaceRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
@@ -46,9 +46,4 @@ class DeleteWorkspaceHandler(
         eventQueue.addAll(allScriptsDeletedEvent)
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        WorkspaceDeletedEvent::class.java,
-        FolderDeletedEvent::class.java,
-        ScriptDeletedEvent::class.java
-    )
 }

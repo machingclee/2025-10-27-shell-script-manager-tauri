@@ -1,7 +1,7 @@
 package com.scriptmanager.integration.boundedcontext.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.scriptmanager.common.domainutils.CommandInvoker
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.*

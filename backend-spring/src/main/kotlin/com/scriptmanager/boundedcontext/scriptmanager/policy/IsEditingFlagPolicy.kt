@@ -1,8 +1,8 @@
 package com.scriptmanager.boundedcontext.scriptmanager.policy
 
-import com.scriptmanager.common.domainutils.Invariant
-import com.scriptmanager.common.domainutils.ToBeArrangedEvent
-import com.scriptmanager.common.domainutils.Policy
+import com.machingclee.domain.util.common.event.specialevent.ToBeArrangedEvent
+import com.machingclee.domain.util.common.interfaces.Invariant
+import com.machingclee.domain.util.common.interfaces.Policy
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 

@@ -1,13 +1,13 @@
 package com.scriptmanager.boundedcontext.ai.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.ai.command.scriptedtool.CreateAIScriptedToolCommand
+import com.scriptmanager.boundedcontext.ai.event.AIScriptedToolCreatedEvent
 import com.scriptmanager.common.entity.AiScriptedTool
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.common.exception.AIException
 import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.boundedcontext.ai.command.scriptedtool.CreateAIScriptedToolCommand
-import com.scriptmanager.boundedcontext.ai.event.AIScriptedToolCreatedEvent
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
 import com.scriptmanager.repository.AIProfileRepository
 import com.scriptmanager.repository.AIScriptedToolRepository
 import com.scriptmanager.repository.ShellScriptRepository
@@ -50,7 +50,4 @@ class CreateAIScriptedToolHandler(
         return aiScriptedTool
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        AIScriptedToolCreatedEvent::class.java
-    )
 }

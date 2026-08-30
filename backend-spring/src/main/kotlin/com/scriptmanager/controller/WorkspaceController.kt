@@ -1,15 +1,15 @@
 package com.scriptmanager.controller
 
-import com.scriptmanager.common.dto.*
-import com.scriptmanager.common.entity.WorkspaceDTO
-import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.common.domainutils.CommandInvoker
-import com.scriptmanager.common.domainutils.QueryInvoker
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.*
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetAllWorkspacesQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetWorkspaceByIdQuery
+import com.scriptmanager.common.dto.*
+import com.scriptmanager.common.entity.WorkspaceDTO
+import com.scriptmanager.common.entity.toDTO
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag

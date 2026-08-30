@@ -1,12 +1,12 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
 
-import com.scriptmanager.common.entity.ApplicationState
-import com.scriptmanager.common.entity.ApplicationStateDTO
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.scriptmanager.command.appstate.UpdateAppStateCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.AppStateUpdatedEvent
+import com.scriptmanager.common.entity.ApplicationState
+import com.scriptmanager.common.entity.ApplicationStateDTO
 import com.scriptmanager.repository.ApplicationStateRepository
 import org.springframework.stereotype.Component
 
@@ -55,7 +55,4 @@ class UpdateAppStateHandler(
         return dto
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        AppStateUpdatedEvent::class.java
-    )
 }

@@ -1,9 +1,7 @@
 package com.scriptmanager.controller
 
-import com.scriptmanager.common.dto.*
-import com.scriptmanager.common.entity.*
-import com.scriptmanager.common.domainutils.CommandInvoker
-import com.scriptmanager.common.domainutils.QueryInvoker
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.ReorderScriptsCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptExecutedEvent
@@ -11,9 +9,11 @@ import com.scriptmanager.boundedcontext.scriptmanager.query.GetAllScriptsQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetDraftScriptsQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetScriptByIdQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetScriptHistoriesQuery
+import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.dto.ScriptsWithTotal
 import com.scriptmanager.common.dto.SearchScriptQuery
 import com.scriptmanager.common.dto.SearchScriptRequest
+import com.scriptmanager.common.entity.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag

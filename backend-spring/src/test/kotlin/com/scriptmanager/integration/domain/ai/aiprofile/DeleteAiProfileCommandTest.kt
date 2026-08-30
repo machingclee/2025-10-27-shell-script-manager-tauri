@@ -2,16 +2,16 @@ package com.scriptmanager.integration.boundedcontext.ai.aiprofile
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.scriptmanager.common.entity.ModelConfig
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
 import com.scriptmanager.boundedcontext.ai.command.aiprofile.CreateAiProfileCommand
 import com.scriptmanager.boundedcontext.ai.command.aiprofile.DeleteAiProfileCommand
 import com.scriptmanager.boundedcontext.ai.command.modelconfig.CreateModelConfigCommand
 import com.scriptmanager.boundedcontext.ai.command.scriptedtool.CreateAIScriptedToolCommand
 import com.scriptmanager.boundedcontext.ai.event.AiProfileDeletedEvent
-import com.scriptmanager.common.domainutils.CommandInvoker
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.CreateScriptCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.CreateWorkspaceCommand
+import com.scriptmanager.common.entity.ModelConfig
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.AIProfileRepository
 import com.scriptmanager.repository.AIScriptedToolRepository
