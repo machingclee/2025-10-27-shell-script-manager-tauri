@@ -1,9 +1,9 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.UpdateWorkspaceStatusCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.WorkspaceStatusUpdatedEvent
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
 import com.scriptmanager.common.entity.WorkspaceStatus
 import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.repository.WorkspaceRepository
@@ -31,8 +31,5 @@ class UpdateWorkspaceStatusHandler(
         eventQueue.add(event)
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        WorkspaceStatusUpdatedEvent::class.java
-    )
 
 }

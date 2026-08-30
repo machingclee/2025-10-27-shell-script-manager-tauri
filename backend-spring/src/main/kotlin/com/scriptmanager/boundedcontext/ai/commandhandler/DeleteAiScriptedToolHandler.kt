@@ -1,10 +1,10 @@
 package com.scriptmanager.boundedcontext.ai.commandhandler
 
-import com.scriptmanager.common.exception.AIException
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.ai.command.scriptedtool.DeleteAiScriptedToolCommand
 import com.scriptmanager.boundedcontext.ai.event.AiScriptedToolDeletedEvent
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.scriptmanager.common.exception.AIException
 import com.scriptmanager.repository.AIProfileRepository
 import com.scriptmanager.repository.AIScriptedToolRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -38,7 +38,4 @@ class DeleteAiScriptedToolHandler(
         )
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        AiScriptedToolDeletedEvent::class.java
-    )
 }

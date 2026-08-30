@@ -1,10 +1,10 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
-import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.MoveScriptToFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptMovedToFolderEvent
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository
 import jakarta.persistence.EntityManager
@@ -42,7 +42,4 @@ class MoveScriptToFolderHandler(
         )
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        ScriptMovedToFolderEvent::class.java
-    )
 }

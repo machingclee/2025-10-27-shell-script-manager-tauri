@@ -1,12 +1,12 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.scriptmanager.command.script.UpdateScriptCommand
+import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptUpdatedEvent
 import com.scriptmanager.common.entity.ShellScriptDTO
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
-import com.scriptmanager.boundedcontext.scriptmanager.command.script.UpdateScriptCommand
-import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptUpdatedEvent
 import com.scriptmanager.repository.ShellScriptRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Component
@@ -33,7 +33,4 @@ class UpdateScriptHandler(
         return dto
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        ScriptUpdatedEvent::class.java
-    )
 }

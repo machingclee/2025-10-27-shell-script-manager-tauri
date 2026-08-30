@@ -1,16 +1,16 @@
 package com.scriptmanager.controller
 
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.AddSubfolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.DeleteFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.UpdateFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.ReorderFoldersCommand
+import com.scriptmanager.boundedcontext.scriptmanager.query.*
 import com.scriptmanager.common.dto.*
 import com.scriptmanager.common.entity.ScriptsFolderDTO
 import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.common.domainutils.CommandInvoker
-import com.scriptmanager.common.domainutils.QueryInvoker
-import com.scriptmanager.boundedcontext.scriptmanager.command.folder.DeleteFolderCommand
-import com.scriptmanager.boundedcontext.scriptmanager.command.folder.UpdateFolderCommand
-import com.scriptmanager.boundedcontext.scriptmanager.command.folder.AddSubfolderCommand
-import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
-import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.ReorderFoldersCommand
-import com.scriptmanager.boundedcontext.scriptmanager.query.*
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag

@@ -1,7 +1,7 @@
 package com.scriptmanager.boundedcontext.scriptmanager.command.appstate
 
+import com.machingclee.domain.util.common.interfaces.Command
 import com.scriptmanager.common.entity.ApplicationStateDTO
-import com.scriptmanager.common.domainutils.Command
 
 data class UpdateAppStateCommand(
     val id: Int?,

@@ -1,9 +1,9 @@
 package com.scriptmanager.boundedcontext.scriptmanager.queryhandler
 
+import com.machingclee.domain.util.common.query.interfaces.QueryHandler
+import com.scriptmanager.boundedcontext.scriptmanager.query.GetAppStateQuery
 import com.scriptmanager.common.entity.ApplicationState
 import com.scriptmanager.common.entity.ApplicationStateDTO
-import com.scriptmanager.common.domainutils.QueryHandler
-import com.scriptmanager.boundedcontext.scriptmanager.query.GetAppStateQuery
 import com.scriptmanager.repository.AppStateRepository
 import org.springframework.stereotype.Component
 

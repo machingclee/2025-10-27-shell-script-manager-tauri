@@ -1,12 +1,12 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
+import com.scriptmanager.boundedcontext.scriptmanager.event.FolderAddedToWorkspaceEvent
 import com.scriptmanager.common.dto.WorkspaceWithFoldersDTO
 import com.scriptmanager.common.dto.toWorkspaceWithFoldersDTO
 import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
-import com.scriptmanager.boundedcontext.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
-import com.scriptmanager.boundedcontext.scriptmanager.event.FolderAddedToWorkspaceEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.WorkspaceRepository
 import jakarta.persistence.EntityManager
@@ -47,7 +47,4 @@ class MoveFolderToWorkspaceHandler(
         return result
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        FolderAddedToWorkspaceEvent::class.java
-    )
 }

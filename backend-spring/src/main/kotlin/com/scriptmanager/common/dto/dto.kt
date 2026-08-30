@@ -1,6 +1,6 @@
 package com.scriptmanager.common.dto
 
-import com.scriptmanager.common.domainutils.Query
+import com.machingclee.domain.util.common.query.interfaces.Query
 import com.scriptmanager.common.entity.*
 
 data class ApiResponse<T>(

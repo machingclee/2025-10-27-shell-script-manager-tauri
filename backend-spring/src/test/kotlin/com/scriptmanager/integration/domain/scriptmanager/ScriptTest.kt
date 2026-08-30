@@ -1,9 +1,9 @@
 package com.scriptmanager.integration.boundedcontext.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.scriptmanager.common.domainutils.CommandInvoker
-import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ScriptsFolderRepository

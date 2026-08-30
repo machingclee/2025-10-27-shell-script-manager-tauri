@@ -68,6 +68,7 @@ CREATE TABLE "event" (
     "request_user_email" TEXT NOT NULL,
     "success" BOOLEAN NOT NULL DEFAULT true,
     "failure_reason" TEXT NOT NULL DEFAULT '',
+    "event_order" INTEGER NOT NULL DEFAULT 1,
 
     CONSTRAINT "event_pkey" PRIMARY KEY ("id")
 );

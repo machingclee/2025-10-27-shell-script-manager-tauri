@@ -1,9 +1,9 @@
 package com.scriptmanager.boundedcontext.scriptmanager.queryhandler
 
+import com.machingclee.domain.util.common.query.interfaces.QueryHandler
+import com.scriptmanager.boundedcontext.scriptmanager.query.GetAllRootFoldersQuery
 import com.scriptmanager.common.dto.ScriptsFolderResponse
 import com.scriptmanager.common.dto.toResponse
-import com.scriptmanager.common.domainutils.QueryHandler
-import com.scriptmanager.boundedcontext.scriptmanager.query.GetAllRootFoldersQuery
 import com.scriptmanager.repository.ScriptsFolderRepository
 import org.springframework.stereotype.Component
 

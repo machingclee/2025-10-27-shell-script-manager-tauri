@@ -1,12 +1,12 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.scriptmanager.command.folder.AddSubfolderCommand
+import com.scriptmanager.boundedcontext.scriptmanager.event.SubfolderAddedEvent
 import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
-import com.scriptmanager.boundedcontext.scriptmanager.command.folder.AddSubfolderCommand
-import com.scriptmanager.boundedcontext.scriptmanager.event.SubfolderAddedEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import jakarta.persistence.EntityManager
 import org.springframework.data.repository.findByIdOrNull
@@ -43,7 +43,4 @@ class AddSubfolderHandler(
         return newSubfolder
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        SubfolderAddedEvent::class.java
-    )
 }

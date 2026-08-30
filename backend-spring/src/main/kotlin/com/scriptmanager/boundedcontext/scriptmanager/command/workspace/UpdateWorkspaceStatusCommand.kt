@@ -1,6 +1,6 @@
 package com.scriptmanager.boundedcontext.scriptmanager.command.workspace
 
-import com.scriptmanager.common.domainutils.Command
+import com.machingclee.domain.util.common.interfaces.Command
 import com.scriptmanager.common.entity.WorkspaceStatusName
 
 data class UpdateWorkspaceStatusCommand(

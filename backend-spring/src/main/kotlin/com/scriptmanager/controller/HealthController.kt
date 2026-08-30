@@ -1,6 +1,6 @@
 package com.scriptmanager.controller
 
-import com.scriptmanager.common.domainutils.QueryInvoker
+import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetHealthQuery
 import com.scriptmanager.boundedcontext.scriptmanager.query.HealthResponse
 import io.swagger.v3.oas.annotations.Operation

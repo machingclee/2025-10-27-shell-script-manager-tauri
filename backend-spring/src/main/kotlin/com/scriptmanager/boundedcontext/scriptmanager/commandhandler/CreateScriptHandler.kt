@@ -1,13 +1,13 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.scriptmanager.command.script.CreateScriptCommand
+import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptCreatedEvent
 import com.scriptmanager.common.dto.ShellScriptResponse
 import com.scriptmanager.common.dto.toResponse
 import com.scriptmanager.common.entity.ShellScript
 import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
-import com.scriptmanager.boundedcontext.scriptmanager.command.script.CreateScriptCommand
-import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptCreatedEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.ShellScriptRepository
 import jakarta.persistence.EntityManager
@@ -43,7 +43,4 @@ class CreateScriptHandler(
         return response
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        ScriptCreatedEvent::class.java
-    )
 }

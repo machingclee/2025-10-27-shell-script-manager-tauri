@@ -2,11 +2,11 @@ package com.scriptmanager.integration.boundedcontext.ai.modelconfig
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.scriptmanager.common.entity.ModelConfig
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
 import com.scriptmanager.boundedcontext.ai.command.aiprofile.CreateAiProfileCommand
 import com.scriptmanager.boundedcontext.ai.command.modelconfig.CreateModelConfigCommand
 import com.scriptmanager.boundedcontext.ai.event.ModelConfigCreatedEvent
-import com.scriptmanager.common.domainutils.CommandInvoker
+import com.scriptmanager.common.entity.ModelConfig
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ModelConfigRepository

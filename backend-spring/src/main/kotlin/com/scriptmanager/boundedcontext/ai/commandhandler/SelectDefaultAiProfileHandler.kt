@@ -1,9 +1,9 @@
 package com.scriptmanager.boundedcontext.ai.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.ai.command.aiprofile.SelectDefaultAiProfileCommand
 import com.scriptmanager.boundedcontext.ai.event.DefaultAiProfileSelectedEvent
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
 import com.scriptmanager.boundedcontext.service.ApplicationStateAIService
 import org.springframework.stereotype.Component
 
@@ -17,7 +17,4 @@ class SelectDefaultAiProfileHandler(
         eventQueue.add(DefaultAiProfileSelectedEvent(aiProfileId = command.aiProfileId))
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        DefaultAiProfileSelectedEvent::class.java
-    )
 }

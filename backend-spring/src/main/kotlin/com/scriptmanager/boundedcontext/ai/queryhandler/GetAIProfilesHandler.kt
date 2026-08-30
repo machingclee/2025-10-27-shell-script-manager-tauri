@@ -1,9 +1,9 @@
 package com.scriptmanager.boundedcontext.ai.queryhandler
 
+import com.machingclee.domain.util.common.query.interfaces.QueryHandler
+import com.scriptmanager.boundedcontext.ai.query.GetAIProfilesQuery
 import com.scriptmanager.common.entity.AiProfileDTO
 import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.boundedcontext.ai.query.GetAIProfilesQuery
-import com.scriptmanager.common.domainutils.QueryHandler
 import com.scriptmanager.repository.AIProfileRepository
 import org.springframework.stereotype.Component
 

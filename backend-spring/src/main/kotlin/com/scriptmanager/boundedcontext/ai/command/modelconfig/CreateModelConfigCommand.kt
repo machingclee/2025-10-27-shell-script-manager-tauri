@@ -1,8 +1,8 @@
 package com.scriptmanager.boundedcontext.ai.command.modelconfig
 
 
+import com.machingclee.domain.util.common.interfaces.Command
 import com.scriptmanager.common.entity.ModelConfig
-import com.scriptmanager.common.domainutils.Command
 
 data class CreateModelConfigCommand(
     val name: String,

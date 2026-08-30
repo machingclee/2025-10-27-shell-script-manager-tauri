@@ -1,7 +1,7 @@
 package com.scriptmanager.boundedcontext.scriptmanager.command.workspace
 
+import com.machingclee.domain.util.common.interfaces.Command
 import com.scriptmanager.common.entity.ScriptsFolder
-import com.scriptmanager.common.domainutils.Command
 
 data class CreateFolderInWorkspaceCommand(
     val workspaceId: Int,

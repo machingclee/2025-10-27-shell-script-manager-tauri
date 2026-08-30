@@ -1,6 +1,6 @@
 package com.scriptmanager.controller
 
-import com.scriptmanager.common.domainutils.CommandInvoker
+import com.machingclee.domain.util.common.interfaces.CommandInvoker
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController

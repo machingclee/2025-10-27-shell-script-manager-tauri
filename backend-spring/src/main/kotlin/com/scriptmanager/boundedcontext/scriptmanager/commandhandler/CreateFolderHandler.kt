@@ -1,11 +1,11 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
-import com.scriptmanager.common.entity.ScriptsFolder
-import com.scriptmanager.common.entity.toDTO
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.event.FolderCreatedEvent
+import com.scriptmanager.common.entity.ScriptsFolder
+import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.repository.ScriptsFolderRepository
 import org.springframework.stereotype.Component
 
@@ -29,10 +29,6 @@ class CreateFolderHandler(
         eventQueue.add(FolderCreatedEvent(savedFolder.toDTO()))
 
         return savedFolder
-    }
-    
-    override fun declareEvents(): List<Class<*>> {
-        return listOf(FolderCreatedEvent::class.java)
     }
 }
 

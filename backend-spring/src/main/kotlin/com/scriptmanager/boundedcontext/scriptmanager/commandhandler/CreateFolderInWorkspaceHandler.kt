@@ -1,14 +1,14 @@
 package com.scriptmanager.boundedcontext.scriptmanager.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.CreateFolderInWorkspaceCommand
+import com.scriptmanager.boundedcontext.scriptmanager.event.FolderCreatedEvent
+import com.scriptmanager.boundedcontext.scriptmanager.event.FolderCreatedInWorkspaceEvent
 import com.scriptmanager.common.dto.toResponse
 import com.scriptmanager.common.entity.ScriptsFolder
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.common.exception.ScriptManagerException
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
-import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.CreateFolderInWorkspaceCommand
-import com.scriptmanager.boundedcontext.scriptmanager.event.FolderCreatedEvent
-import com.scriptmanager.boundedcontext.scriptmanager.event.FolderCreatedInWorkspaceEvent
 import com.scriptmanager.repository.ScriptsFolderRepository
 import com.scriptmanager.repository.WorkspaceRepository
 import jakarta.persistence.EntityManager
@@ -52,9 +52,5 @@ class CreateFolderInWorkspaceHandler(
         return newFolder
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        FolderCreatedInWorkspaceEvent::class.java,
-        FolderCreatedEvent::class.java
-    )
 }
 

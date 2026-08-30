@@ -1,13 +1,13 @@
 package com.scriptmanager.boundedcontext.ai.commandhandler
 
+import com.machingclee.domain.util.common.interfaces.CommandHandler
+import com.machingclee.domain.util.common.interfaces.EventQueue
+import com.scriptmanager.boundedcontext.ai.command.modelconfig.UpdateModelConfigCommand
+import com.scriptmanager.boundedcontext.ai.event.ModelConfigUpdatedEvent
 import com.scriptmanager.common.entity.ModelConfig
 import com.scriptmanager.common.entity.OpenAiModelConfig
 import com.scriptmanager.common.entity.toDTO
 import com.scriptmanager.common.exception.AIException
-import com.scriptmanager.boundedcontext.ai.command.modelconfig.UpdateModelConfigCommand
-import com.scriptmanager.boundedcontext.ai.event.ModelConfigUpdatedEvent
-import com.scriptmanager.common.domainutils.CommandHandler
-import com.scriptmanager.common.domainutils.EventQueue
 import com.scriptmanager.repository.AzureOpenAIModelConfigRepository
 import com.scriptmanager.repository.ModelConfigRepository
 import com.scriptmanager.repository.OpenAIModelConfigRepository
@@ -90,7 +90,4 @@ class UpdateModelConfigHandler(
         return modelConfig
     }
 
-    override fun declareEvents(): List<Class<*>> = listOf(
-        ModelConfigUpdatedEvent::class.java
-    )
 }
