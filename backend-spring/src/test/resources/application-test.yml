@@ -1,7 +1,7 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: none # Let the generated SQL do this (from prisma)
+      ddl-auto: none # Schema is applied by TestcontainersConfiguration from schema.sql
     show-sql: false
     properties:
       hibernate:
@@ -10,6 +10,11 @@ spring:
         jdbc:
           batch_size: 20
         use_sql_comments: false  # Add comments to show what Hibernate is doing
+
+  # Tests run on PostgreSQL Testcontainers (honest prod/test split) and apply
+  # schema.sql manually - Flyway (H2 migrations) must not run here.
+  flyway:
+    enabled: false
 
   # @ServiceConnection will automatically configure these properties
   # No need to specify datasource properties - they come from TestcontainersConfiguration

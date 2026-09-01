@@ -188,15 +188,14 @@ class BetterTreeSpanExporter(
     private fun executeExplainQuery(sql: String): String {
         return dataSource.connection.use { conn ->
             conn.createStatement().use { stmt ->
-                // SQLite uses "EXPLAIN QUERY PLAN"
-                val explainSql = "EXPLAIN QUERY PLAN $sql"
+                // H2 uses "EXPLAIN SELECT ..." and returns a single "PLAN" column
+                val explainSql = "EXPLAIN $sql"
                 val rs = stmt.executeQuery(explainSql)
 
                 buildString {
                     while (rs.next()) {
-                        // SQLite EXPLAIN QUERY PLAN returns: id, parent, notused, detail
-                        val detail = rs.getString("detail")
-                        appendLine("   $detail")
+                        // H2 EXPLAIN returns one column ("PLAN"); read by index for robustness
+                        appendLine("   ${rs.getString(1)}")
                     }
                 }
             }
@@ -216,30 +215,23 @@ class BetterTreeSpanExporter(
     private fun analyzeQueryPlan(plan: String): List<String> {
         val warnings = mutableListOf<String>()
 
-        // Check for full table scan
-        if (plan.contains("SCAN TABLE", ignoreCase = true) &&
-            !plan.contains("USING INDEX", ignoreCase = true)
-        ) {
-            warnings.add("🐌 Full table scan detected! Consider adding an index.")
+        // H2 EXPLAIN plans mark table scans with "/* scanCount: N */"
+        if (plan.contains("scanCount", ignoreCase = true)) {
+            warnings.add("🐌 Table scan detected! Consider adding an index.")
         }
 
-        // Check for temporary B-tree
-        if (plan.contains("TEMP B-TREE", ignoreCase = true)) {
-            warnings.add("📦 Temporary B-tree created. Query might benefit from an index.")
-        }
-
-        // Check for sorting without index
-        if (plan.contains("USE TEMP B-TREE FOR ORDER BY", ignoreCase = true)) {
+        // H2 marks sort operations in the plan
+        if (plan.contains("SORT", ignoreCase = true)) {
             warnings.add("📊 Sorting without index. Consider adding index on ORDER BY column.")
         }
 
         // Check for grouping without index
-        if (plan.contains("USE TEMP B-TREE FOR GROUP BY", ignoreCase = true)) {
+        if (plan.contains("GROUP", ignoreCase = true) && plan.contains("SORT", ignoreCase = true)) {
             warnings.add("📊 Grouping without index. Consider adding index on GROUP BY column.")
         }
 
         // Check for multiple table scans
-        val scanCount = Regex("SCAN TABLE", RegexOption.IGNORE_CASE)
+        val scanCount = Regex("scanCount", RegexOption.IGNORE_CASE)
             .findAll(plan)
             .count()
         if (scanCount > 2) {

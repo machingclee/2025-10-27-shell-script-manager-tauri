@@ -4,9 +4,6 @@
 #[macro_use]
 extern crate objc;
 
-mod prisma;
-
-use prisma::PrismaClient;
 use serde_json;
 use std::process::{Child, Command};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -14,7 +11,6 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_opener::OpenerExt;
 
 pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
-pub static PRISMA_CLIENT: OnceLock<PrismaClient> = OnceLock::new();
 pub static SPRING_BOOT_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
 pub static BACKEND_PORT: OnceLock<u16> = OnceLock::new();
 pub static CLEANUP_DONE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
@@ -252,7 +248,7 @@ async fn check_backend_health() -> Result<bool, String> {
 
 #[tauri::command]
 async fn set_title_bar_color(is_dark: bool) -> Result<(), String> {
-    // Use Spring Boot API to update dark mode (avoid SQLite lock conflicts with Prisma)
+    // Use Spring Boot API to update dark mode (Spring is the only database client now)
     let port = get_backend_port().await?;
     let client = reqwest::Client::new();
 
@@ -503,10 +499,8 @@ pub fn run() {
             // 2. Initialize runtime for async operations
             init_runtime()?;
 
-            // 3. Initialize database
-            init_db(app.handle())?;
-
-            // 4. Initialize and optionally start Spring Boot
+            // 3. Initialize and optionally start Spring Boot (Spring owns the database:
+            //    Flyway creates the H2 schema on first boot)
             init_spring_boot(app.handle().clone())?;
 
             // 5. Setup macOS menu and handlers
@@ -935,8 +929,8 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
     let child = Command::new(&native_binary)
         .arg(format!("--server.port={}", port))
         .arg(format!(
-            "--spring.datasource.url=jdbc:sqlite:{}?foreign_keys=true",
-            db_path
+            "--spring.datasource.url=jdbc:h2:file:{};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD=",
+            h2_database_base(&db_path)
         ))
         .env("ENABLE_TRACE", "false")
         .spawn()
@@ -1095,90 +1089,14 @@ fn init_runtime() -> Result<(), String> {
     Ok(())
 }
 
-// Initialize database with Prisma
-pub fn init_db(app_handle: &tauri::AppHandle) -> Result<(), String> {
-    // Get the appropriate database path
-    let db_path = get_database_path(app_handle)?;
-    println!("Database location: {}", db_path);
-
-    // Set DATABASE_URL environment variable for Prisma
-    // Include foreign_keys=true to enable CASCADE deletion in SQLite
-    let database_url = format!(
-        "file:{}?connection_limit=1&socket_timeout=10&foreign_keys=true",
-        db_path
-    );
-    std::env::set_var("DATABASE_URL", &database_url);
-
-    // Initialize Prisma client and run migrations to create database
-    let rt_handle = RT_HANDLE
-        .get()
-        .ok_or_else(|| "Runtime not initialized".to_string())?;
-
-    // Use a separate thread to avoid async runtime conflicts
-    let database_url_clone = database_url.clone();
-    std::thread::spawn(move || {
-        // Ensure DATABASE_URL is set in this thread too
-        std::env::set_var("DATABASE_URL", &database_url_clone);
-
-        let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
-        rt.block_on(async move {
-            println!(
-                "Initializing Prisma client with database: {}",
-                database_url_clone
-            );
-            let client = prisma::new_client_with_url(&database_url_clone)
-                .await
-                .expect("Failed to create Prisma client");
-
-            // Enable foreign key constraints for this connection
-            // SQLite disables foreign keys by default, so we must enable them explicitly
-            println!("Enabling foreign key constraints...");
-            client
-                ._execute_raw(prisma_client_rust::raw!("PRAGMA foreign_keys = ON"))
-                .exec()
-                .await
-                .expect("Failed to enable foreign keys");
-
-            // Verify foreign keys are actually enabled
-            let fk_status: i32 = client
-                ._query_raw(prisma_client_rust::raw!("PRAGMA foreign_keys"))
-                .exec()
-                .await
-                .expect("Failed to check foreign key status")
-                .into_iter()
-                .next()
-                .and_then(|row: serde_json::Value| row.get("foreign_keys").and_then(|v| v.as_i64()))
-                .unwrap_or(0) as i32;
-
-            println!(
-                "Foreign key constraints status: {} (1=enabled, 0=disabled)",
-                fk_status
-            );
-            if fk_status != 1 {
-                panic!("Failed to enable foreign key constraints!");
-            }
-
-            // Always run schema sync to ensure database matches current schema
-            // This allows automatic schema updates when the app is updated
-            println!("Syncing database schema...");
-            client
-                ._db_push()
-                .accept_data_loss()
-                .await
-                .expect("Failed to sync database schema");
-            println!("Database schema synced successfully");
-
-            PRISMA_CLIENT
-                .set(client)
-                .expect("Failed to set Prisma client");
-
-            println!("Database initialized successfully");
-        });
-    })
-    .join()
-    .map_err(|_| "Failed to initialize database".to_string())?;
-
-    Ok(())
+/// Derive the H2 database file base (without extension) from the resolved
+/// `database.db` path. H2 appends its own `.mv.db` suffix.
+#[cfg(not(debug_assertions))]
+fn h2_database_base(db_path: &str) -> String {
+    db_path
+        .strip_suffix(".db")
+        .unwrap_or(db_path)
+        .to_string()
 }
 
 // Find an available port in the range 10000-60000

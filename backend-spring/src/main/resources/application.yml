@@ -9,24 +9,27 @@ spring:
     name: script-manager-backend
 
   datasource:
-    url: jdbc:sqlite:${DB_PATH:/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/database.db}
-    driver-class-name: org.sqlite.JDBC
+    url: jdbc:h2:file:${DB_PATH:src-tauri/database};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD=
+    driver-class-name: org.h2.Driver
 
   jpa:
-    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: none # Flyway owns the schema (replaces Prisma _db_push)
     show-sql: false
     properties:
       hibernate:
         format_sql: true
         jdbc:
-          use_get_generated_keys: false
           batch_size: 20
         order_inserts: true
         order_updates: true
         connection:
           provider_disables_autocommit: true
+
+  # Flyway creates/upgrades the schema from db/migration/*.sql
+  flyway:
+    enabled: true
 
   # Task executor for async operations (if needed)
   task:

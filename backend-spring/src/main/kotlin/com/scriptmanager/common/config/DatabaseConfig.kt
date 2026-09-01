@@ -2,6 +2,8 @@ package com.scriptmanager.common.config
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import java.nio.file.Files
+import java.nio.file.Path
 import javax.sql.DataSource
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -20,19 +22,17 @@ class DatabaseConfig(private val env: Environment) {
 
         val config = HikariConfig()
         config.jdbcUrl = dbUrl
-        config.driverClassName = "org.sqlite.JDBC"
+        config.driverClassName = "org.h2.Driver"
 
-        // SQLite-specific HikariCP settings - allow multiple connections for reads, serialize writes
-        config.maximumPoolSize = 5  // Allow multiple connections for event/command auditing
+        // H2 is MVCC - the pool can be shared by all reads/writes without the
+        // single-writer serialization SQLite needed.
+        config.maximumPoolSize = 5
         config.minimumIdle = 2
         config.connectionTimeout = 30000
         config.idleTimeout = 600000
         config.maxLifetime = 1800000
         config.poolName = "ScriptManagerPool"
         config.isAutoCommit = false  // Let Spring/Hibernate manage transactions
-
-        // SQLite-specific connection initialization to ensure proper locking
-        config.connectionInitSql = "PRAGMA busy_timeout = 30000; PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;"
 
         println("HikariCP maximumPoolSize: ${config.maximumPoolSize}")
         println("HikariCP autoCommit: ${config.isAutoCommit}")
@@ -44,41 +44,77 @@ class DatabaseConfig(private val env: Environment) {
     private fun getDatabaseUrl(): String {
         println("=== RESOLVING DATABASE URL ===")
 
-        // Priority 1: Check if URL is provided via command line argument
+        // Priority 1: URL provided via application.yml / command line argument
+        // (production: Tauri passes an absolute URL via --spring.datasource.url=...).
         val cmdLineUrl = env.getProperty("spring.datasource.url")
         println("spring.datasource.url from application.yml: $cmdLineUrl")
 
         if (!cmdLineUrl.isNullOrEmpty()) {
-            // Extract just the database path from the URL if it has parameters
-            val basePath = if (cmdLineUrl.contains("?")) {
-                cmdLineUrl.substringBefore("?")
-            } else {
-                cmdLineUrl
-            }
-            println("Base path extracted: $basePath")
-            val finalUrl = appendSqliteParams(basePath)
-            println("Final URL with SQLite params: $finalUrl")
-            return finalUrl
+            return normalizeH2Url(cmdLineUrl)
         }
 
         // Priority 2: Check if DB_PATH environment variable is set
         val dbPath = System.getenv("DB_PATH")
         println("DB_PATH environment variable: $dbPath")
         if (!dbPath.isNullOrEmpty()) {
-            return appendSqliteParams("jdbc:sqlite:$dbPath")
+            return buildH2Url(dbPath)
         }
 
-        // Priority 3: Default to the same path as application.yml
-        val defaultPath = "/Users/chingcheonglee/Repos/rust/2025-10-27-shell-script-manager-tauri/src-tauri/database.db"
-        println("WARNING: Using default database path: $defaultPath")
-        return appendSqliteParams("jdbc:sqlite:$defaultPath")
+        // Priority 3: Development default - resolved relative to the repository root
+        println("WARNING: No DB_PATH configured, using repository-local dev default")
+        return buildH2Url("src-tauri/database")
     }
 
-    private fun appendSqliteParams(baseUrl: String): String {
-        // Use minimal URL parameters - most settings are handled via connectionInitSql
-        // This avoids potential parsing issues with SQLite JDBC driver
-        val params = "?busy_timeout=30000"
-        println("Appending SQLite params: $params")
-        return "$baseUrl$params"
+    /**
+     * Builds an H2 file URL, resolving a relative file base against the
+     * repository root so the app works from any working directory (IntelliJ,
+     * `./gradlew bootRun`, CI, ...).
+     *
+     * `USER=sa` with an empty password is explicit on purpose: H2 2.2.224
+     * generates a random `sa` password for a freshly created database when no
+     * credentials are supplied, which would lock out later connections.
+     */
+    private fun buildH2Url(dbBase: String): String =
+        "jdbc:h2:file:${resolveDatabaseBase(dbBase)};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD="
+
+    /**
+     * Normalizes a URL that may contain a relative file path
+     * (e.g. `jdbc:h2:file:src-tauri/database;MODE=...`).
+     */
+    private fun normalizeH2Url(url: String): String {
+        val prefix = "jdbc:h2:file:"
+        if (!url.startsWith(prefix)) {
+            return url
+        }
+        val rest = url.removePrefix(prefix)
+        val semicolon = rest.indexOf(';')
+        val filePart = if (semicolon >= 0) rest.substring(0, semicolon) else rest
+        val params = if (semicolon >= 0) rest.substring(semicolon) else ""
+        return prefix + resolveDatabaseBase(filePart) + params
+    }
+
+    private fun resolveDatabaseBase(dbBase: String): String {
+        val path = Path.of(dbBase)
+        if (path.isAbsolute) {
+            return dbBase
+        }
+        return findRepositoryRoot().resolve(path).normalize().toString()
+    }
+
+    /**
+     * Walks up from the working directory to find the repository root
+     * (a directory that contains both `backend-spring` and `src-tauri`).
+     */
+    private fun findRepositoryRoot(): Path {
+        var dir: Path? = Path.of("").toAbsolutePath().normalize()
+        while (dir != null) {
+            if (Files.isDirectory(dir.resolve("src-tauri")) &&
+                Files.isDirectory(dir.resolve("backend-spring"))
+            ) {
+                return dir
+            }
+            dir = dir.parent
+        }
+        return Path.of("").toAbsolutePath().normalize()
     }
 }

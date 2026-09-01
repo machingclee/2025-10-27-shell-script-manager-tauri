@@ -12,7 +12,19 @@
         "allDeclaredMethods": true
     },
     {
-        "name": "org.hibernate.community.dialect.SQLiteDialect",
+        "name": "org.h2.Driver",
+        "allDeclaredConstructors": true,
+        "allPublicConstructors": true,
+        "allDeclaredMethods": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.h2.jdbc.JdbcConnection",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true
+    },
+    {
+        "name": "org.hibernate.dialect.H2Dialect",
         "allDeclaredConstructors": true,
         "allPublicConstructors": true,
         "allDeclaredMethods": true
