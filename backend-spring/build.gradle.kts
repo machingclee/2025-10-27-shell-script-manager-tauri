@@ -44,9 +44,15 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 
-    // SQLite
-    implementation("org.xerial:sqlite-jdbc:3.44.1.0")
-    implementation("org.hibernate.orm:hibernate-community-dialects:6.3.1.Final")
+    // H2 (embedded file database - Spring is the only client)
+    implementation("com.h2database:h2")
+
+    // Flyway owns the schema DDL (replaces Prisma _db_push)
+    implementation("org.flywaydb:flyway-core")
+
+    // SQLite JDBC driver - used ONLY by the one-time SQLite -> H2 data migration
+    // (SqliteToH2DataMigrator). Removed from the runtime path once migrated.
+    runtimeOnly("org.xerial:sqlite-jdbc:3.44.1.0")
 
     // Development tools
     developmentOnly("org.springframework.boot:spring-boot-devtools")
@@ -72,7 +78,7 @@ dependencies {
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        freeCompilerArgs += "-Xjsr305=strict"
+        // freeCompilerArgs += "-Xjsr305=strict"
         jvmTarget = "17"
     }
 }
