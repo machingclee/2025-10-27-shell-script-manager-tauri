@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.9.10"
+    kotlin("jvm") version "2.2.21"
     `java-library`
 }
 
@@ -11,7 +11,6 @@ java {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
-
 
 repositories {
     mavenCentral()
@@ -26,10 +25,16 @@ sourceSets.test {
 
 dependencies {
     testImplementation(kotlin("test"))
-    api("com.google.devtools.ksp:symbol-processing-api:1.9.10-1.0.13")
+    api("com.google.devtools.ksp:symbol-processing-api:2.2.21-2.0.5")
     implementation(kotlin("stdlib"))
-    implementation("com.squareup:kotlinpoet:1.14.2")
-    implementation("com.squareup:kotlinpoet-ksp:1.14.2")
+    implementation("com.squareup:kotlinpoet:2.2.0")
+    implementation("com.squareup:kotlinpoet-ksp:2.2.0")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
 }
 
 tasks.test {

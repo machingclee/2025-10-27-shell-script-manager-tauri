@@ -24,7 +24,6 @@ class GetAppStateQueryHandler(
         return ApplicationStateDTO(
             id = state.id!!,
             lastOpenedFolderId = state.lastOpenedFolderId,
-            selectedAiprofileId = state.selectedAiProfileId,
             darkMode = state.darkMode,
             createdAt = state.createdAt ?: 0.0,
             createdAtHk = state.createdAtHk ?: ""

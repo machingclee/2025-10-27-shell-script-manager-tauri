@@ -206,44 +206,6 @@ data class HistoricalShellScriptResponse(
     val shellScript: ShellScriptDTO
 )
 
-data class CreateAIProfileRequest(
-    val name: String,
-    val description: String
-)
-
-data class CreateModelConfigRequest(
-    val name: String,
-    val modelSource: ModelConfig.ModelSourceType,
-    val aiprofileId: Int
-)
-
-data class CreateAIScripToolRequest(
-    val name: String,
-    val isEnabled: Boolean,
-    val toolDescription: String,
-)
-
-data class UpdateAIProfileRequest(
-    val aiProfileDTO: AiProfileDTO
-)
-
-data class UpdateModelConfigRequest(
-    val modelConfigDTO: ModelConfigDTO,
-    val openAiModelConfigDTO: OpenAiModelConfigDTO? = null,
-    val azureModelConfigDTO: AzureModelConfigDTO? = null
-)
-
-typealias ModelConfigResponse = UpdateModelConfigRequest
-
-data class UpdateAIScriptedToolRequest(
-    val aiScriptedToolDTO: AiScriptedToolDTO
-)
-
-data class SelectDefaultModelConfigRequest(
-    val aiProfileId: Int,
-    val modelConfigId: Int
-)
-
 data class UpdateWorkspaceStatusRequest(
     val statusName: WorkspaceStatusName
 )

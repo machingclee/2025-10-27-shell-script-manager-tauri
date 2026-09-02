@@ -45,7 +45,6 @@ import {
 } from "./components/ui/dialog";
 import { Button } from "./components/ui/button";
 import { folderApi } from "./store/api/folderApi";
-// import AIProfileButton from "./app-component/AIProfile/AIProfileButton";
 
 function App() {
     const dispatch = useAppDispatch();
@@ -568,7 +567,6 @@ function App() {
                 {/* Right-side controls */}
                 {activeTabId === HOME_TAB_ID && (
                     <div className="flex-1 right-4 z-10 flex items-center gap-2 px-4 justify-end">
-                        {/* <AIProfileButton /> */}
                         <div
                             className="relative flex items-center"
                             style={{

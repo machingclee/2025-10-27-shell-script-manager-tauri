@@ -55,7 +55,6 @@ export type ShellScriptResponse = {
 export type AppStateDTO = {
     id: number;
     lastOpenedFolderId: number;
-    selectedAiprofileId: number;
     darkMode: boolean;
     createdAt: number;
     createdAtHk: string;
@@ -157,59 +156,4 @@ export type HistoricalShellScriptResponse = {
     rootFolderId?: number | null;
     history: HistoricalShellScriptDTO;
     shellScript: ShellScriptDTO;
-};
-
-export type AIProfileDTO = {
-    id?: number;
-    name: string;
-    selectedModelConfigId?: number;
-    description: string;
-    createdAt?: number;
-    createdAtHk?: string;
-};
-
-export type ModelConfigDTO = {
-    id?: number;
-    name: string;
-    modelSource: "OPENAI" | "AZURE_OPENAI" | "CUSTOM";
-    createdAt?: number;
-    createdAtHk?: string;
-};
-
-export type UpdateModelConfigRequest = {
-    modelConfigDTO: ModelConfigDTO;
-    openAiModelConfigDTO?: OpenAiModelConfigDTO;
-    azureModelConfigDTO?: AzureModelConfigDTO;
-};
-
-export type ModelConfigResponse = UpdateModelConfigRequest;
-
-export type OpenAiModelConfigDTO = {
-    id?: number;
-    openaiApiKey: string;
-    openaiModel: string;
-    createdAt?: number;
-    createdAtHk?: string;
-    modelConfigId?: number;
-};
-
-export type AzureModelConfigDTO = {
-    id?: number;
-    azureOpenaiApiKey: string;
-    azureOpenaiEndpoint: string;
-    azureOpenaiApiVersion: string;
-    azureOpenaiModel: string;
-    createdAt?: number;
-    createdAtHk?: string;
-    modelConfigId?: number;
-};
-
-export type AiScriptedToolDTO = {
-    id?: number;
-    name: string;
-    toolDescription: string;
-    isEnabled: boolean;
-    shellScriptId: number;
-    createdAt?: number;
-    createdAtHk?: string;
 };

@@ -1,6 +1,7 @@
 package com.scriptmanager.common.config
 
 import io.swagger.v3.oas.models.OpenAPI
+import io.swagger.v3.oas.models.SpecVersion
 import io.swagger.v3.oas.models.info.Info
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -9,7 +10,7 @@ import org.springframework.context.annotation.Configuration
 class OpenApiConfig {
     @Bean
     fun openApi(): OpenAPI {
-        return OpenAPI()
+        return OpenAPI(SpecVersion.V30)
             .info(
                 Info()
                     .title("Script Manager API")

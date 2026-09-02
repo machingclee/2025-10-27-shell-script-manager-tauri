@@ -7,5 +7,3 @@ pluginManagement {
 dependencyResolutionManagement {
     repositories.mavenCentral()
 }
-
-include("processor")

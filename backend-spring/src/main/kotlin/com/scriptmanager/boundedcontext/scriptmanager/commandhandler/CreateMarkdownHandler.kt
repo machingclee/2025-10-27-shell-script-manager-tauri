@@ -24,7 +24,7 @@ class CreateMarkdownHandler(
 
     override fun handle(eventQueue: EventQueue, command: CreateMarkdownCommand): ShellScriptResponse {
 
-        val folder = folderRepository.findByIdOrNull(command.folderId)
+        val folder = command.folderId?.let { folderRepository.findByIdOrNull(it) }
 
         val script = ShellScript(
             name = command.name,

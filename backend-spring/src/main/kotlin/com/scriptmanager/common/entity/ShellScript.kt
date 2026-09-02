@@ -44,19 +44,13 @@ class ShellScript(
     val isMarkdown: Boolean
 
 ) {
-    @ManyToOne(fetch = FetchType.LAZY)
+    // Native image forces BytecodeProvider=none, which cannot mint HibernateProxy
+    // subclasses for lazy to-one. Collections can stay LAZY (PersistentSet).
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinTable(
         name = "rel_scriptsfolder_shellscript",
         joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", insertable = false, updatable = false)],
         inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id", insertable = false, updatable = false)]
     )
     var parentFolder: ScriptsFolder? = null
-
-    @OneToOne
-    @JoinTable(
-        name = "rel_shellscript_aiconfig",
-        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id", insertable = false, updatable = false)],
-        inverseJoinColumns = [JoinColumn(name = "script_ai_config_id", referencedColumnName = "id", insertable = false, updatable = false)]
-    )
-    var aiConfig: ScriptAiConfig? = null
 }

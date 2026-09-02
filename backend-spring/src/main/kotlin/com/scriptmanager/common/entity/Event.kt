@@ -13,81 +13,72 @@ import org.hibernate.annotations.Generated
 class Event(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @get:JvmName("getEntityId")
-    val id: Int? = null,
+    @Column(name = "id")
+    val entityId: Int? = null,
 
     @Column(name = "request_id", nullable = false)
-    @set:JvmName("setRequestIdRaw")
-    var requestId: String = "",
+    var requestIdValue: String = "",
 
     @Column(name = "created_at")
     @Generated
-    @set:JvmName("setCreatedAtRaw")
-    var createdAt: Double? = null,
+    var createdAtValue: Double? = null,
 
     @Column(name = "created_at_hk")
     @Generated
     val createdAtHk: String? = null,
 
     @Column(name = "event_type", nullable = false)
-    @set:JvmName("setEventTypeRaw")
-    var eventType: String = "",
+    var eventTypeValue: String = "",
 
     @Column(name = "event", nullable = false, columnDefinition = "TEXT")
-    @set:JvmName("setPayloadRaw")
-    var payload: String = "",
+    var payloadValue: String = "",
 
     @Column(name = "request_user_email", nullable = false)
-    @set:JvmName("setRequestUserEmailRaw")
-    var requestUserEmail: String = "",
+    var requestUserEmailValue: String = "",
 
     @Column(name = "success", nullable = false)
-    @get:JvmName("isSuccessFlag")
-    @set:JvmName("setSuccessRaw")
-    var success: Boolean = true,
+    var successFlag: Boolean = true,
 
     @Column(name = "failure_reason", nullable = false)
-    @set:JvmName("setFailureReasonRaw")
-    var failureReason: String = "",
+    var failureReasonValue: String = "",
 
     @Column(name = "event_order", nullable = false)
-    @set:JvmName("setEventOrderRaw")
-    var eventOrder: Int = 1
+    var eventOrderValue: Int = 1
 ) : AuditEvent {
 
-    override fun getId(): Int = id ?: 0
+    override fun getId(): Int = entityId ?: 0
 
-    override fun getSuccess(): Boolean = success
+    override fun getSuccess(): Boolean = successFlag
 
     override fun setCreatedAt(createdAt: Double) {
-        this.createdAt = createdAt
+        this.createdAtValue = createdAt
     }
 
     override fun setEventType(eventType: String) {
-        this.eventType = eventType
+        this.eventTypeValue = eventType
     }
 
     override fun setPayload(payload: String) {
-        this.payload = payload
+        this.payloadValue = payload
     }
 
     override fun setRequestUserEmail(requestUserEmail: String) {
-        this.requestUserEmail = requestUserEmail
+        this.requestUserEmailValue = requestUserEmail
     }
 
     override fun setRequestId(requestId: String) {
-        this.requestId = requestId
+        this.requestIdValue = requestId
     }
 
     override fun setSuccess(success: Boolean) {
-        this.success = success
+        this.successFlag = success
     }
 
     override fun setFailureReason(failureReason: String) {
-        this.failureReason = failureReason
+        this.failureReasonValue = failureReason
     }
 
     override fun setEventOrder(eventOrder: Int) {
-        this.eventOrder = eventOrder
+        this.eventOrderValue = eventOrder
     }
 }

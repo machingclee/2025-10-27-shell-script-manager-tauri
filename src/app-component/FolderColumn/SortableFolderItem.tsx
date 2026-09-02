@@ -21,7 +21,6 @@ import { AddMarkdownDialog } from "./Dialog/AddMarkdownDialog";
 import { CreateSubfolderDialog } from "./Dialog/CreateSubfolderDialog";
 import { DeleteFolderDialog } from "./Dialog/DeleteFolderDialog";
 import { RenameFolderDialog } from "./Dialog/RenameFolderDialog";
-import { AIProfilesDialog } from "../AIProfile/Dialog/AIProfilesDialog";
 import NameTagDisplay from "@/lib/NameTagDisplay";
 
 export default React.memo(
@@ -305,8 +304,6 @@ export default React.memo(
                     setMarkdownContent={setMarkdownContent}
                     handleAddMarkdown={handleAddMarkdown}
                 />
-                {/* AiProfilesDialog */}
-                <AIProfilesDialog />
             </>
         );
     },

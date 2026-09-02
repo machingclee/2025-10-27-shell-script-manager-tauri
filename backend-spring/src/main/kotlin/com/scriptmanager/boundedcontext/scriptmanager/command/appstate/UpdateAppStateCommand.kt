@@ -6,7 +6,6 @@ import com.scriptmanager.common.entity.ApplicationStateDTO
 data class UpdateAppStateCommand(
     val id: Int?,
     val lastOpenedFolderId: Int?,
-    val selectedAiProfileId: Int?,
     val darkMode: Boolean,
     val createdAt: Double?,
     val createdAtHk: String?,

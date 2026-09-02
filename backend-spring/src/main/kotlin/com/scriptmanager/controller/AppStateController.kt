@@ -38,8 +38,7 @@ class AppStateController(
             lastOpenedFolderId = input.lastOpenedFolderId,
             darkMode = input.darkMode,
             createdAt = input.createdAt,
-            createdAtHk = input.createdAtHk,
-            selectedAiProfileId = input.selectedAiprofileId
+            createdAtHk = input.createdAtHk
         )
 
         val dto = commandInvoker.invoke(command)
