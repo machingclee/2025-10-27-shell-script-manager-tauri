@@ -2253,6 +2253,40 @@
       "allPublicMethods": true,
       "allDeclaredFields": true,
       "allPublicFields": true
+    },
+    {
+      "type": "java.lang.reflect.RecordComponent",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true
+    },
+    {
+      "type": "java.lang.Class",
+      "methods": [
+        {
+          "name": "isRecord",
+          "parameterTypes": []
+        },
+        {
+          "name": "getRecordComponents",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "java.beans.Introspector",
+      "allPublicMethods": true
+    },
+    {
+      "type": "java.beans.BeanInfo",
+      "allPublicMethods": true
+    },
+    {
+      "type": "java.beans.PropertyDescriptor",
+      "allPublicConstructors": true,
+      "allPublicMethods": true
     }
   ],
   "resources": [
