@@ -30,7 +30,6 @@ class UpdateAppStateHandler(
             current.apply {
                 command.lastOpenedFolderId?.let { lastOpenedFolderId = it }
                 command.darkMode?.let { darkMode = it }
-                command.selectedAiProfileId?.let { selectedAiProfileId = it }
             }
         }
 
@@ -39,7 +38,6 @@ class UpdateAppStateHandler(
         val dto = ApplicationStateDTO(
             id = saved.id,
             lastOpenedFolderId = saved.lastOpenedFolderId,
-            selectedAiprofileId = saved.selectedAiProfileId,
             darkMode = saved.darkMode,
             createdAt = saved.createdAt ?: 0.0,
             createdAtHk = saved.createdAtHk ?: ""

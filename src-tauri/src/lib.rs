@@ -4,8 +4,13 @@
 #[macro_use]
 extern crate objc;
 
+use serde::Serialize;
 use serde_json;
+#[cfg(not(debug_assertions))]
+use std::io::{BufRead, BufReader};
 use std::process::{Child, Command};
+#[cfg(not(debug_assertions))]
+use std::process::Stdio;
 use std::sync::{Arc, Mutex, OnceLock};
 use tauri::{Emitter, Manager};
 use tauri_plugin_opener::OpenerExt;
@@ -13,6 +18,7 @@ use tauri_plugin_opener::OpenerExt;
 pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
 pub static SPRING_BOOT_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
 pub static BACKEND_PORT: OnceLock<u16> = OnceLock::new();
+pub static BACKEND_LOGS: OnceLock<Arc<Mutex<Vec<String>>>> = OnceLock::new();
 pub static CLEANUP_DONE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 #[cfg(target_os = "macos")]
 pub static APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
@@ -223,6 +229,98 @@ async fn execute_command(command: String) -> Result<String, String> {
     Ok(stdout)
 }
 
+const BACKEND_LOG_LIMIT: usize = 300;
+
+fn backend_logs() -> Arc<Mutex<Vec<String>>> {
+    BACKEND_LOGS
+        .get_or_init(|| Arc::new(Mutex::new(Vec::new())))
+        .clone()
+}
+
+fn push_backend_log(line: impl Into<String>) {
+    let line = line.into();
+    println!("[backend] {}", line);
+    if let Ok(mut logs) = backend_logs().lock() {
+        logs.push(line);
+        if logs.len() > BACKEND_LOG_LIMIT {
+            let extra = logs.len() - BACKEND_LOG_LIMIT;
+            logs.drain(0..extra);
+        }
+    }
+}
+
+fn snapshot_backend_logs() -> Vec<String> {
+    backend_logs()
+        .lock()
+        .map(|logs| logs.clone())
+        .unwrap_or_default()
+}
+
+fn note_status_change(key: &'static str, value: &str) {
+    static LAST: OnceLock<Mutex<std::collections::HashMap<&'static str, String>>> = OnceLock::new();
+    let last = LAST.get_or_init(|| Mutex::new(std::collections::HashMap::new()));
+    if let Ok(mut last) = last.lock() {
+        let changed = last.get(key).map(|prev| prev != value).unwrap_or(true);
+        if changed {
+            last.insert(key, value.to_string());
+            push_backend_log(format!("{key}: {value}"));
+        }
+    }
+}
+
+fn backend_process_status() -> String {
+    #[cfg(debug_assertions)]
+    {
+        return "dev: waiting for manually started backend".to_string();
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        let Some(process_mutex) = SPRING_BOOT_PROCESS.get() else {
+            return "process storage not initialized".to_string();
+        };
+        let Ok(mut guard) = process_mutex.lock() else {
+            return "process lock poisoned".to_string();
+        };
+        match guard.as_mut() {
+            None => "not started yet".to_string(),
+            Some(child) => match child.try_wait() {
+                Ok(None) => format!("running (pid {})", child.id()),
+                Ok(Some(status)) => format!("exited ({status})"),
+                Err(e) => format!("status error: {e}"),
+            },
+        }
+    }
+}
+
+#[cfg(not(debug_assertions))]
+fn dir_listing(path: &std::path::Path) -> String {
+    match std::fs::read_dir(path) {
+        Ok(entries) => {
+            let names: Vec<String> = entries
+                .filter_map(|entry| entry.ok())
+                .map(|entry| entry.file_name().to_string_lossy().into_owned())
+                .collect();
+            if names.is_empty() {
+                "<empty>".to_string()
+            } else {
+                names.join(", ")
+            }
+        }
+        Err(e) => format!("<unreadable: {e}>"),
+    }
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct BackendStartupStatus {
+    healthy: bool,
+    port: Option<u16>,
+    process_status: String,
+    last_error: Option<String>,
+    logs: Vec<String>,
+}
+
 #[tauri::command]
 async fn get_backend_port() -> Result<u16, String> {
     BACKEND_PORT
@@ -231,18 +329,73 @@ async fn get_backend_port() -> Result<u16, String> {
         .ok_or_else(|| "Backend port not initialized".to_string())
 }
 
-#[tauri::command]
-async fn check_backend_health() -> Result<bool, String> {
-    let port = get_backend_port().await?;
-    let client = reqwest::Client::builder()
+async fn probe_backend_health() -> (bool, Option<u16>, Option<String>) {
+    let port = match BACKEND_PORT.get().copied() {
+        Some(port) => port,
+        None => return (false, None, Some("Backend port not initialized".to_string())),
+    };
+
+    let client = match reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(2))
         .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+    {
+        Ok(client) => client,
+        Err(e) => {
+            return (
+                false,
+                Some(port),
+                Some(format!("Failed to create HTTP client: {e}")),
+            )
+        }
+    };
 
-    let url = format!("http://localhost:{}/health", port);
+    let url = format!("http://localhost:{port}/health");
     match client.get(&url).send().await {
-        Ok(response) => Ok(response.status().is_success()),
-        Err(_) => Ok(false),
+        Ok(response) => {
+            let status = response.status();
+            if status.is_success() {
+                (true, Some(port), None)
+            } else {
+                let body = response.text().await.unwrap_or_default();
+                let body = body.trim();
+                let detail = if body.is_empty() {
+                    format!("{url} returned HTTP {status}")
+                } else {
+                    format!("{url} returned HTTP {status}: {body}")
+                };
+                (false, Some(port), Some(detail))
+            }
+        }
+        Err(e) => (false, Some(port), Some(format!("{url} — {e}"))),
+    }
+}
+
+#[tauri::command]
+async fn check_backend_health() -> Result<bool, String> {
+    let (healthy, _, error) = probe_backend_health().await;
+    if let Some(error) = error {
+        note_status_change("health", &error);
+    }
+    Ok(healthy)
+}
+
+#[tauri::command]
+async fn get_backend_startup_status() -> BackendStartupStatus {
+    let (healthy, port, last_error) = probe_backend_health().await;
+    let process_status = backend_process_status();
+    note_status_change("process", &process_status);
+    if let Some(error) = last_error.as_ref() {
+        note_status_change("health", error);
+    } else if healthy {
+        note_status_change("health", "ok");
+    }
+
+    BackendStartupStatus {
+        healthy,
+        port,
+        process_status,
+        last_error,
+        logs: snapshot_backend_logs(),
     }
 }
 
@@ -470,6 +623,7 @@ pub fn run() {
             execute_command_in_shell,
             get_backend_port,
             check_backend_health,
+            get_backend_startup_status,
             set_title_bar_color,
             write_and_open_html,
             get_images_dir,
@@ -896,29 +1050,42 @@ pub fn run_terminal_command(command: String) {
 
 #[cfg(not(debug_assertions))]
 fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<(), String> {
-    println!("Starting Spring Boot backend on port {}...", port);
+    push_backend_log(format!("Starting Spring Boot backend on port {port}..."));
 
     // Get the database path
     let db_path = get_database_path(&app_handle)?;
-    println!("Database path: {}", db_path);
+    push_backend_log(format!("Database path: {db_path}"));
+    push_backend_log(format!(
+        "H2 JDBC base: {}",
+        h2_database_base(&db_path)
+    ));
 
     // Get the path to the backend-spring directory
     let resource_path = app_handle
         .path()
         .resource_dir()
-        .map_err(|e| format!("Failed to get resource directory: {}", e))?;
+        .map_err(|e| format!("Failed to get resource directory: {e}"))?;
+    push_backend_log(format!("Resource dir: {}", resource_path.display()));
+    push_backend_log(format!(
+        "Resource dir contents: {}",
+        dir_listing(&resource_path)
+    ));
 
     // Tauri places bundled resources in a "resources" subdirectory
     let backend_dir = resource_path.join("resources").join("backend-spring");
-    println!("Backend directory: {:?}", backend_dir);
+    push_backend_log(format!("Backend directory: {}", backend_dir.display()));
+    push_backend_log(format!(
+        "Backend dir contents: {}",
+        dir_listing(&backend_dir)
+    ));
 
     // Use the bundled GraalVM native image (this function is only called in production mode)
     let native_binary = backend_dir.join("backend-native");
-
-    println!(
-        "Production mode: Using native binary at {:?}",
-        native_binary
-    );
+    push_backend_log(format!(
+        "Native binary: {} (exists={})",
+        native_binary.display(),
+        native_binary.exists()
+    ));
 
     // Verify native binary exists
     if !native_binary.exists() {
@@ -926,22 +1093,58 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
     }
 
     // Use GraalVM native image (no Java required!)
-    let child = Command::new(&native_binary)
-        .arg(format!("--server.port={}", port))
+    let mut child = Command::new(&native_binary)
+        .arg(format!("--server.port={port}"))
         .arg(format!(
             "--spring.datasource.url=jdbc:h2:file:{};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD=",
             h2_database_base(&db_path)
         ))
         .env("ENABLE_TRACE", "false")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to start Spring Boot backend: {}", e))?;
+        .map_err(|e| format!("Failed to start Spring Boot backend: {e}"))?;
+
+    if let Some(stdout) = child.stdout.take() {
+        std::thread::spawn(move || {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines() {
+                match line {
+                    Ok(line) => push_backend_log(line),
+                    Err(e) => {
+                        push_backend_log(format!("stdout read error: {e}"));
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
+    if let Some(stderr) = child.stderr.take() {
+        std::thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                match line {
+                    Ok(line) => push_backend_log(format!("stderr: {line}")),
+                    Err(e) => {
+                        push_backend_log(format!("stderr read error: {e}"));
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
+    push_backend_log(format!(
+        "Spring Boot backend spawned (pid {})",
+        child.id()
+    ));
 
     // Store the process handle
     if let Some(process_mutex) = SPRING_BOOT_PROCESS.get() {
         *process_mutex.lock().unwrap() = Some(child);
     }
 
-    println!("Spring Boot backend started successfully");
     Ok(())
 }
 
@@ -1134,24 +1337,24 @@ fn init_spring_boot(app_handle: tauri::AppHandle) -> Result<(), String> {
     BACKEND_PORT
         .set(port)
         .map_err(|_| "Failed to set backend port".to_string())?;
-    println!("Backend will use port: {}", port);
+    push_backend_log(format!("Backend will use port: {port}"));
 
     // Start Spring Boot backend (only in production mode)
     #[cfg(not(debug_assertions))]
     {
-        println!("Production mode: Auto-starting Spring Boot backend...");
+        push_backend_log("Production mode: auto-starting Spring Boot backend...");
         std::thread::spawn(move || {
             if let Err(e) = start_spring_boot_backend(app_handle, port) {
-                eprintln!("Failed to start Spring Boot backend: {}", e);
+                push_backend_log(format!("Failed to start Spring Boot backend: {e}"));
             }
         });
     }
 
     #[cfg(debug_assertions)]
     {
-        println!("Development mode: Please start Spring Boot manually from IntelliJ");
-        println!("Run the Application.kt file or use 'bootRun' Gradle task");
-        println!("Use port: {}", port);
+        push_backend_log("Development mode: start Spring Boot manually from IntelliJ");
+        push_backend_log("Run Application.kt or the bootRun Gradle task");
+        push_backend_log(format!("Use port: {port}"));
     }
 
     Ok(())

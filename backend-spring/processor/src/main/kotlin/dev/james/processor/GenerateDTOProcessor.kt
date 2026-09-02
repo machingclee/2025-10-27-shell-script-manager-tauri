@@ -87,7 +87,9 @@ class GenerateDTOProcessor(
                 FunSpec.constructorBuilder()
                     .addParameters(
                         dtoProperties.map { property ->
-                            ParameterSpec.builder(property.name, property.type).build()
+                            val builder = ParameterSpec.builder(property.name, property.type)
+                            defaultValueFor(property.type)?.let { builder.defaultValue(it) }
+                            builder.build()
                         }
                     )
                     .build()
@@ -172,6 +174,24 @@ class GenerateDTOProcessor(
         }
 
         return embeddedProperties
+    }
+
+    /**
+     * Jackson 3 (Boot 4) treats Kotlin constructor params without defaults as
+     * required. Entity DTOs are also used as request bodies, so missing JSON
+     * keys (e.g. ShellScriptDTO.isEditing) must still deserialize.
+     */
+    private fun defaultValueFor(type: TypeName): String? {
+        if (type.isNullable) return "null"
+        return when (type.copy(nullable = false)) {
+            BOOLEAN -> "false"
+            INT -> "0"
+            LONG -> "0L"
+            DOUBLE -> "0.0"
+            FLOAT -> "0f"
+            STRING -> "\"\""
+            else -> null
+        }
     }
 
     private fun getColumnName(property: KSPropertyDeclaration): String? {

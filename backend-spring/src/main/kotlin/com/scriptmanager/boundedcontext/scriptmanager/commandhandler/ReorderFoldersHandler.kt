@@ -58,8 +58,9 @@ class ReorderFoldersHandler(
             folderRepository.saveAll(folders)
         } else {
             // Reorder subfolders within the specified parent folder
-            val parentFolder = folderRepository.findByIdOrNull(parentFolderId)
-                ?: throw ScriptManagerException("Parent folder not found")
+            val parentFolder = folderRepository.findByIdOrNull(
+                parentFolderId ?: throw ScriptManagerException("Parent folder not found")
+            ) ?: throw ScriptManagerException("Parent folder not found")
             val subfolders = parentFolder.subfolders.sortedBy { it.ordering }.toMutableList()
 
             // Validate indices for subfolders

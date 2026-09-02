@@ -2,7 +2,7 @@ package com.scriptmanager.common.entity
 
 import dev.james.processor.GenerateDTO
 import jakarta.persistence.*
-import javax.annotation.processing.Generated
+import org.hibernate.annotations.Generated
 
 @Entity
 @GenerateDTO
@@ -24,21 +24,6 @@ class ApplicationState(
 
     @Column(name = "created_at_hk")
     @Generated
-    val createdAtHk: String? = null,
-
-    @Column(name = "selected_aiprofile_id")
-    var selectedAiProfileId: Int? = null
-) {
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "selected_aiprofile_id", updatable = false, insertable = false)
-    var selectedAiProfile: AiProfile? = null
-
-    fun selectAIProfile(aiProfileId: Int) {
-        this.selectedAiProfileId = aiProfileId
-    }
-
-    fun clearSelectedAIProfile() {
-        this.selectedAiProfileId = null
-    }
-}
+    val createdAtHk: String? = null
+)
 

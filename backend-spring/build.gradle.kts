@@ -1,86 +1,90 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    id("org.springframework.boot") version "3.2.0"
-    id("io.spring.dependency-management") version "1.1.4"
-    kotlin("jvm") version "1.9.10"
-    kotlin("plugin.spring") version "1.9.10"
-    kotlin("plugin.jpa") version "1.9.10"
-    id("com.google.devtools.ksp") version "1.9.10-1.0.13"
-    id("org.graalvm.buildtools.native") version "0.10.1"
+    kotlin("jvm") version "2.2.21"
+    kotlin("plugin.spring") version "2.2.21"
+    kotlin("plugin.jpa") version "2.2.21"
+    id("org.springframework.boot") version "4.0.7"
+    id("io.spring.dependency-management") version "1.1.7"
+    id("com.google.devtools.ksp") version "2.2.21-2.0.5"
+    id("org.graalvm.buildtools.native") version "0.11.1"
 }
 
 group = "com.scriptmanager"
 version = "0.0.1-SNAPSHOT"
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
 dependencies {
-    // Core Dependency
-    implementation("io.micrometer:micrometer-core")
     implementation("com.machingclee:domain-util:0.2.6")
 
-    // Micrometer Tracing with OpenTelemetry
+    implementation("io.micrometer:micrometer-core")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
+    implementation("io.opentelemetry:opentelemetry-sdk")
+    implementation("io.opentelemetry:opentelemetry-exporter-logging")
+    implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:2.2.1")
 
-    // For logging traces to console (development)
-    implementation("io.opentelemetry:opentelemetry-sdk:1.33.0")
-    implementation("io.opentelemetry:opentelemetry-exporter-logging:1.33.0")
-
-    // For database query tracing
-    implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:1.0.3")
-    // Spring Boot starters
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
+    implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("tools.jackson.module:jackson-module-kotlin")
+
+    // domain-util serializes command/event payloads with Jackson 2 (optional dep).
+    // Boot 4's web starter only ships Jackson 3 (tools.jackson).
+    implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
-    // Kotlin
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    runtimeOnly("com.h2database:h2")
+    implementation("org.springframework.boot:spring-boot-h2console")
 
-    // H2 (embedded file database - Spring is the only client)
-    implementation("com.h2database:h2")
-
-    // Flyway owns the schema DDL (replaces Prisma _db_push)
-    implementation("org.flywaydb:flyway-core")
-
-    // SQLite JDBC driver - used ONLY by the one-time SQLite -> H2 data migration
-    // (SqliteToH2DataMigrator). Removed from the runtime path once migrated.
-    runtimeOnly("org.xerial:sqlite-jdbc:3.44.1.0")
-
-    // Development tools
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
-    // Testing
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.junit.platform:junit-platform-suite-api:1.10.1")  // For test suite ordering
-    testRuntimeOnly("org.junit.platform:junit-platform-suite-engine:1.10.1")
+    testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-flyway-test")
+    testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.junit.platform:junit-platform-suite-api")
+    testRuntimeOnly("org.junit.platform:junit-platform-suite-engine")
 
-    // Testcontainers for real database testing
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
-    testImplementation("org.testcontainers:testcontainers:1.19.3")
-    testImplementation("org.testcontainers:postgresql:1.19.3")
-    testImplementation("org.testcontainers:junit-jupiter:1.19.3")
-    testImplementation("org.postgresql:postgresql:42.7.1")
+    testImplementation("org.testcontainers:testcontainers")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
+    testImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testImplementation("org.postgresql:postgresql")
 
-    // OpenAPI / Swagger UI (springdoc) for Spring Boot 3
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
 
-    ksp(project(":processor"))            // register processors
-    implementation(project(":processor")) // make custom annotation importable
+    ksp(project(":processor"))
+    implementation(project(":processor"))
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        // freeCompilerArgs += "-Xjsr305=strict"
-        jvmTarget = "17"
+configurations.all {
+    exclude(group = "tools.jackson.module", module = "jackson-module-afterburner")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        freeCompilerArgs.addAll(
+            "-Xannotation-default-target=param-property",
+            "-java-parameters"
+        )
     }
+}
+
+allOpen {
+    annotation("jakarta.persistence.Entity")
+    annotation("jakarta.persistence.MappedSuperclass")
+    annotation("jakarta.persistence.Embeddable")
 }
 
 tasks.named<Test>("test") {
@@ -92,7 +96,6 @@ tasks.matching { it.name == "kspAotTestKotlin" }.configureEach {
     enabled = false
 }
 
-// Task to create a fat JAR for embedding
 tasks.register<Jar>("fatJar") {
     archiveClassifier.set("fat")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -103,7 +106,6 @@ tasks.register<Jar>("fatJar") {
     from(sourceSets.main.get().output)
 }
 
-// GraalVM Native Image configuration
 graalvmNative {
     binaries {
         named("main") {
@@ -113,7 +115,6 @@ graalvmNative {
             buildArgs.add("--verbose")
             buildArgs.add("-H:+ReportExceptionStackTraces")
 
-            // Initialize Logback at runtime to avoid native image issues
             buildArgs.add("--initialize-at-run-time=ch.qos.logback")
             buildArgs.add("--initialize-at-run-time=org.slf4j.LoggerFactory")
             buildArgs.add("--initialize-at-run-time=io.netty.handler.ssl")

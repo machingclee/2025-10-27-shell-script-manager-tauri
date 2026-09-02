@@ -29,7 +29,8 @@ class HistoricalShellScript(
     val createdAtHk: String? = null
 
 ) {
-    @ManyToOne(fetch = FetchType.LAZY)
+    // Native image: no runtime HibernateProxy (BytecodeProvider=none).
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shell_script_id", insertable = false, updatable = false)
     var shellScript: ShellScript? = null
 }

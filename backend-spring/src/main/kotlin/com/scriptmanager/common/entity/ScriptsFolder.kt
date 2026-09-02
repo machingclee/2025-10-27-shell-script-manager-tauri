@@ -59,7 +59,8 @@ class ScriptsFolder(
     )
     var subfolders: MutableSet<ScriptsFolder> = mutableSetOf()
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // Native image: no runtime HibernateProxy (BytecodeProvider=none).
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinTable(
         name = "rel_folder_folder",
         joinColumns = [JoinColumn(name = "child_folder_id", referencedColumnName = "id", insertable = false, updatable = false)],
@@ -67,8 +68,7 @@ class ScriptsFolder(
     )
     var parentFolder: ScriptsFolder? = null
 
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinTable(
         name = "rel_workspace_folder",
         joinColumns = [JoinColumn(name = "folder_id", referencedColumnName = "id", insertable = false, updatable = false)],

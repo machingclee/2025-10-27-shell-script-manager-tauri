@@ -1,17 +1,5 @@
 [
     {
-        "name": "org.sqlite.JDBC",
-        "allDeclaredConstructors": true,
-        "allPublicConstructors": true,
-        "allDeclaredMethods": true,
-        "allPublicMethods": true
-    },
-    {
-        "name": "org.sqlite.SQLiteConnection",
-        "allDeclaredConstructors": true,
-        "allDeclaredMethods": true
-    },
-    {
         "name": "org.h2.Driver",
         "allDeclaredConstructors": true,
         "allPublicConstructors": true,
@@ -34,6 +22,77 @@
         "allDeclaredConstructors": true,
         "allPublicConstructors": true,
         "allDeclaredMethods": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.configuration.extensions.PrepareScriptFilenameConfigurationExtension",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.configuration.extensions.DeployScriptFilenameConfigurationExtension",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.publishing.PublishingConfigurationExtension",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.command.clean.CleanModeConfigurationExtension",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.command.clean.CleanModeConfigurationExtension$Mode",
+        "allPublicMethods": true,
+        "allDeclaredFields": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.command.clean.CleanModel",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.command.clean.SchemaModel",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.api.migration.baseline.BaselineMigrationConfigurationExtension",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.proprietaryStubs.OfflinePermitConfigurationExtensionStub",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.proprietaryStubs.PATTokenConfigurationExtensionStub",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.internal.proprietaryStubs.LicensingConfigurationExtensionStub",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.flywaydb.core.extensibility.ConfigurationParameter",
+        "allPublicConstructors": true,
+        "allDeclaredFields": true,
         "allPublicMethods": true
     }
 ]

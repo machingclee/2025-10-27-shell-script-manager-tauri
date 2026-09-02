@@ -9,6 +9,7 @@ import javax.sql.DataSource
 import org.slf4j.LoggerFactory
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
@@ -28,9 +29,12 @@ import org.springframework.stereotype.Component
  * untouched and the app still starts (empty H2); the migration is retried on the
  * next boot, or can be done manually with `scripts/migrate_sqlite_to_h2.py`.
  *
- * The `sqlite-jdbc` driver is a runtimeOnly dependency used only here.
+ * The `sqlite-jdbc` driver is a JVM-only runtime dependency used here.
+ * Native images exclude it (the app runs on H2); leftover SQLite files can
+ * still be imported with `scripts/migrate_sqlite_to_h2.py`.
  */
 @Component
+@ConditionalOnClass(name = ["org.sqlite.JDBC"])
 @Order(Ordered.HIGHEST_PRECEDENCE)
 class SqliteToH2DataMigrator(
     private val dataSource: DataSource
@@ -40,7 +44,11 @@ class SqliteToH2DataMigrator(
 
     private val skippedTables = setOf(
         "sqlite_sequence", "sqlite_master", "sqlite_stat1", "sqlite_stat2",
-        "sqlite_stat3", "sqlite_stat4", "_prisma_migrations"
+        "sqlite_stat3", "sqlite_stat4", "_prisma_migrations",
+        // AI feature removed; skip leftover SQLite tables so they are not copied into H2.
+        "ai_profile", "script_ai_config", "model_config", "ai_scripted_tool",
+        "azure_model_config", "openai_model_config",
+        "rel_shellscript_aiconfig", "rel_aiprofile_modelconfig", "rel_aiprofile_aiscriptedtool"
     )
 
     private data class TableData(val name: String, val inserts: List<String>)
