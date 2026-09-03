@@ -43,7 +43,9 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             FolderRemovedFromWorkspaceEvent::class.java,
             WorkspaceFoldersReorderedEvent::class.java,
             FolderCreatedInWorkspaceEvent::class.java,
-            ScriptHistoryCreatedEvent::class.java
+            ScriptHistoryCreatedEvent::class.java,
+            MarkdownCreatedEvent::class.java,
+            MarkdownUpdatedEvent::class.java
         )
 
         // Register all Command classes
@@ -177,9 +179,48 @@ class Hibernate72LoggerHints : RuntimeHintsRegistrar {
                 MemberCategory.INVOKE_DECLARED_CONSTRUCTORS
             )
         }
+
+        // GraalVM requires every record accessor on types that call
+        // Class.getRecordComponents(). domain-util /docs/commands returns
+        // FlowResponseDTO, a Java record with nested record DTOs.
+        DOMAIN_UTIL_RECORDS.forEach { name ->
+            hints.reflection().registerType(
+                TypeReference.of(name),
+                MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                MemberCategory.INVOKE_PUBLIC_METHODS,
+                MemberCategory.INVOKE_DECLARED_METHODS,
+                MemberCategory.DECLARED_FIELDS
+            )
+        }
     }
 
     companion object {
+        val DOMAIN_UTIL_RECORDS = listOf(
+            "com.machingclee.domain.util.common.dto.FlowResponseDTO",
+            "com.machingclee.domain.util.common.dto.CommandEventFlowDTO",
+            "com.machingclee.domain.util.common.dto.CommandPayloadDTO",
+            "com.machingclee.domain.util.common.dto.EventPayloadDTO",
+            "com.machingclee.domain.util.common.dto.QueryFlowDTO",
+            "com.machingclee.domain.util.common.dto.QueryPayloadDTO",
+            "com.machingclee.domain.util.common.dto.PolicyDetailDTO",
+            "com.machingclee.domain.util.common.dto.PolicyFlowEntryDTO",
+            "com.machingclee.domain.util.common.dto.FactoryMethodDTO",
+            "com.machingclee.domain.util.common.dto.EntityNodeDTO",
+            "com.machingclee.domain.util.common.dto.EntityRelationDTO",
+            "com.machingclee.domain.util.common.dto.EntityMethodDTO",
+            "com.machingclee.domain.util.common.dto.ServiceNodeDTO",
+            "com.machingclee.domain.util.common.dto.ServiceMethodDTO",
+            "com.machingclee.domain.util.common.dto.InvolvedEntityDTO",
+            "com.machingclee.domain.util.common.bytecodescanner.AuthRoleAnnotationConfig",
+            "com.machingclee.domain.util.common.ExecutionContext",
+            "com.machingclee.domain.util.controller.DocController\$APIResponseDTO",
+            "com.machingclee.domain.util.common.bytecodescanner.ControllerQueryScanner\$EndpointInfo",
+            "com.machingclee.domain.util.common.bytecodescanner.ControllerCommandScanner\$EndpointInfo",
+            "com.machingclee.domain.util.common.bytecodescanner.helper.CascadeEntityResolver\$InvolvedEntity",
+            "com.machingclee.domain.util.common.bytecodescanner.EntityTypeScanner\$CalleeRef",
+            "com.machingclee.domain.util.common.factory.EntityGraphService\$RelationMeta",
+            "com.machingclee.domain.util.common.factory.EntityGraphService\$JoinColumnMeta",
+        )
         val HIBERNATE_72_LOGGERS = listOf(
             "org.hibernate.action.internal.ActionLogging_\$logger",
             "org.hibernate.boot.BootLogging_\$logger",
