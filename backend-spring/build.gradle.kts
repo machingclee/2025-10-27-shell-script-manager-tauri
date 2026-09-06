@@ -112,7 +112,12 @@ graalvmNative {
             imageName.set("backend-native")
             mainClass.set("com.scriptmanager.ApplicationKt")
 
-            buildArgs.add("--verbose")
+            // native-image defaults to all cores. On a 10-core Mac that peaks
+            // ~5–7GB at "Parsing methods" and the kernel SIGKILLs it (exit 137).
+            // Cap threads + heap so the builder stays under unified memory.
+            buildArgs.add("-H:NumberOfThreads=4")
+            buildArgs.add("-J-Xms2g")
+            buildArgs.add("-J-Xmx6g")
             buildArgs.add("-H:+ReportExceptionStackTraces")
 
             buildArgs.add("--initialize-at-run-time=ch.qos.logback")

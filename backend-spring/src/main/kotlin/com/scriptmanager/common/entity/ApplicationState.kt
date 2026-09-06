@@ -18,6 +18,9 @@ class ApplicationState(
     @Column(name = "dark_mode")
     var darkMode: Boolean = false,
 
+    @Column(name = "folder_column_width")
+    var folderColumnWidth: Double? = 280.0,
+
     @Column(name = "created_at")
     @Generated
     val createdAt: Double? = null,

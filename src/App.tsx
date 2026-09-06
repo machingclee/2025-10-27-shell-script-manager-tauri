@@ -20,7 +20,7 @@ import { generateScriptHtml } from "@/lib/generateScriptHtml";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import FolderColumn from "./app-component/FolderColumn/FolderColumn";
 import ScriptsColumn from "./app-component/ScriptsColumn/ScriptsColumn";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "./components/ui/resizable";
+import { Search, GripVertical } from "lucide-react";
 import { appStateApi } from "./store/api/appStateApi";
 import { scriptApi } from "./store/api/scriptApi";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
@@ -34,7 +34,6 @@ import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
 import TabBar from "./components/TabBar";
-import { Search } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -45,6 +44,29 @@ import {
 } from "./components/ui/dialog";
 import { Button } from "./components/ui/button";
 import { folderApi } from "./store/api/folderApi";
+import debounce from "lodash/debounce";
+
+/** Pixel width of the home-screen folder column. Values ≤ 50 are legacy percents. */
+const DEFAULT_FOLDER_COLUMN_WIDTH_PX = 280;
+const FOLDER_COLUMN_MIN_PX = 0;
+const FOLDER_COLUMN_MAX_PX = 800;
+const FOLDER_COLUMN_MAX_PERCENT = 50;
+
+function clampFolderColumnPx(px: number, groupWidth: number): number {
+    const maxPx = Math.min(FOLDER_COLUMN_MAX_PX, (groupWidth * FOLDER_COLUMN_MAX_PERCENT) / 100);
+    return Math.min(maxPx, Math.max(FOLDER_COLUMN_MIN_PX, px));
+}
+
+function resolveFolderColumnPx(saved: number | undefined, groupWidth: number): number {
+    if (saved == null || Number.isNaN(saved)) {
+        return clampFolderColumnPx(DEFAULT_FOLDER_COLUMN_WIDTH_PX, groupWidth);
+    }
+    // Pre-pixel persistence stored a 0–50 group percent.
+    if (saved > 0 && saved <= FOLDER_COLUMN_MAX_PERCENT) {
+        return clampFolderColumnPx((saved / 100) * groupWidth, groupWidth);
+    }
+    return clampFolderColumnPx(saved, groupWidth);
+}
 
 function App() {
     const dispatch = useAppDispatch();
@@ -183,6 +205,11 @@ function App() {
 
     const darkMode = appState?.darkMode ?? false;
 
+    const folderSplitRef = useRef<HTMLDivElement>(null);
+    const isDraggingFolderRef = useRef(false);
+    const [isDraggingFolder, setIsDraggingFolder] = useState(false);
+    const [folderColumnPx, setFolderColumnPx] = useState(DEFAULT_FOLDER_COLUMN_WIDTH_PX);
+
     // Fetch backend port on mount (only in production, dev uses default 7070)
     useEffect(() => {
         if (!import.meta.env.DEV) {
@@ -212,6 +239,56 @@ function App() {
     const appStateDataRef = useRef(appStateData);
     const updateAppStateRef = useRef(updateAppState);
     const listenerRegisteredRef = useRef(false);
+
+    const persistFolderColumnWidth = useRef(
+        debounce((widthPx: number) => {
+            const current = appStateDataRef.current;
+            if (!current) return;
+            const previous = current.folderColumnWidth;
+            if (previous != null && previous > FOLDER_COLUMN_MAX_PERCENT && Math.abs(previous - widthPx) < 1) {
+                return;
+            }
+            updateAppStateRef.current({ ...current, folderColumnWidth: widthPx });
+        }, 250)
+    ).current;
+
+    useEffect(() => () => persistFolderColumnWidth.cancel(), [persistFolderColumnWidth]);
+
+    useEffect(() => {
+        if (!appState || isDraggingFolderRef.current) return;
+        const groupWidth =
+            folderSplitRef.current?.getBoundingClientRect().width || window.innerWidth;
+        const resolved = resolveFolderColumnPx(appState.folderColumnWidth, groupWidth);
+        setFolderColumnPx((prev) => (Math.abs(prev - resolved) < 1 ? prev : resolved));
+        const saved = appState.folderColumnWidth;
+        if (saved != null && saved > 0 && saved <= FOLDER_COLUMN_MAX_PERCENT) {
+            persistFolderColumnWidth(resolved);
+        }
+    }, [appState, persistFolderColumnWidth]);
+
+    useEffect(() => {
+        const onMove = (e: MouseEvent) => {
+            if (!isDraggingFolderRef.current) return;
+            const rect = folderSplitRef.current?.getBoundingClientRect();
+            if (!rect || rect.width <= 0) return;
+            const next = clampFolderColumnPx(e.clientX - rect.left, rect.width);
+            setFolderColumnPx(next);
+            persistFolderColumnWidth(next);
+        };
+        const onUp = () => {
+            if (!isDraggingFolderRef.current) return;
+            isDraggingFolderRef.current = false;
+            setIsDraggingFolder(false);
+            document.body.style.userSelect = "";
+            document.body.style.cursor = "";
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+        return () => {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+        };
+    }, [persistFolderColumnWidth]);
 
     // Keep refs up to date
     useEffect(() => {
@@ -632,15 +709,40 @@ function App() {
                 <div
                     className={`flex-1 overflow-hidden flex flex-row ${activeTabId !== HOME_TAB_ID ? "hidden" : ""}`}
                 >
-                    <ResizablePanelGroup direction="horizontal" className="flex-1">
-                        <ResizablePanel defaultSize={20} minSize={0} maxSize={50}>
-                            <FolderColumn />
-                        </ResizablePanel>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel defaultSize={75}>
-                            <ScriptsColumn />
-                        </ResizablePanel>
-                    </ResizablePanelGroup>
+                    {appState ? (
+                        <div
+                            ref={folderSplitRef}
+                            className="flex h-full flex-1 min-w-0"
+                            style={{ userSelect: isDraggingFolder ? "none" : undefined }}
+                        >
+                            <div
+                                className="h-full flex-shrink-0 overflow-hidden"
+                                style={{ width: folderColumnPx }}
+                            >
+                                <FolderColumn />
+                            </div>
+                            <div
+                                className="relative flex w-2 flex-shrink-0 items-center justify-center bg-border hover:bg-blue-200 transition-colors cursor-col-resize"
+                                onMouseDown={(e) => {
+                                    if (e.button !== 0) return;
+                                    e.preventDefault();
+                                    isDraggingFolderRef.current = true;
+                                    setIsDraggingFolder(true);
+                                    document.body.style.userSelect = "none";
+                                    document.body.style.cursor = "col-resize";
+                                }}
+                            >
+                                <div className="flex h-10 w-6 items-center justify-center rounded-md border bg-gray-100 hover:bg-gray-200 transition-colors shadow-sm">
+                                    <GripVertical className="h-4 w-4 text-gray-600" />
+                                </div>
+                            </div>
+                            <div className="h-full min-w-0 flex-1 overflow-hidden">
+                                <ScriptsColumn />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex-1" />
+                    )}
                     {isHistoryOpen && (
                         <div className="w-[350px] h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in">
                             <div

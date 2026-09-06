@@ -10,7 +10,7 @@ export default defineConfig(() => ({
     // Inject the project root so TauriClickToComponent can convert Vite dev-server
     // URL paths (e.g. /src/Foo.tsx) back to absolute filesystem paths.
     define: {
-        __VITE_ROOT__: JSON.stringify(process.cwd()),
+        __VITE_ROOT__: JSON.stringify(process.cwd().replace(/\\/g, "/")),
     },
     plugins: [
         react(),

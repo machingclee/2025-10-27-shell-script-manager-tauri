@@ -11,6 +11,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import "../index.css";
 import { StyledEngineProvider } from "@mui/material/styles";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { TauriClickToComponent } from "../components/TauriClickToComponent";
 
 // Intercept all link clicks and open them in the default browser
 document.addEventListener("click", (e) => {
@@ -105,6 +106,7 @@ function MarkdownWindowContent() {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
+        {import.meta.env.DEV && <TauriClickToComponent />}
         <StyledEngineProvider injectFirst>
             <Provider store={store}>
                 <MarkdownWindowContent />

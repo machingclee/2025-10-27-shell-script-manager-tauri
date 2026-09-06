@@ -56,6 +56,8 @@ export type AppStateDTO = {
     id: number;
     lastOpenedFolderId: number;
     darkMode: boolean;
+    /** Pixel width of the home-screen folder column. Values ≤ 50 are legacy percents. */
+    folderColumnWidth?: number;
     createdAt: number;
     createdAtHk: string;
 };

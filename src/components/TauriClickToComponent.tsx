@@ -55,8 +55,13 @@ function toAbsolutePath(filePath: string): string | null {
             const pathname = url.pathname.split("?")[0];
             return __VITE_ROOT__ + pathname;
         }
+        if (url.protocol === "file:") {
+            // file:///C:/... on Windows; file:///Users/... on Unix
+            return decodeURIComponent(url.pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+        }
     } catch {}
     if (filePath.startsWith("/")) return filePath; // already absolute
+    if (/^[A-Za-z]:[\\/]/.test(filePath)) return filePath.replace(/\\/g, "/");
     return null;
 }
 
@@ -106,7 +111,11 @@ function getPathToSource(source: { fileName: string; lineNumber: number; columnN
 const STYLE_ID = "tauri-click-to-component-style";
 
 const css = `
-  [data-ctc-hover] * { pointer-events: auto !important; }
+  [data-ctc-hover],
+  [data-ctc-hover] * {
+    pointer-events: auto !important;
+    user-select: none !important;
+  }
   [data-ctc-target] {
     cursor: context-menu !important;
     outline: -webkit-focus-ring-color auto 1px !important;
@@ -130,16 +139,17 @@ export function TauriClickToComponent() {
         injectStyle();
     }, []);
 
-    // Sync data attributes used by the CSS
+    // Sync data attributes used by the CSS — only the current target is highlighted.
     useEffect(() => {
+        document.querySelectorAll("[data-ctc-target]").forEach((el) => {
+            if (el !== target) delete (el as HTMLElement).dataset.ctcTarget;
+        });
         if (hovering) {
             document.body.dataset.ctcHover = "true";
             if (target) target.dataset.ctcTarget = "true";
         } else {
             delete document.body.dataset.ctcHover;
-            document
-                .querySelectorAll("[data-ctc-target]")
-                .forEach((el) => delete (el as HTMLElement).dataset.ctcTarget);
+            if (target) delete target.dataset.ctcTarget;
         }
     }, [hovering, target]);
 
@@ -153,22 +163,37 @@ export function TauriClickToComponent() {
 
     const handleMouseMove = useCallback(
         (e: MouseEvent) => {
-            if (hovering && e.target instanceof HTMLElement) {
-                setTarget(e.target);
+            // Unfocused / focusable:false windows never get keydown.
+            // MouseEvent.altKey still reflects the physical Alt key.
+            if (e.altKey) {
+                if (!hovering) setHovering(true);
+                if (e.target instanceof HTMLElement && e.target !== target) {
+                    setTarget(e.target);
+                }
+            } else if (hovering) {
+                setHovering(false);
             }
         },
-        [hovering]
+        [hovering, target]
     );
+
+    const preventSelectWhileAlt = useCallback((e: Event) => {
+        const alt = hovering || ("altKey" in e && Boolean((e as MouseEvent).altKey));
+        if (alt) e.preventDefault();
+    }, [hovering]);
 
     const handleClick = useCallback(
         (e: MouseEvent) => {
-            if (!hovering || !(target instanceof HTMLElement)) return;
+            const el =
+                (target instanceof HTMLElement ? target : null) ??
+                (e.target instanceof HTMLElement ? e.target : null);
+            if (!(hovering || e.altKey) || !el) return;
             e.preventDefault();
             e.stopPropagation();
             try {
-                const source = getSourceForElement(target);
+                const source = getSourceForElement(el);
                 if (!source) {
-                    console.warn("[TauriClickToComponent] No source found for", target);
+                    console.warn("[TauriClickToComponent] No source found for", el);
                     return;
                 }
                 const path = getPathToSource(source);
@@ -191,15 +216,19 @@ export function TauriClickToComponent() {
         window.addEventListener("keyup", handleKeyUp);
         window.addEventListener("mousemove", handleMouseMove);
         window.addEventListener("click", handleClick, { capture: true });
+        window.addEventListener("mousedown", preventSelectWhileAlt, { capture: true });
+        window.addEventListener("selectstart", preventSelectWhileAlt, { capture: true });
         window.addEventListener("blur", handleBlur);
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
             window.removeEventListener("keyup", handleKeyUp);
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("click", handleClick, { capture: true });
+            window.removeEventListener("mousedown", preventSelectWhileAlt, { capture: true });
+            window.removeEventListener("selectstart", preventSelectWhileAlt, { capture: true });
             window.removeEventListener("blur", handleBlur);
         };
-    }, [handleKeyDown, handleKeyUp, handleMouseMove, handleClick, handleBlur]);
+    }, [handleKeyDown, handleKeyUp, handleMouseMove, handleClick, preventSelectWhileAlt, handleBlur]);
 
     return null;
 }

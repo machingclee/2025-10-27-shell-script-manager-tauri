@@ -82,7 +82,9 @@ echo "Using GraalVM at: $JAVA_HOME"
 "$JAVA_HOME/bin/java" -version
 "$JAVA_HOME/bin/native-image" --version
 
-./gradlew clean nativeCompile
+# native-image is RAM-hungry. Close heavy apps first. Exit 137 = kernel OOM kill.
+echo "Tip: quit Chrome / IDEs if nativeCompile was previously killed (exit 137)."
+./gradlew nativeCompile --no-daemon
 echo "✓ Native image built successfully"
 echo ""
 

@@ -528,6 +528,8 @@ fn read_clipboard_text() -> Option<String> {
 /// vscode:// URLs directly, so the frontend invokes this command instead.
 #[tauri::command]
 async fn open_in_vscode(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    // VS Code wants vscode://file/C:/path on Windows; backslashes break the URL.
+    let path = path.replace('\\', "/");
     let url = if path.starts_with('/') {
         format!("vscode://file{}", path)
     } else {
