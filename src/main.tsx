@@ -21,7 +21,7 @@ document.addEventListener("click", (e) => {
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
-        <TauriClickToComponent />
+        {import.meta.env.DEV && <TauriClickToComponent />}
         <StyledEngineProvider injectFirst>
             <Provider store={store}>
                 <BackendLoadingScreen>

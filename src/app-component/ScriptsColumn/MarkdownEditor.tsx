@@ -381,7 +381,13 @@ export default function MarkdownEditor({
                 flashTarget = flashTarget.parentElement;
             }
 
-            const offsetTop = best.offsetTop;
+            // Regular `ul > li` is `position: relative` (custom bullet). `offsetTop`
+            // is then 0 in WKWebView — either the li itself, or an inner node whose
+            // offsetParent is the li — so the preview jumps to the top. Task-list
+            // items and headings are static, which is why those jumps still worked.
+            const previewRect = preview.getBoundingClientRect();
+            const targetRect = flashTarget.getBoundingClientRect();
+            const offsetTop = targetRect.top - previewRect.top + preview.scrollTop;
             preview.scrollTop = Math.max(0, offsetTop - preview.clientHeight / 2);
             if (flash) {
                 // Flash the target element

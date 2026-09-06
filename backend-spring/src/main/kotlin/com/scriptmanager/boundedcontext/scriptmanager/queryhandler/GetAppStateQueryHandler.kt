@@ -16,7 +16,8 @@ class GetAppStateQueryHandler(
         val state = appStateRepository.findFirstByOrderByIdAsc() ?: run {
             val created = ApplicationState(
                 lastOpenedFolderId = null,
-                darkMode = false
+                darkMode = false,
+                folderColumnWidth = 280.0
             )
             appStateRepository.save(created)
         }
@@ -25,6 +26,7 @@ class GetAppStateQueryHandler(
             id = state.id!!,
             lastOpenedFolderId = state.lastOpenedFolderId,
             darkMode = state.darkMode,
+            folderColumnWidth = state.folderColumnWidth ?: 280.0,
             createdAt = state.createdAt ?: 0.0,
             createdAtHk = state.createdAtHk ?: ""
         )

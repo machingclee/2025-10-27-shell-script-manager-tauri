@@ -23,13 +23,15 @@ class UpdateAppStateHandler(
             // Create new if doesn't exist
             ApplicationState(
                 lastOpenedFolderId = command.lastOpenedFolderId,
-                darkMode = command.darkMode ?: false
+                darkMode = command.darkMode ?: false,
+                folderColumnWidth = (command.folderColumnWidth ?: 280.0).coerceIn(0.0, 800.0)
             )
         } else {
             // Update existing - only update fields that are provided
             current.apply {
                 command.lastOpenedFolderId?.let { lastOpenedFolderId = it }
                 command.darkMode?.let { darkMode = it }
+                command.folderColumnWidth?.let { folderColumnWidth = it.coerceIn(0.0, 800.0) }
             }
         }
 
@@ -39,6 +41,7 @@ class UpdateAppStateHandler(
             id = saved.id,
             lastOpenedFolderId = saved.lastOpenedFolderId,
             darkMode = saved.darkMode,
+            folderColumnWidth = saved.folderColumnWidth ?: 280.0,
             createdAt = saved.createdAt ?: 0.0,
             createdAtHk = saved.createdAtHk ?: ""
         )
