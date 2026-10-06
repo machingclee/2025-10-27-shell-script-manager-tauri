@@ -104,10 +104,10 @@ Frontend does not open SQLite. If Prisma is removed from the write/init path, Sp
 Suggested file URL:
 
 ```text
-jdbc:h2:file:${DB_PATH};AUTO_SERVER=TRUE;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+jdbc:h2:file:${DB_PATH};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE;USER=sa;PASSWORD=
 ```
 
-(`AUTO_SERVER` only if something besides Spring must attach. Prefer Spring as the only client and leave it off.)
+`AUTO_SERVER=TRUE` is mixed mode: Spring still owns the file, but a local JDBC client (DBeaver) can attach while the app is running. First opener starts a loopback TCP server.
 
 | H2 gives you | H2 does not give you |
 |---|---|

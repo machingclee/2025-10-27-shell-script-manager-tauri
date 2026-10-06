@@ -11,10 +11,12 @@ import org.hibernate.annotations.Generated
 @DynamicInsert
 @Table(name = "event")
 class Event(
+    // `var` (not `val`): native Hibernate cannot write IDENTITY into a final field,
+    // so getId() stayed 0 and domain-util logFailure(0) missed the row.
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    val entityId: Int? = null,
+    var entityId: Int? = null,
 
     @Column(name = "request_id", nullable = false)
     var requestIdValue: String = "",
@@ -49,6 +51,18 @@ class Event(
     override fun getId(): Int = entityId ?: 0
 
     override fun getSuccess(): Boolean = successFlag
+
+    val requestId: String
+        get() = requestIdValue
+
+    val eventType: String
+        get() = eventTypeValue
+
+    val payload: String
+        get() = payloadValue
+
+    val failureReason: String
+        get() = failureReasonValue
 
     override fun setCreatedAt(createdAt: Double) {
         this.createdAtValue = createdAt

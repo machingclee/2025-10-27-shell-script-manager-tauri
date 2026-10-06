@@ -62,13 +62,15 @@ user launches the app
         │
         ▼
 Tauri starts backend-native with
-  --spring.datasource.url=jdbc:h2:file:<user-db-base>;MODE=PostgreSQL;…
+  --spring.datasource.url=jdbc:h2:file:<user-db-base>;MODE=PostgreSQL;…;AUTO_SERVER=TRUE
         │
         ▼
 Flyway migrate on that file  →  then JPA  →  then HTTP
 ```
 
-Spring is the **only** database client. Tauri does not open H2.
+Spring is the **write** client. Tauri does not open H2. The JDBC URL
+includes `AUTO_SERVER=TRUE` so a local reader (DBeaver) can attach while
+the app is running.
 
 ## Where the file lives
 
@@ -82,7 +84,7 @@ Resolved in `src-tauri/src/lib.rs` `get_database_path`, then stripped to an H2
 | Prod Windows | `~/AppData/Roaming/shell-script-manager/database.db` | `…/database.mv.db` |
 | Prod Linux | `~/.config/shell-script-manager/database.db` | `…/database.mv.db` |
 
-`application.yml` default is `jdbc:h2:file:${DB_PATH:src-tauri/database};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD=`. Production **overrides** that URL on the native-binary command line.
+`application.yml` default is `jdbc:h2:file:${DB_PATH:src-tauri/database};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE;USER=sa;PASSWORD=`. Production **overrides** that URL on the native-binary command line (same flags). `AUTO_SERVER=TRUE` is mixed mode: the first process starts a loopback TCP server so DBeaver can open the same file.
 
 Empty `PASSWORD=` is intentional: H2 2.2 generates a random `sa` password if none is supplied, which locks the file on later boots.
 
@@ -180,7 +182,7 @@ users.
 | | Dev | Production |
 |---|---|---|
 | Who starts Spring | You (`bootRun` / IDE). Tauri does **not** spawn it | Tauri `start_spring_boot_backend` spawns `backend-native` |
-| JDBC URL | `application.yml` / `DatabaseConfig` → `src-tauri/database` | `--spring.datasource.url=jdbc:h2:file:<abs-base>;…` |
+| JDBC URL | `application.yml` / `DatabaseConfig` → `src-tauri/database` + `AUTO_SERVER=TRUE` | `--spring.datasource.url=jdbc:h2:file:<abs-base>;…;AUTO_SERVER=TRUE` |
 | SQL source | files on disk via classpath | resources inside the native binary |
 
 ## Failure modes

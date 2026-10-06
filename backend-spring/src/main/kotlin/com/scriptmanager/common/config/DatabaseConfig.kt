@@ -73,13 +73,19 @@ class DatabaseConfig(private val env: Environment) {
      * `USER=sa` with an empty password is explicit on purpose: H2 2.2.224
      * generates a random `sa` password for a freshly created database when no
      * credentials are supplied, which would lock out later connections.
+     *
+     * `AUTO_SERVER=TRUE` is mixed mode: the first process starts a loopback
+     * TCP server so a second client (DBeaver) can open the same file.
      */
     private fun buildH2Url(dbBase: String): String =
-        "jdbc:h2:file:${resolveDatabaseBase(dbBase)};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD="
+        "jdbc:h2:file:${resolveDatabaseBase(dbBase)};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE;USER=sa;PASSWORD="
 
     /**
      * Normalizes a URL that may contain a relative file path
      * (e.g. `jdbc:h2:file:src-tauri/database;MODE=...`).
+     *
+     * Older command-line URLs may omit `AUTO_SERVER=TRUE`; inject it so a
+     * local JDBC client can attach while this process holds the file.
      */
     private fun normalizeH2Url(url: String): String {
         val prefix = "jdbc:h2:file:"
@@ -90,7 +96,10 @@ class DatabaseConfig(private val env: Environment) {
         val semicolon = rest.indexOf(';')
         val filePart = if (semicolon >= 0) rest.substring(0, semicolon) else rest
         val params = if (semicolon >= 0) rest.substring(semicolon) else ""
-        return prefix + resolveDatabaseBase(filePart) + params
+        val withAutoServer =
+            if (params.contains("AUTO_SERVER=", ignoreCase = true)) params
+            else "$params;AUTO_SERVER=TRUE"
+        return prefix + resolveDatabaseBase(filePart) + withAutoServer
     }
 
     private fun resolveDatabaseBase(dbBase: String): String {

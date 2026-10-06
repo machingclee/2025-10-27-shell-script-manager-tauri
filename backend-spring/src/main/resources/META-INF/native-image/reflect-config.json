@@ -12,6 +12,57 @@
         "allDeclaredMethods": true
     },
     {
+        "name": "org.h2.tools.Server",
+        "allDeclaredConstructors": true,
+        "allPublicConstructors": true,
+        "allDeclaredMethods": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.h2.server.Service",
+        "allDeclaredMethods": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.h2.server.ShutdownHandler",
+        "allDeclaredMethods": true,
+        "allPublicMethods": true
+    },
+    {
+        "name": "org.h2.server.TcpServer",
+        "allDeclaredConstructors": true,
+        "allPublicConstructors": true,
+        "allDeclaredMethods": true,
+        "allPublicMethods": true,
+        "allDeclaredFields": true
+    },
+    {
+        "name": "org.h2.server.TcpServerThread",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true,
+        "allDeclaredFields": true
+    },
+    {
+        "name": "org.h2.server.TcpServerThread$CachedInputStream",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true
+    },
+    {
+        "name": "org.h2.engine.SessionRemote",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true
+    },
+    {
+        "name": "org.h2.util.NetUtils",
+        "allPublicMethods": true,
+        "allDeclaredMethods": true
+    },
+    {
+        "name": "org.h2.value.Transfer",
+        "allDeclaredConstructors": true,
+        "allDeclaredMethods": true
+    },
+    {
         "name": "org.hibernate.dialect.H2Dialect",
         "allDeclaredConstructors": true,
         "allPublicConstructors": true,

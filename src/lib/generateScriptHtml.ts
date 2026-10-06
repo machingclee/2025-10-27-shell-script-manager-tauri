@@ -99,37 +99,39 @@ function rehypeToc() {
         }
         collectHeadings(tree);
 
-        // Second pass: replace [TOC] paragraphs
-        if (headings.length > 0) {
-            const minLevel = Math.min(...headings.map((h) => h.level));
-            const tocItems = headings
-                .map((h) => {
-                    const indent = (h.level - minLevel) * 16;
-                    // h.text is already HTML-escaped for text nodes and preserves inline tags via headingToInlineHtml
-                    return `<li style="padding-left:${indent}px!important;margin-left:0!important;line-height:1.8!important;list-style:none!important"><a href="#${escapeHtml(h.id)}" target="_self" style="color:rgb(37,99,235);text-decoration:none;font-size:0.9em">${h.text}</a></li>`;
-                })
-                .join("");
-            const tocHtml =
-                `<div style="border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:12px 16px;margin-bottom:1em;overflow:hidden;background-color:rgba(0,0,0,0.03)">` +
-                `<div style="font-weight:600;margin-bottom:8px;opacity:0.6;font-size:0.85em;text-transform:uppercase;letter-spacing:0.05em">Contents</div>` +
-                `<ul style="margin:0;padding:0;list-style:none">${tocItems}</ul></div>`;
+        if (headings.length === 0) return;
+        const minLevel = Math.min(...headings.map((h) => h.level));
+        const tocItems = headings
+            .map((h) => {
+                const indent = (h.level - minLevel) * 16;
+                // h.text is already HTML-escaped for text nodes and preserves inline tags via headingToInlineHtml
+                return `<li style="padding-left:${indent}px!important;margin-left:0!important;line-height:1.8!important;list-style:none!important"><a href="#${escapeHtml(h.id)}" target="_self" style="color:rgb(37,99,235);text-decoration:none;font-size:0.9em">${h.text}</a></li>`;
+            })
+            .join("");
+        const tocHtml =
+            `<div data-inline-toc style="border:1px solid rgba(0,0,0,0.12);border-radius:6px;padding:12px 16px;margin-bottom:1em;overflow:hidden;background-color:rgba(0,0,0,0.03)">` +
+            `<div style="font-weight:600;margin-bottom:8px;opacity:0.6;font-size:0.85em;text-transform:uppercase;letter-spacing:0.05em">Contents</div>` +
+            `<ul style="margin:0;padding:0;list-style:none">${tocItems}</ul></div>`;
 
-            function replaceToc(node: any) {
-                if (node.type === "element" && node.tagName === "p" && node.children) {
-                    const text = node.children.map(extractNodeText).join("").trim();
-                    if (text === "[TOC]") {
-                        // Mutate into a raw HTML node so it emits the TOC markup verbatim
-                        node.type = "raw";
-                        node.value = tocHtml;
-                        delete (node as any).children;
-                        delete (node as any).tagName;
-                        delete (node as any).properties;
-                    }
+        // The floating sidebar clones this list; it is only emitted when the
+        // document actually contains a [TOC] marker.
+        let hasTocMarker = false;
+        function replaceToc(node: any) {
+            if (node.type === "element" && node.tagName === "p" && node.children) {
+                const text = node.children.map(extractNodeText).join("").trim();
+                if (text === "[TOC]") {
+                    hasTocMarker = true;
+                    node.type = "raw";
+                    node.value = tocHtml;
+                    delete node.children;
+                    delete node.tagName;
+                    delete node.properties;
                 }
-                if (node.children) node.children.forEach(replaceToc);
             }
-            replaceToc(tree);
+            if (node.children) node.children.forEach(replaceToc);
         }
+        replaceToc(tree);
+        if (!hasTocMarker) return;
     };
 }
 

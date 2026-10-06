@@ -1098,7 +1098,7 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
     let mut child = Command::new(&native_binary)
         .arg(format!("--server.port={port}"))
         .arg(format!(
-            "--spring.datasource.url=jdbc:h2:file:{};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD=",
+            "--spring.datasource.url=jdbc:h2:file:{};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE;USER=sa;PASSWORD=",
             h2_database_base(&db_path)
         ))
         .env("ENABLE_TRACE", "false")
