@@ -113,11 +113,13 @@ graalvmNative {
             mainClass.set("com.scriptmanager.ApplicationKt")
 
             // native-image defaults to all cores. On a 10-core Mac that peaks
-            // ~5–7GB at "Parsing methods" and the kernel SIGKILLs it (exit 137).
-            // Cap threads + heap so the builder stays under unified memory.
-            buildArgs.add("-H:NumberOfThreads=4")
-            buildArgs.add("-J-Xms2g")
-            buildArgs.add("-J-Xmx6g")
+            // several GB at "Parsing methods" and the kernel SIGKILLs it (exit 137).
+            // Cap threads. 6g heap is enough to *analyze* this app but OOMs the
+            // builder JVM at [6/8] Compiling methods (exit 3, Java heap space).
+            // 2 threads + 10g stays under 32GB unified memory without the 6g cap.
+            buildArgs.add("-H:NumberOfThreads=2")
+            buildArgs.add("-J-Xms4g")
+            buildArgs.add("-J-Xmx10g")
             buildArgs.add("-H:+ReportExceptionStackTraces")
 
             buildArgs.add("--initialize-at-run-time=ch.qos.logback")

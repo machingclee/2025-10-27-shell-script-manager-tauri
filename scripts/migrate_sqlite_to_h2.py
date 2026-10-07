@@ -17,12 +17,12 @@ Usage:
         # a) via the H2 RunScript tool (USER=sa is required - H2 2.2.224
         #    otherwise generates a random sa password on a fresh database)
         java -cp h2.jar org.h2.tools.RunScript \
-            -url "jdbc:h2:file:/path/to/database;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD=" \
+            -url "jdbc:h2:file:/path/to/database;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE;USER=sa;PASSWORD=" \
             -user sa -script /tmp/h2-data.sql
 
         # b) or let this script invoke RunScript for you:
         python3 scripts/migrate_sqlite_to_h2.py --sqlite src-tauri/database.db \
-            --h2-url "jdbc:h2:file:/path/to/database;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD=" \
+            --h2-url "jdbc:h2:file:/path/to/database;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE;USER=sa;PASSWORD=" \
             --h2-jar ~/.gradle/caches/modules-2/files-2.1/com.h2database/h2/2.2.224/*/h2-2.2.224.jar
 
 Notes:
@@ -187,7 +187,7 @@ def main():
         print("\nData exported to %s" % output)
         print("Apply it with the H2 RunScript tool (see script header), e.g.:")
         print('  java -cp <h2.jar> org.h2.tools.RunScript \\')
-        print('      -url "jdbc:h2:file:<db-base>;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE" \\')
+        print('      -url "jdbc:h2:file:<db-base>;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE" \\')
         print('      -user sa -script %s' % output)
 
 

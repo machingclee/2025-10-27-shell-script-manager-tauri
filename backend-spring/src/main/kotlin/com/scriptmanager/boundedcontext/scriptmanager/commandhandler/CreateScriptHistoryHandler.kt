@@ -21,6 +21,7 @@ class CreateScriptHistoryHandler(
 
         if (pastHistory != null) {
             pastHistory.executedAt = command.time.toDouble()
+            scriptHistoryRepository.save(pastHistory)
 
             event = ScriptHistoryCreatedEvent(
                 history = pastHistory.toDTO()

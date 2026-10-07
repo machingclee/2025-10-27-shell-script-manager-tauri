@@ -44,20 +44,25 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             WorkspaceFoldersReorderedEvent::class.java,
             FolderCreatedInWorkspaceEvent::class.java,
             ScriptHistoryCreatedEvent::class.java,
+            ScriptExecutedEvent::class.java,
             MarkdownCreatedEvent::class.java,
             MarkdownUpdatedEvent::class.java
         )
 
-        // Register all Command classes
+        // Register all Command classes. Jackson (domain-util audit) uses a
+        // vanilla ObjectMapper with FAIL_ON_EMPTY_BEANS=false — a type whose
+        // getters are not registered serializes to `{}` with no error.
         registerForReflection(
             hints,
             CreateFolderCommand::class.java,
             CreateFolderInWorkspaceCommand::class.java,
             CreateScriptCommand::class.java,
+            CreateMarkdownCommand::class.java,
             CreateScriptHistoryCommand::class.java,
             CreateWorkspaceCommand::class.java,
             UpdateFolderCommand::class.java,
             UpdateScriptCommand::class.java,
+            UpdateMarkdownCommand::class.java,
             UpdateWorkspaceCommand::class.java,
             UpdateWorkspaceStatusCommand::class.java,
             UpdateAppStateCommand::class.java,
@@ -78,6 +83,7 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
         registerForReflection(
             hints,
             ApplicationState::class.java,
+            Event::class.java,
             EventDTO::class.java,
             HistoricalShellScriptDTO::class.java,
             ScriptsFolderDTO::class.java,
@@ -279,7 +285,45 @@ class Hibernate72LoggerHints : RuntimeHintsRegistrar {
     }
 }
 
+/**
+ * H2 mixed mode (`AUTO_SERVER=TRUE`) starts a TCP server from
+ * `Database.startServer` → `Server.createTcpServer`. Native-image cannot
+ * prove that runtime JDBC flag is true, so these types would otherwise be
+ * tree-shaken and the shipped binary would still lock the file exclusively.
+ */
+class H2AutoServerHints : RuntimeHintsRegistrar {
+    override fun registerHints(hints: RuntimeHints, classLoader: ClassLoader?) {
+        H2_AUTO_SERVER_TYPES.forEach { name ->
+            hints.reflection().registerType(
+                TypeReference.of(name),
+                MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+                MemberCategory.INVOKE_DECLARED_METHODS,
+                MemberCategory.INVOKE_PUBLIC_METHODS,
+                MemberCategory.DECLARED_FIELDS
+            )
+        }
+    }
+
+    companion object {
+        private val H2_AUTO_SERVER_TYPES = listOf(
+            "org.h2.tools.Server",
+            "org.h2.server.Service",
+            "org.h2.server.ShutdownHandler",
+            "org.h2.server.TcpServer",
+            "org.h2.server.TcpServerThread",
+            "org.h2.server.TcpServerThread\$CachedInputStream",
+            "org.h2.engine.SessionRemote",
+            "org.h2.util.NetUtils",
+            "org.h2.value.Transfer"
+        )
+    }
+}
+
 @Configuration
-@ImportRuntimeHints(NativeHintsRegistrar::class, Hibernate72LoggerHints::class)
+@ImportRuntimeHints(
+    NativeHintsRegistrar::class,
+    Hibernate72LoggerHints::class,
+    H2AutoServerHints::class
+)
 class NativeConfiguration
 

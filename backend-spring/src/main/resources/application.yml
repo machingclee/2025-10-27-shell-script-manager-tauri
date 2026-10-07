@@ -12,7 +12,9 @@ spring:
     name: script-manager-backend
 
   datasource:
-    url: jdbc:h2:file:${DB_PATH:src-tauri/database};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;USER=sa;PASSWORD=
+    # AUTO_SERVER=TRUE: mixed mode so a local JDBC client (DBeaver) can attach
+    # while the app holds the file. First opener starts a loopback TCP server.
+    url: jdbc:h2:file:${DB_PATH:src-tauri/database};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE;USER=sa;PASSWORD=
     driver-class-name: org.h2.Driver
 
   jpa:

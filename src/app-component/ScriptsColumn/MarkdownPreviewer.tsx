@@ -5,14 +5,16 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeHighlight from "rehype-highlight";
 import rehypeMathjax from "rehype-mathjax";
+import rehypeRaw from "rehype-raw";
 import { Box } from "@mui/material";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { Sun, Moon, Presentation, ChevronRight, ChevronLeft } from "lucide-react";
+import { isExternalHref, openExternalLink } from "@/lib/openExternalLink";
+import { Sun, Moon, Presentation, ChevronRight, ChevronLeft, ListTree } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setPreviewDarkMode } from "@/store/slices/appSlice";
+import { patchTabState, setPreviewDarkMode } from "@/store/slices/appSlice";
 import { remarkItemReference } from "@/lib/remarkItemReference";
 import ItemReference from "./ItemReference";
+import OverlayScrollbar from "@/components/ui/overlay-scrollbar";
 import * as monaco from "monaco-editor";
 import type { editor as MonacoEditorNS } from "monaco-editor";
 
@@ -21,6 +23,10 @@ const LIGHT_WHITE_BG = "rgba(255, 255, 255, 0.2)";
 const BASE_FONT_SIZE = 18;
 const LIST_GUTTER_WIDTH = "2em";
 const LIST_ITEM_LINE_HEIGHT = "1.4";
+const TOC_SIDEBAR_MIN_WIDTH = 140;
+const TOC_SIDEBAR_MAX_WIDTH = 480;
+const TOC_SIDEBAR_DEFAULT_WIDTH = 320;
+const TOC_ACTIVE_LEAD = 100;
 
 // ─── Rehype plugins ───────────────────────────────────────────────────────────
 
@@ -279,16 +285,21 @@ function extractHeadingsFromMd(content: string): { level: number; text: string; 
     return headings;
 }
 
-function TableOfContents({
+function TocList({
     headings,
     previewBoxRef,
     darkMode,
+    wrap = false,
+    activeId = null,
 }: {
     headings: { level: number; text: string; id: string }[];
     previewBoxRef: React.RefObject<HTMLDivElement | null>;
     darkMode: boolean;
+    /** Wrap long headings instead of letting them widen the list. */
+    wrap?: boolean;
+    /** Heading whose top edge has reached the top of the viewport. */
+    activeId?: string | null;
 }) {
-    if (headings.length === 0) return null;
     const minLevel = Math.min(...headings.map((h) => h.level));
 
     // Components for rendering only inline markdown formatting inside a TOC link.
@@ -301,8 +312,83 @@ function TableOfContents({
         [],
     );
 
+    const tocListRef = useRef<HTMLUListElement>(null);
+
+    useEffect(() => {
+        if (!activeId || !tocListRef.current) return;
+        const item = tocListRef.current.querySelector<HTMLElement>(
+            `[data-toc-id="${CSS.escape(activeId)}"]`,
+        );
+        item?.scrollIntoView({ block: "nearest" });
+    }, [activeId]);
+
+    return (
+        <ul ref={tocListRef} style={{ margin: 0, padding: 0, listStyle: "none" }}>
+            {headings.map((h, i) => {
+                const active = h.id === activeId;
+                return (
+                <li
+                    key={i}
+                    data-toc-id={h.id}
+                    style={{
+                        paddingLeft: `${(h.level - minLevel) * 16}px`,
+                        lineHeight: "1.8",
+                        borderRadius: 4,
+                        ...(wrap ? { overflowWrap: "anywhere" } : {}),
+                        ...(active
+                            ? {
+                                  backgroundColor: darkMode
+                                      ? "rgba(96,165,250,0.16)"
+                                      : "rgba(37,99,235,0.10)",
+                              }
+                            : {}),
+                    }}
+                >
+                    <a
+                        href={`#${h.id}`}
+                        style={{
+                            color: darkMode ? "rgb(96, 165, 250)" : "rgb(37, 99, 235)",
+                            textDecoration: "none",
+                            fontSize: "0.9em",
+                            fontWeight: active ? 600 : undefined,
+                        }}
+                        onMouseEnter={(e) =>
+                            ((e.currentTarget as HTMLElement).style.textDecoration = "underline")
+                        }
+                        onMouseLeave={(e) =>
+                            ((e.currentTarget as HTMLElement).style.textDecoration = "none")
+                        }
+                        onClick={(e) => {
+                            e.preventDefault();
+                            const container = previewBoxRef.current;
+                            if (!container) return;
+                            const el = container.querySelector(`#${CSS.escape(h.id)}`);
+                            if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                    >
+                        <ReactMarkdown components={tocInlineComponents}>{h.text}</ReactMarkdown>
+                    </a>
+                </li>
+                );
+            })}
+        </ul>
+    );
+}
+
+function TableOfContents({
+    headings,
+    previewBoxRef,
+    darkMode,
+}: {
+    headings: { level: number; text: string; id: string }[];
+    previewBoxRef: React.RefObject<HTMLDivElement | null>;
+    darkMode: boolean;
+}) {
+    if (headings.length === 0) return null;
+
     return (
         <div
+            data-inline-toc=""
             style={{
                 border: darkMode
                     ? "1px solid rgba(255,255,255,0.15)"
@@ -326,43 +412,7 @@ function TableOfContents({
             >
                 Contents
             </div>
-            <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
-                {headings.map((h, i) => (
-                    <li
-                        key={i}
-                        style={{
-                            paddingLeft: `${(h.level - minLevel) * 16}px`,
-                            lineHeight: "1.8",
-                        }}
-                    >
-                        <a
-                            href={`#${h.id}`}
-                            style={{
-                                color: darkMode ? "rgb(96, 165, 250)" : "rgb(37, 99, 235)",
-                                textDecoration: "none",
-                                fontSize: "0.9em",
-                            }}
-                            onMouseEnter={(e) =>
-                                ((e.target as HTMLElement).style.textDecoration = "underline")
-                            }
-                            onMouseLeave={(e) =>
-                                ((e.target as HTMLElement).style.textDecoration = "none")
-                            }
-                            onClick={(e) => {
-                                e.preventDefault();
-                                const container = previewBoxRef.current;
-                                if (!container) return;
-                                const el = container.querySelector(`#${CSS.escape(h.id)}`);
-                                if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-                            }}
-                        >
-                            <ReactMarkdown components={tocInlineComponents}>
-                                {h.text}
-                            </ReactMarkdown>
-                        </a>
-                    </li>
-                ))}
-            </ul>
+            <TocList headings={headings} previewBoxRef={previewBoxRef} darkMode={darkMode} />
         </div>
     );
 }
@@ -388,6 +438,8 @@ export interface MarkdownPreviewerProps {
     searchOpen: boolean;
     searchInputRef: React.RefObject<HTMLInputElement | null>;
     onSearchClose: () => void;
+    /** Tab the preview belongs to, so it can share the sidebar state. */
+    tabId?: number;
 }
 
 export default function MarkdownPreviewer({
@@ -401,6 +453,7 @@ export default function MarkdownPreviewer({
     searchOpen,
     searchInputRef,
     onSearchClose,
+    tabId,
 }: MarkdownPreviewerProps) {
     const dispatch = useAppDispatch();
     const previewDarkMode = useAppSelector((s) => s.app.tab.previewDarkMode);
@@ -563,6 +616,111 @@ export default function MarkdownPreviewer({
 
     const editorFlashDecorationsRef = useRef<string[]>([]);
 
+    // ── TOC sidebar ───────────────────────────────────────────────────────────
+    // Sits beside the preview once the inline [TOC] block scrolls out of view.
+    const tocSidebarEnabled = useAppSelector(
+        (s) =>
+            (tabId === undefined ? false : s.app.tab.tabStates[tabId]?.tocSidebarEnabled) ?? false,
+    );
+    const [tocSidebarAvailable, setTocSidebarAvailable] = useState(false);
+    const [tocActiveId, setTocActiveId] = useState<string | null>(null);
+    const [tocSidebarWidth, setTocSidebarWidth] = useState(TOC_SIDEBAR_DEFAULT_WIDTH);
+    const tocSidebarWidthRef = useRef(TOC_SIDEBAR_DEFAULT_WIDTH);
+    tocSidebarWidthRef.current = tocSidebarWidth;
+    const tocDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+    const tocHeadings = useMemo(() => extractHeadingsFromMd(editContent), [editContent]);
+    const tocAvailableRef = useRef(false);
+
+    useEffect(() => {
+        const container = previewBoxRef.current;
+        if (!container) return;
+        const update = () => {
+            const toc = container.querySelector<HTMLElement>("[data-inline-toc]");
+            const containerTop = container.getBoundingClientRect().top;
+            // Distance of the inline TOC's bottom edge from the viewport top:
+            // 0 means flush with it, negative means it has scrolled past.
+            const scrolledOut = !!toc && toc.getBoundingClientRect().bottom - containerTop < 0;
+            // Dispatching on every scroll re-renders the preview, which fires the
+            // observer again, so only publish the value when it changes.
+            if (scrolledOut !== tocAvailableRef.current) {
+                tocAvailableRef.current = scrolledOut;
+                setTocSidebarAvailable(scrolledOut);
+                if (tabId !== undefined) {
+                    dispatch(
+                        patchTabState({
+                            tabId,
+                            tocSidebarAvailable: scrolledOut,
+                            // Scrolling the contents back into view closes the
+                            // sidebar; scrolling away again leaves it closed.
+                            ...(scrolledOut ? {} : { tocSidebarEnabled: false }),
+                        }),
+                    );
+                }
+            }
+            if (!toc) return;
+
+            // The current section is the last heading within the lead distance of
+            // the viewport top, so the highlight moves before the heading arrives.
+            let activeId: string | null = null;
+            for (const heading of tocHeadings) {
+                const el = container.querySelector<HTMLElement>(`#${CSS.escape(heading.id)}`);
+                if (!el) continue;
+                if (el.getBoundingClientRect().top - containerTop <= TOC_ACTIVE_LEAD)
+                    activeId = heading.id;
+                else break;
+            }
+            setTocActiveId(activeId);
+        };
+        update();
+        // The contents block is rendered by ReactMarkdown after this effect, so
+        // the first measurement finds nothing. Watch the container and measure
+        // again once it appears, and on every later change to its position.
+        const observer = new MutationObserver(update);
+        observer.observe(container, { childList: true, subtree: true });
+        container.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update);
+        return () => {
+            observer.disconnect();
+            container.removeEventListener("scroll", update);
+            window.removeEventListener("resize", update);
+        };
+    }, [previewBoxRef, editContent, tocHeadings, tabId, dispatch]);
+
+    useEffect(
+        () => () => {
+            tocAvailableRef.current = false;
+            if (tabId !== undefined) {
+                dispatch(patchTabState({ tabId, tocSidebarAvailable: false }));
+            }
+        },
+        [tabId, dispatch],
+    );
+
+    const onTocResizeMouseDown = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        tocDragRef.current = { startX: e.clientX, startWidth: tocSidebarWidthRef.current };
+        const onMove = (ev: MouseEvent) => {
+            if (!tocDragRef.current) return;
+            const next = tocDragRef.current.startWidth + (ev.clientX - tocDragRef.current.startX);
+            setTocSidebarWidth(
+                Math.min(TOC_SIDEBAR_MAX_WIDTH, Math.max(TOC_SIDEBAR_MIN_WIDTH, Math.round(next))),
+            );
+        };
+        const onUp = () => {
+            tocDragRef.current = null;
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+            document.body.style.cursor = "";
+            document.body.style.userSelect = "";
+        };
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+    }, []);
+
     const handlePreviewDoubleClick = useCallback(
         (e: React.MouseEvent) => {
             let el = e.target as HTMLElement | null;
@@ -618,10 +776,10 @@ export default function MarkdownPreviewer({
                     href={href}
                     {...rest}
                     onClick={(e) => {
-                        if (!href || href.startsWith("#")) return;
+                        if (!isExternalHref(href)) return;
                         e.preventDefault();
                         e.stopPropagation();
-                        openUrl(href).catch(console.error);
+                        openExternalLink(href!).catch(console.error);
                     }}
                     style={{ cursor: "pointer" }}
                 >
@@ -719,6 +877,37 @@ export default function MarkdownPreviewer({
                     </code>
                 );
             },
+            details: ({
+                children,
+                node,
+                open,
+                ...rest
+            }: {
+                children?: React.ReactNode;
+                node?: any;
+                open?: boolean | string;
+                [key: string]: any;
+            }) => (
+                <details
+                    {...({
+                        ...rest,
+                        // React 19 supports defaultOpen on <details>, but @types/react
+                        // only types the controlled `open` prop.
+                        defaultOpen: open != null && open !== false,
+                    } as React.DetailsHTMLAttributes<HTMLDetailsElement>)}
+                >
+                    {children}
+                </details>
+            ),
+            summary: ({
+                children,
+                node,
+                ...rest
+            }: {
+                children?: React.ReactNode;
+                node?: any;
+                [key: string]: any;
+            }) => <summary {...rest}>{children}</summary>,
             itemref: ({ id }: { id?: string }) => (
                 <ItemReference id={id} darkMode={previewDarkMode} fontSize={fontSize} />
             ),
@@ -775,6 +964,7 @@ export default function MarkdownPreviewer({
     const rehypePlugins = useMemo(
         () =>
             [
+                rehypeRaw,
                 rehypeHighlight,
                 rehypeMathjax,
                 rehypeAddSourceLines,
@@ -787,8 +977,85 @@ export default function MarkdownPreviewer({
 
     // ── Render ────────────────────────────────────────────────────────────────
 
+    const showTocSidebar = tocSidebarAvailable && tocSidebarEnabled && tocHeadings.length > 0;
+
     return (
-        <div className="h-full relative">
+        <div className="h-full flex">
+            {showTocSidebar && (
+                <div
+                    style={{
+                        width: tocSidebarWidth,
+                        flexShrink: 0,
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        backgroundColor: previewDarkMode ? "rgb(32, 32, 32)" : "rgb(255, 255, 255)",
+                        borderRight: previewDarkMode
+                            ? "1px solid rgba(255,255,255,0.12)"
+                            : "1px solid rgba(0,0,0,0.10)",
+                        overflowX: "hidden",
+                    }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "6px 8px",
+                            flexShrink: 0,
+                            borderBottom: previewDarkMode
+                                ? "1px solid rgba(255,255,255,0.10)"
+                                : "1px solid rgba(0,0,0,0.08)",
+                            color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
+                        }}
+                    >
+                        <span style={{ display: "flex", padding: "2px 4px", lineHeight: 1 }}>
+                            <ListTree size={15} />
+                        </span>
+                        <span
+                            style={{
+                                fontWeight: 600,
+                                opacity: 0.6,
+                                fontSize: "0.75em",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                            }}
+                        >
+                            Contents
+                        </span>
+                    </div>
+                    <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+                        <OverlayScrollbar
+                            style={{ flex: 1, minWidth: 0 }}
+                            thumbColor={
+                                previewDarkMode ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.22)"
+                            }
+                        >
+                            <div style={{ padding: "8px 12px 10px" }}>
+                                <TocList
+                                    headings={tocHeadings}
+                                    previewBoxRef={previewBoxRef}
+                                    darkMode={previewDarkMode}
+                                    wrap
+                                    activeId={tocActiveId}
+                                />
+                            </div>
+                        </OverlayScrollbar>
+                        <div
+                            onMouseDown={onTocResizeMouseDown}
+                            title="Drag to resize"
+                            style={{ width: 6, flexShrink: 0, cursor: "col-resize" }}
+                            onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = previewDarkMode
+                                    ? "rgba(255,255,255,0.18)"
+                                    : "rgba(0,0,0,0.12)")
+                            }
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        />
+                    </div>
+                </div>
+            )}
+            <div className="h-full relative" style={{ flex: 1, minWidth: 0 }}>
             {/* Dark/Light mode toggle */}
             <style>{`.preview-toolbar-btn:hover { background: rgba(150,150,150,0.60) !important; }`}</style>
             <button
@@ -989,10 +1256,12 @@ export default function MarkdownPreviewer({
                     "& ul": { listStyleType: "none" },
                     "& ol": { listStyleType: "decimal" },
                     "& li": { lineHeight: LIST_ITEM_LINE_HEIGHT },
-                    "& ul > li:not(.task-list-item)": {
+                    // The inline [TOC] keeps its per-level padding but must not
+                    // show the bullet the preview draws for ordinary list items.
+                    "& ul > li:not(.task-list-item):not([data-toc-id])": {
                         position: "relative",
                     },
-                    "& ul > li:not(.task-list-item)::before": {
+                    "& ul > li:not(.task-list-item):not([data-toc-id])::before": {
                         content: '"•"',
                         position: "absolute",
                         left: "-0.82em",
@@ -1045,6 +1314,17 @@ export default function MarkdownPreviewer({
                         marginBottom: "0.4em",
                     },
                     "& p": { marginTop: "0.5em", marginBottom: "0.5em" },
+                    "& details": {
+                        marginTop: "0.5em",
+                        marginBottom: "0.5em",
+                    },
+                    "& summary": {
+                        cursor: "pointer",
+                        userSelect: "none",
+                    },
+                    "& details[open] > summary": {
+                        marginBottom: "0.4em",
+                    },
                     "& code:not(pre code)": {
                         fontSize: "0.82em",
                         backgroundColor: previewDarkMode ? LIGHT_WHITE_BG : "rgba(0, 0, 0, 0.07)",
@@ -1055,17 +1335,16 @@ export default function MarkdownPreviewer({
                         wordBreak: "break-word",
                     },
                     "& pre": {
-                        backgroundColor: previewDarkMode
-                            ? "rgba(0, 0, 0, 0.3)"
-                            : "rgb(240, 242, 244)",
+                        backgroundColor: previewDarkMode ? LIGHT_WHITE_BG : "rgba(0, 0, 0, 0.07)",
                         borderRadius: "4px",
                         padding: "12px",
                         overflow: "auto",
                         marginTop: "0.5em",
                         marginBottom: "0.5em",
                     },
-                    "& pre code": {
+                    "& pre code, & pre code.hljs, & .hljs": {
                         backgroundColor: "transparent",
+                        background: "transparent",
                         color: previewDarkMode ? "inherit" : "rgb(30, 30, 30)",
                         padding: "0",
                         fontSize: "0.9em",
@@ -1127,6 +1406,7 @@ export default function MarkdownPreviewer({
                     </ReactMarkdown>
                 </div>
             </Box>
+            </div>
         </div>
     );
 }

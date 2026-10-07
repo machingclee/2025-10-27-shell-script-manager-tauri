@@ -17,6 +17,7 @@ import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.CreateWo
 import com.scriptmanager.boundedcontext.scriptmanager.event.FolderDeletedEvent
 import com.scriptmanager.common.dto.ShellScriptResponse
 import com.scriptmanager.common.entity.ScriptsFolder
+import com.scriptmanager.common.exception.ScriptManagerException
 import com.scriptmanager.integration.BaseTest
 import com.scriptmanager.repository.EventRepository
 import com.scriptmanager.repository.ScriptsFolderRepository
@@ -117,6 +118,28 @@ class FolderTest(
         val events = eventRepository.findAll()
             .filter { it.eventType == "FolderCreatedEvent" }
         assertEquals(1, events.size)
+    }
+
+    @Test
+    fun `Should persist failure_reason when command throws`() {
+        val thrown = assertThrows(ScriptManagerException::class.java) {
+            commandInvoker.invoke(
+                UpdateFolderCommand(id = 999_999_999, name = "missing", ordering = 0)
+            )
+        }
+        assertEquals("Folder not found", thrown.message)
+
+        val failedCommands = eventRepository.findAll()
+            .filter { it.eventType == "UpdateFolderCommand" }
+        assertEquals(1, failedCommands.size)
+        val row = failedCommands.first()
+        assertNotNull(row.id)
+        assertNotEquals(0, row.id)
+        assertEquals(false, row.success)
+        assertTrue(
+            row.failureReason.contains("Folder not found"),
+            "failure_reason should contain the thrown message, was: ${row.failureReason}"
+        )
     }
 
     @Nested

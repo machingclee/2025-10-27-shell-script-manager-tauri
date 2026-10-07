@@ -28,22 +28,27 @@ function replaceCurrentSelection(
     text: string
 ) {
     const model = editorInstance.getModel();
-    const selection = editorInstance.getSelection();
-    if (!model || !selection) return;
+    // getSelections() covers every cursor, so a Cmd+D multi-selection gets the
+    // paste at each occurrence instead of only the primary one.
+    const selections = editorInstance.getSelections();
+    if (!model || !selections || selections.length === 0) return;
 
-    // Compute where the cursor should end up after pasting `text`, starting
-    // from the selection's start position. We do this from the text itself
+    // Compute where each cursor should end up after pasting `text`, starting
+    // from that selection's start position. We do this from the text itself
     // (not via model.getPositionAt) so that multi-line pastes land correctly.
-    const start = selection.getStartPosition();
     const lines = text.split("\n");
-    const endLine = start.lineNumber + lines.length - 1;
-    const endColumn =
-        lines.length === 1 ? start.column + text.length : lines[lines.length - 1].length + 1;
+    const cursors = selections.map((selection) => {
+        const start = selection.getStartPosition();
+        const endLine = start.lineNumber + lines.length - 1;
+        const endColumn =
+            lines.length === 1 ? start.column + text.length : lines[lines.length - 1].length + 1;
+        return new monaco.Selection(endLine, endColumn, endLine, endColumn);
+    });
 
     editorInstance.executeEdits(
         "paste",
-        [{ range: selection, text, forceMoveMarkers: true }],
-        [new monaco.Selection(endLine, endColumn, endLine, endColumn)]
+        selections.map((range) => ({ range, text, forceMoveMarkers: true })),
+        cursors
     );
 }
 

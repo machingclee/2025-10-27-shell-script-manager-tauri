@@ -226,3 +226,25 @@ data class ScriptsWithTotal(
     val scripts: List<ShellScriptResponse>,
     val total: Long
 )
+
+/**
+ * One row of the audit log. Field names follow the sales event log
+ * (`payload`, `id`) rather than the entity's backing fields (`event`, `entityId`).
+ */
+data class EventLogDTO(
+    val id: Int,
+    val createdAt: Double?,
+    val createdAtHk: String?,
+    val requestId: String,
+    val eventType: String,
+    val payload: String,
+    val eventOrder: Int,
+    val requestUserEmail: String,
+    val success: Boolean,
+    val failureReason: String
+)
+
+data class EventsWithTotal(
+    val events: List<EventLogDTO>,
+    val total: Long
+)

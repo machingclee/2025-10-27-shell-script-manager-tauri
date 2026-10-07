@@ -1,4 +1,5 @@
 import { scriptApi } from "@/store/api/scriptApi";
+import { useAppDispatch } from "@/store/hooks";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { FileText, Terminal } from "lucide-react";
@@ -27,6 +28,7 @@ export default function ItemReference({
     fontSize?: number;
 }) {
     const chipFontSize = fontSize ? `${Math.round(fontSize * 0.8)}px` : undefined;
+    const dispatch = useAppDispatch();
     const scriptId = id ? parseInt(id, 10) : undefined;
     const { data: script, isLoading } = scriptApi.endpoints.getScriptById.useQuery(scriptId, {
         skip: scriptId == null || isNaN(scriptId ?? NaN),
@@ -41,6 +43,11 @@ export default function ItemReference({
                 await invoke("execute_command_in_shell", { command: script.command });
             } else {
                 await invoke("execute_command", { command: script.command });
+            }
+            if (script.id != null) {
+                await dispatch(
+                    scriptApi.endpoints.notifyScriptExecuted.initiate({ scriptId: script.id })
+                );
             }
         } catch (err) {
             console.error("ItemReference execute error:", err);
