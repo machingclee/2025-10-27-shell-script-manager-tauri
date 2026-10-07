@@ -8,10 +8,10 @@ import rehypeMathjax from "rehype-mathjax";
 import rehypeRaw from "rehype-raw";
 import { Box } from "@mui/material";
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { isExternalHref, openExternalLink } from "@/lib/openExternalLink";
 import { Sun, Moon, Presentation, ChevronRight, ChevronLeft, ListTree } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setPreviewDarkMode } from "@/store/slices/appSlice";
+import { patchTabState, setPreviewDarkMode } from "@/store/slices/appSlice";
 import { remarkItemReference } from "@/lib/remarkItemReference";
 import ItemReference from "./ItemReference";
 import OverlayScrollbar from "@/components/ui/overlay-scrollbar";
@@ -438,6 +438,8 @@ export interface MarkdownPreviewerProps {
     searchOpen: boolean;
     searchInputRef: React.RefObject<HTMLInputElement | null>;
     onSearchClose: () => void;
+    /** Tab the preview belongs to, so it can share the sidebar state. */
+    tabId?: number;
 }
 
 export default function MarkdownPreviewer({
@@ -451,6 +453,7 @@ export default function MarkdownPreviewer({
     searchOpen,
     searchInputRef,
     onSearchClose,
+    tabId,
 }: MarkdownPreviewerProps) {
     const dispatch = useAppDispatch();
     const previewDarkMode = useAppSelector((s) => s.app.tab.previewDarkMode);
@@ -613,10 +616,13 @@ export default function MarkdownPreviewer({
 
     const editorFlashDecorationsRef = useRef<string[]>([]);
 
-    // ── Floating TOC sidebar ───────────────────────────────────────────────────
-    // Appears on the left once the inline [TOC] block scrolls out of view.
-    const [tocSidebarEnabled, setTocSidebarEnabled] = useState(true);
-    const [tocSidebarVisible, setTocSidebarVisible] = useState(false);
+    // ── TOC sidebar ───────────────────────────────────────────────────────────
+    // Sits beside the preview once the inline [TOC] block scrolls out of view.
+    const tocSidebarEnabled = useAppSelector(
+        (s) =>
+            (tabId === undefined ? false : s.app.tab.tabStates[tabId]?.tocSidebarEnabled) ?? false,
+    );
+    const [tocSidebarAvailable, setTocSidebarAvailable] = useState(false);
     const [tocActiveId, setTocActiveId] = useState<string | null>(null);
     const [tocSidebarWidth, setTocSidebarWidth] = useState(TOC_SIDEBAR_DEFAULT_WIDTH);
     const tocSidebarWidthRef = useRef(TOC_SIDEBAR_DEFAULT_WIDTH);
@@ -624,20 +630,35 @@ export default function MarkdownPreviewer({
     const tocDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
     const tocHeadings = useMemo(() => extractHeadingsFromMd(editContent), [editContent]);
+    const tocAvailableRef = useRef(false);
 
     useEffect(() => {
         const container = previewBoxRef.current;
         if (!container) return;
         const update = () => {
             const toc = container.querySelector<HTMLElement>("[data-inline-toc]");
-            if (!toc) {
-                setTocSidebarVisible(false);
-                return;
-            }
             const containerTop = container.getBoundingClientRect().top;
             // Distance of the inline TOC's bottom edge from the viewport top:
             // 0 means flush with it, negative means it has scrolled past.
-            setTocSidebarVisible(toc.getBoundingClientRect().bottom - containerTop < 0);
+            const scrolledOut = !!toc && toc.getBoundingClientRect().bottom - containerTop < 0;
+            // Dispatching on every scroll re-renders the preview, which fires the
+            // observer again, so only publish the value when it changes.
+            if (scrolledOut !== tocAvailableRef.current) {
+                tocAvailableRef.current = scrolledOut;
+                setTocSidebarAvailable(scrolledOut);
+                if (tabId !== undefined) {
+                    dispatch(
+                        patchTabState({
+                            tabId,
+                            tocSidebarAvailable: scrolledOut,
+                            // Scrolling the contents back into view closes the
+                            // sidebar; scrolling away again leaves it closed.
+                            ...(scrolledOut ? {} : { tocSidebarEnabled: false }),
+                        }),
+                    );
+                }
+            }
+            if (!toc) return;
 
             // The current section is the last heading within the lead distance of
             // the viewport top, so the highlight moves before the heading arrives.
@@ -652,13 +673,29 @@ export default function MarkdownPreviewer({
             setTocActiveId(activeId);
         };
         update();
+        // The contents block is rendered by ReactMarkdown after this effect, so
+        // the first measurement finds nothing. Watch the container and measure
+        // again once it appears, and on every later change to its position.
+        const observer = new MutationObserver(update);
+        observer.observe(container, { childList: true, subtree: true });
         container.addEventListener("scroll", update, { passive: true });
         window.addEventListener("resize", update);
         return () => {
+            observer.disconnect();
             container.removeEventListener("scroll", update);
             window.removeEventListener("resize", update);
         };
-    }, [previewBoxRef, editContent, tocHeadings]);
+    }, [previewBoxRef, editContent, tocHeadings, tabId, dispatch]);
+
+    useEffect(
+        () => () => {
+            tocAvailableRef.current = false;
+            if (tabId !== undefined) {
+                dispatch(patchTabState({ tabId, tocSidebarAvailable: false }));
+            }
+        },
+        [tabId, dispatch],
+    );
 
     const onTocResizeMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -739,10 +776,10 @@ export default function MarkdownPreviewer({
                     href={href}
                     {...rest}
                     onClick={(e) => {
-                        if (!href || href.startsWith("#")) return;
+                        if (!isExternalHref(href)) return;
                         e.preventDefault();
                         e.stopPropagation();
-                        openUrl(href).catch(console.error);
+                        openExternalLink(href!).catch(console.error);
                     }}
                     style={{ cursor: "pointer" }}
                 >
@@ -940,10 +977,85 @@ export default function MarkdownPreviewer({
 
     // ── Render ────────────────────────────────────────────────────────────────
 
-    const showTocSidebar = tocSidebarVisible && tocHeadings.length > 0;
+    const showTocSidebar = tocSidebarAvailable && tocSidebarEnabled && tocHeadings.length > 0;
 
     return (
-        <div className="h-full relative">
+        <div className="h-full flex">
+            {showTocSidebar && (
+                <div
+                    style={{
+                        width: tocSidebarWidth,
+                        flexShrink: 0,
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        backgroundColor: previewDarkMode ? "rgb(32, 32, 32)" : "rgb(255, 255, 255)",
+                        borderRight: previewDarkMode
+                            ? "1px solid rgba(255,255,255,0.12)"
+                            : "1px solid rgba(0,0,0,0.10)",
+                        overflowX: "hidden",
+                    }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            padding: "6px 8px",
+                            flexShrink: 0,
+                            borderBottom: previewDarkMode
+                                ? "1px solid rgba(255,255,255,0.10)"
+                                : "1px solid rgba(0,0,0,0.08)",
+                            color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
+                        }}
+                    >
+                        <span style={{ display: "flex", padding: "2px 4px", lineHeight: 1 }}>
+                            <ListTree size={15} />
+                        </span>
+                        <span
+                            style={{
+                                fontWeight: 600,
+                                opacity: 0.6,
+                                fontSize: "0.75em",
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                            }}
+                        >
+                            Contents
+                        </span>
+                    </div>
+                    <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+                        <OverlayScrollbar
+                            style={{ flex: 1, minWidth: 0 }}
+                            thumbColor={
+                                previewDarkMode ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.22)"
+                            }
+                        >
+                            <div style={{ padding: "8px 12px 10px" }}>
+                                <TocList
+                                    headings={tocHeadings}
+                                    previewBoxRef={previewBoxRef}
+                                    darkMode={previewDarkMode}
+                                    wrap
+                                    activeId={tocActiveId}
+                                />
+                            </div>
+                        </OverlayScrollbar>
+                        <div
+                            onMouseDown={onTocResizeMouseDown}
+                            title="Drag to resize"
+                            style={{ width: 6, flexShrink: 0, cursor: "col-resize" }}
+                            onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = previewDarkMode
+                                    ? "rgba(255,255,255,0.18)"
+                                    : "rgba(0,0,0,0.12)")
+                            }
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        />
+                    </div>
+                </div>
+            )}
+            <div className="h-full relative" style={{ flex: 1, minWidth: 0 }}>
             {/* Dark/Light mode toggle */}
             <style>{`.preview-toolbar-btn:hover { background: rgba(150,150,150,0.60) !important; }`}</style>
             <button
@@ -1144,10 +1256,12 @@ export default function MarkdownPreviewer({
                     "& ul": { listStyleType: "none" },
                     "& ol": { listStyleType: "decimal" },
                     "& li": { lineHeight: LIST_ITEM_LINE_HEIGHT },
-                    "& ul > li:not(.task-list-item)": {
+                    // The inline [TOC] keeps its per-level padding but must not
+                    // show the bullet the preview draws for ordinary list items.
+                    "& ul > li:not(.task-list-item):not([data-toc-id])": {
                         position: "relative",
                     },
-                    "& ul > li:not(.task-list-item)::before": {
+                    "& ul > li:not(.task-list-item):not([data-toc-id])::before": {
                         content: '"•"',
                         position: "absolute",
                         left: "-0.82em",
@@ -1292,108 +1406,7 @@ export default function MarkdownPreviewer({
                     </ReactMarkdown>
                 </div>
             </Box>
-
-            {showTocSidebar && (
-                <div
-                    style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        bottom: 0,
-                        width: tocSidebarEnabled ? tocSidebarWidth : undefined,
-                        display: "flex",
-                        flexDirection: "column",
-                        zIndex: 9,
-                        backgroundColor: previewDarkMode
-                            ? "rgba(32, 32, 32, 0.85)"
-                            : "rgba(255, 255, 255, 0.85)",
-                        backdropFilter: "blur(2px)",
-                        WebkitBackdropFilter: "blur(2px)",
-                        borderRight: previewDarkMode
-                            ? "1px solid rgba(255,255,255,0.12)"
-                            : "1px solid rgba(0,0,0,0.10)",
-                        boxShadow: previewDarkMode
-                            ? "0 2px 8px rgba(0,0,0,0.4)"
-                            : "0 2px 8px rgba(0,0,0,0.08)",
-                        overflowX: "hidden",
-                    }}
-                >
-                    <div
-                        onClick={() => setTocSidebarEnabled((on) => !on)}
-                        title={tocSidebarEnabled ? "Hide contents" : "Show contents"}
-                        role="button"
-                        aria-pressed={tocSidebarEnabled}
-                        aria-label={tocSidebarEnabled ? "Hide contents" : "Show contents"}
-                        className="preview-toolbar-btn"
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            padding: "6px 8px",
-                            flexShrink: 0,
-                            cursor: "pointer",
-                            borderBottom: tocSidebarEnabled
-                                ? previewDarkMode
-                                    ? "1px solid rgba(255,255,255,0.10)"
-                                    : "1px solid rgba(0,0,0,0.08)"
-                                : "none",
-                            color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
-                        }}
-                    >
-                        <span style={{ display: "flex", padding: "2px 4px", lineHeight: 1 }}>
-                            <ListTree size={15} />
-                        </span>
-                        {tocSidebarEnabled && (
-                            <span
-                                style={{
-                                    fontWeight: 600,
-                                    opacity: 0.6,
-                                    fontSize: "0.75em",
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.05em",
-                                }}
-                            >
-                                Contents
-                            </span>
-                        )}
-                    </div>
-                    {tocSidebarEnabled && (
-                        <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-                            <OverlayScrollbar
-                                style={{ flex: 1, minWidth: 0 }}
-                                thumbColor={
-                                    previewDarkMode
-                                        ? "rgba(255,255,255,0.28)"
-                                        : "rgba(0,0,0,0.22)"
-                                }
-                            >
-                                <div style={{ padding: "8px 12px 10px" }}>
-                                    <TocList
-                                        headings={tocHeadings}
-                                        previewBoxRef={previewBoxRef}
-                                        darkMode={previewDarkMode}
-                                        wrap
-                                        activeId={tocActiveId}
-                                    />
-                                </div>
-                            </OverlayScrollbar>
-                            <div
-                                onMouseDown={onTocResizeMouseDown}
-                                title="Drag to resize"
-                                style={{ width: 6, flexShrink: 0, cursor: "col-resize" }}
-                                onMouseEnter={(e) =>
-                                    (e.currentTarget.style.background = previewDarkMode
-                                        ? "rgba(255,255,255,0.18)"
-                                        : "rgba(0,0,0,0.12)")
-                                }
-                                onMouseLeave={(e) =>
-                                    (e.currentTarget.style.background = "transparent")
-                                }
-                            />
-                        </div>
-                    )}
-                </div>
-            )}
+            </div>
         </div>
     );
 }

@@ -10,7 +10,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "../index.css";
 import { StyledEngineProvider } from "@mui/material/styles";
-import { openUrl } from "@tauri-apps/plugin-opener";
+import { isExternalHref, openExternalLink } from "../lib/openExternalLink";
 import { TauriClickToComponent } from "../components/TauriClickToComponent";
 
 // Intercept all link clicks and open them in the default browser
@@ -18,9 +18,9 @@ document.addEventListener("click", (e) => {
     const target = (e.target as HTMLElement).closest("a");
     if (!target) return;
     const href = target.getAttribute("href");
-    if (!href || href.startsWith("#")) return;
+    if (!isExternalHref(href)) return;
     e.preventDefault();
-    openUrl(href).catch(console.error);
+    openExternalLink(href!).catch(console.error);
 });
 
 // In production (Tauri), the sub-window HTML sits at a different depth so

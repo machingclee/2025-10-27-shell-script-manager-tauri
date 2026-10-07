@@ -399,22 +399,44 @@ async fn get_backend_startup_status() -> BackendStartupStatus {
     }
 }
 
+/// Match the native title bar to the app theme. Dark mode is persisted by the
+/// frontend through PUT /app-state — this command only touches the window chrome,
+/// so it must not write app state itself.
+#[allow(unused_variables)]
 #[tauri::command]
-async fn set_title_bar_color(is_dark: bool) -> Result<(), String> {
-    // Use Spring Boot API to update dark mode (Spring is the only database client now)
-    let port = get_backend_port().await?;
-    let client = reqwest::Client::new();
+async fn set_title_bar_color(app: tauri::AppHandle, is_dark: bool) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(window) = app.get_webview_window("main") {
+            let ns_window_ptr = window
+                .ns_window()
+                .map_err(|e| format!("ns_window failed: {:?}", e))? as usize;
 
-    let url = format!("http://localhost:{}/app-state", port);
+            // AppKit APIs must run on the main thread. Async commands run on Tokio.
+            window
+                .run_on_main_thread(move || {
+                    use cocoa::base::id;
+                    use std::ffi::CString;
 
-    client
-        .put(&url)
-        .json(&serde_json::json!({ "darkMode": is_dark }))
-        .send()
-        .await
-        .map_err(|e| format!("Failed to update dark mode: {}", e))?;
-
-    println!("Dark mode updated to: {}", is_dark);
+                    unsafe {
+                        let ns_window = ns_window_ptr as id;
+                        // NSAppearanceNameDarkAqua / NSAppearanceNameAqua
+                        let name = if is_dark {
+                            "NSAppearanceNameDarkAqua"
+                        } else {
+                            "NSAppearanceNameAqua"
+                        };
+                        let c_name = CString::new(name).expect("appearance name");
+                        let appearance_name: id =
+                            msg_send![class!(NSString), stringWithUTF8String: c_name.as_ptr()];
+                        let appearance: id =
+                            msg_send![class!(NSAppearance), appearanceNamed: appearance_name];
+                        let _: () = msg_send![ns_window, setAppearance: appearance];
+                    }
+                })
+                .map_err(|e| format!("run_on_main_thread failed: {:?}", e))?;
+        }
+    }
     Ok(())
 }
 
@@ -595,24 +617,40 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(
-            // Block any URL that would cause the webview to navigate away (e.g. window.open,
-            // <a target="_blank">, or direct location changes to external sites) and instead
-            // open them in the OS default browser via tauri-plugin-opener.
+            // The app has no in-app browser. Any navigation that is not the app
+            // itself (a markdown link, window.open, a file:// PDF) is cancelled
+            // and handed to the OS default app instead.
             tauri::plugin::Builder::<tauri::Wry>::new("external-link-interceptor")
                 .on_navigation(|webview, url| {
                     let s = url.as_str();
-                    // Allow all local / IPC / asset URLs to pass through normally.
-                    if s.starts_with("tauri://")
+                    let app_url = s.starts_with("tauri://")
                         || s.starts_with("http://localhost")
+                        || s.starts_with("https://localhost")
+                        || s.starts_with("http://127.0.0.1")
+                        || s.starts_with("https://127.0.0.1")
                         || s.starts_with("http://tauri.localhost")
                         || s.starts_with("https://tauri.localhost")
                         || s.starts_with("asset://")
-                        || s.starts_with("ipc://")
-                    {
+                        || s.starts_with("ipc://");
+                    if app_url {
                         return true;
                     }
-                    // External URL — open in the OS default browser and cancel the navigation.
-                    let _ = webview.opener().open_url(s, None::<String>);
+                    // A root-relative markdown link resolves against the app origin
+                    // (http://localhost:1420/files/...). That is still the app, so
+                    // opening it would reload this window. Drop it.
+                    let same_origin = url.host_str().is_some_and(|host| {
+                        matches!(host, "localhost" | "127.0.0.1" | "tauri.localhost")
+                    });
+                    if same_origin {
+                        return false;
+                    }
+                    // open_url rejects file://, which is what blanked the window on a PDF.
+                    if url.scheme() == "file" {
+                        // url.path() is already percent-decoded.
+                        let _ = webview.opener().open_path(url.path(), None::<String>);
+                    } else {
+                        let _ = webview.opener().open_url(s, None::<String>);
+                    }
                     false
                 })
                 .build(),

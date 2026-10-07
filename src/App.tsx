@@ -28,6 +28,8 @@ import rootFolderSlice from "./store/slices/rootFolderSlice";
 import configSlice from "./store/slices/configSlice";
 import HistoryButton from "./app-component/History/HistoryButton";
 import HistoryPanel from "./app-component/History/HistoryPanel";
+import LogButton from "./app-component/Log/LogButton";
+import LogPanel from "./app-component/Log/LogPanel";
 import SearchPanel from "./app-component/History/SearchPanel";
 import QuickNavDropdown from "./app-component/ScriptsColumn/QuickNavDropdown";
 import { Toaster } from "./components/ui/toaster";
@@ -677,6 +679,15 @@ function App() {
                         </div>
                         <div
                             style={{
+                                opacity: rightPanelMode === "LOG" ? 1 : 0.3,
+                                transition: "opacity 0.2s ease",
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()}
+                        >
+                            <LogButton />
+                        </div>
+                        <div
+                            style={{
                                 opacity: rightPanelMode === "HISTORY" ? 1 : 0.3,
                                 transition: "opacity 0.2s ease",
                             }}
@@ -744,7 +755,9 @@ function App() {
                         <div className="flex-1" />
                     )}
                     {isHistoryOpen && (
-                        <div className="w-[350px] h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in">
+                        <div
+                            className={`${rightPanelMode === "LOG" ? "w-[460px]" : "w-[350px]"} h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in`}
+                        >
                             <div
                                 className={`h-full ${rightPanelMode === "SEARCH" ? "" : "hidden"}`}
                             >
@@ -754,6 +767,9 @@ function App() {
                                 className={`h-full ${rightPanelMode === "HISTORY" ? "" : "hidden"}`}
                             >
                                 <HistoryPanel />
+                            </div>
+                            <div className={`h-full ${rightPanelMode === "LOG" ? "" : "hidden"}`}>
+                                <LogPanel />
                             </div>
                         </div>
                     )}
