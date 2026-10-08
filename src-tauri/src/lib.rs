@@ -11,13 +11,17 @@ use std::io::{BufRead, BufReader};
 use std::process::{Child, Command};
 #[cfg(not(debug_assertions))]
 use std::process::Stdio;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use tauri::{Emitter, Manager};
 use tauri_plugin_opener::OpenerExt;
 
 pub static RT_HANDLE: OnceLock<tokio::runtime::Handle> = OnceLock::new();
 pub static SPRING_BOOT_PROCESS: OnceLock<Arc<Mutex<Option<Child>>>> = OnceLock::new();
-pub static BACKEND_PORT: OnceLock<u16> = OnceLock::new();
+/// The port the frontend should talk to. A plain `OnceLock` cannot express a
+/// restart: when the native binary crashes the supervisor relaunches it on a
+/// fresh port and swaps this value, and the frontend picks the new port up on
+/// its next health poll.
+pub static BACKEND_PORT: OnceLock<Arc<RwLock<u16>>> = OnceLock::new();
 pub static BACKEND_LOGS: OnceLock<Arc<Mutex<Vec<String>>>> = OnceLock::new();
 pub static CLEANUP_DONE: OnceLock<Arc<Mutex<bool>>> = OnceLock::new();
 #[cfg(target_os = "macos")]
@@ -323,14 +327,25 @@ struct BackendStartupStatus {
 
 #[tauri::command]
 async fn get_backend_port() -> Result<u16, String> {
-    BACKEND_PORT
+    current_backend_port().ok_or_else(|| "Backend port not initialized".to_string())
+}
+
+fn current_backend_port() -> Option<u16> {
+    BACKEND_PORT.get().and_then(|port| port.read().ok().map(|port| *port))
+}
+
+/// True only while the app is shutting down. A crashed backend must be
+/// restarted; a backend killed by `confirm_close` must not come back.
+fn is_shutting_down() -> bool {
+    CLEANUP_DONE
         .get()
-        .copied()
-        .ok_or_else(|| "Backend port not initialized".to_string())
+        .and_then(|flag| flag.lock().ok())
+        .map(|done| *done)
+        .unwrap_or(false)
 }
 
 async fn probe_backend_health() -> (bool, Option<u16>, Option<String>) {
-    let port = match BACKEND_PORT.get().copied() {
+    let port = match current_backend_port() {
         Some(port) => port,
         None => return (false, None, Some("Backend port not initialized".to_string())),
     };
@@ -1188,6 +1203,95 @@ fn start_spring_boot_backend(app_handle: tauri::AppHandle, port: u16) -> Result<
     Ok(())
 }
 
+/// Production-only crash recovery. Polls `/health` and, once the backend has
+/// been healthy at least once, treats a dead process (or a probe that stays
+/// down) as a crash: the GraalVM binary is relaunched on a new free port and
+/// `BACKEND_PORT` is swapped so the frontend follows it. A backend that never
+/// becomes healthy is left alone — restarting a binary that fails on boot
+/// would loop forever — and shutdown sets `CLEANUP_DONE` so a deliberate kill
+/// is not mistaken for a crash.
+#[cfg(not(debug_assertions))]
+fn spawn_backend_supervisor(app_handle: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        let rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
+            Err(e) => {
+                push_backend_log(format!("Backend supervisor failed to start: {e}"));
+                return;
+            }
+        };
+
+        // Give the first launch time to boot before counting failures.
+        std::thread::sleep(std::time::Duration::from_secs(5));
+
+        let mut ever_healthy = false;
+        let mut consecutive_failures: u32 = 0;
+        // A freshly relaunched binary needs several seconds before /health
+        // answers; probing it immediately would look like another crash.
+        let mut restart_grace_until = std::time::Instant::now();
+
+        loop {
+            if is_shutting_down() {
+                push_backend_log("Backend supervisor stopping: app is shutting down");
+                break;
+            }
+
+            std::thread::sleep(std::time::Duration::from_secs(3));
+
+            if is_shutting_down() {
+                break;
+            }
+            if std::time::Instant::now() < restart_grace_until {
+                continue;
+            }
+
+            let (healthy, _, _) = rt.block_on(probe_backend_health());
+            if healthy {
+                ever_healthy = true;
+                consecutive_failures = 0;
+                continue;
+            }
+
+            // The process exiting is unambiguous. A refused connection while the
+            // process is still alive can just be a slow boot or a stuck request,
+            // so that needs a few misses in a row.
+            let process_dead = backend_process_status().starts_with("exited");
+            if !process_dead {
+                consecutive_failures += 1;
+            }
+            if !ever_healthy || (!process_dead && consecutive_failures < 3) {
+                continue;
+            }
+
+            let new_port = match find_available_port() {
+                Ok(port) => port,
+                Err(e) => {
+                    push_backend_log(format!("Backend crashed but no free port: {e}"));
+                    consecutive_failures = 0;
+                    continue;
+                }
+            };
+
+            push_backend_log(format!(
+                "Backend crashed — relaunching GraalVM binary on port {new_port}"
+            ));
+            if let Err(e) = start_spring_boot_backend(app_handle.clone(), new_port) {
+                push_backend_log(format!("Failed to relaunch backend: {e}"));
+                consecutive_failures = 0;
+                continue;
+            }
+
+            if let Some(port) = BACKEND_PORT.get() {
+                if let Ok(mut port) = port.write() {
+                    *port = new_port;
+                }
+            }
+            consecutive_failures = 0;
+            restart_grace_until = std::time::Instant::now() + std::time::Duration::from_secs(20);
+        }
+    });
+}
+
 fn check_backend_health_sync() -> Result<bool, String> {
     let rt =
         tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create runtime: {}", e))?;
@@ -1375,7 +1479,7 @@ fn init_spring_boot(app_handle: tauri::AppHandle) -> Result<(), String> {
     let port = find_available_port()?; // Random port for production
 
     BACKEND_PORT
-        .set(port)
+        .set(Arc::new(RwLock::new(port)))
         .map_err(|_| "Failed to set backend port".to_string())?;
     push_backend_log(format!("Backend will use port: {port}"));
 
@@ -1383,11 +1487,13 @@ fn init_spring_boot(app_handle: tauri::AppHandle) -> Result<(), String> {
     #[cfg(not(debug_assertions))]
     {
         push_backend_log("Production mode: auto-starting Spring Boot backend...");
+        let supervisor_handle = app_handle.clone();
         std::thread::spawn(move || {
             if let Err(e) = start_spring_boot_backend(app_handle, port) {
                 push_backend_log(format!("Failed to start Spring Boot backend: {e}"));
             }
         });
+        spawn_backend_supervisor(supervisor_handle);
     }
 
     #[cfg(debug_assertions)]

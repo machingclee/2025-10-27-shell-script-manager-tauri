@@ -17,6 +17,11 @@ const EMPTY_STATUS: BackendStartupStatus = {
     logs: [],
 };
 
+/**
+ * Polls the Rust side's view of the backend. Unlike a one-shot startup check,
+ * this never stops: the dot in the status bar stays live, and a crash restart
+ * surfaces here as a new `port` the rest of the app has to adopt.
+ */
 export function useBackendHealth() {
     const [isBackendReady, setIsBackendReady] = useState(false);
     const [isChecking, setIsChecking] = useState(true);
@@ -25,10 +30,6 @@ export function useBackendHealth() {
     const maxAttempts = 60; // Show extra troubleshooting after 60 seconds
 
     useEffect(() => {
-        if (!isChecking || isBackendReady) {
-            return;
-        }
-
         let cancelled = false;
 
         const poll = async () => {
@@ -49,6 +50,7 @@ export function useBackendHealth() {
                 console.error("[useBackendHealth] Error checking health:", error);
                 setStatus((prev) => ({
                     ...prev,
+                    healthy: false,
                     lastError: message,
                     logs: [...prev.logs, `invoke error: ${message}`].slice(-300),
                 }));
@@ -57,12 +59,12 @@ export function useBackendHealth() {
         };
 
         poll();
-        const interval = setInterval(poll, 1000);
+        const interval = setInterval(poll, 3000);
         return () => {
             cancelled = true;
             clearInterval(interval);
         };
-    }, [isChecking, isBackendReady]);
+    }, []);
 
     return {
         isBackendReady,
@@ -70,6 +72,7 @@ export function useBackendHealth() {
         checkAttempts,
         maxAttempts,
         backendPort: status.port,
+        backendHealthy: status.healthy,
         processStatus: status.processStatus,
         lastError: status.lastError,
         logs: status.logs,

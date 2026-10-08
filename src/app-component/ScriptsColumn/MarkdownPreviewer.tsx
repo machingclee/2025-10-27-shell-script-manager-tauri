@@ -11,7 +11,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { isExternalHref, openExternalLink } from "@/lib/openExternalLink";
 import { Sun, Moon, Presentation, ChevronRight, ChevronLeft, ListTree } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { patchTabState, setPreviewDarkMode } from "@/store/slices/appSlice";
+import { setPreviewDarkMode } from "@/store/slices/appSlice";
 import { remarkItemReference } from "@/lib/remarkItemReference";
 import ItemReference from "./ItemReference";
 import OverlayScrollbar from "@/components/ui/overlay-scrollbar";
@@ -438,8 +438,6 @@ export interface MarkdownPreviewerProps {
     searchOpen: boolean;
     searchInputRef: React.RefObject<HTMLInputElement | null>;
     onSearchClose: () => void;
-    /** Tab the preview belongs to, so it can share the sidebar state. */
-    tabId?: number;
 }
 
 export default function MarkdownPreviewer({
@@ -453,7 +451,6 @@ export default function MarkdownPreviewer({
     searchOpen,
     searchInputRef,
     onSearchClose,
-    tabId,
 }: MarkdownPreviewerProps) {
     const dispatch = useAppDispatch();
     const previewDarkMode = useAppSelector((s) => s.app.tab.previewDarkMode);
@@ -618,10 +615,6 @@ export default function MarkdownPreviewer({
 
     // ── TOC sidebar ───────────────────────────────────────────────────────────
     // Sits beside the preview once the inline [TOC] block scrolls out of view.
-    const tocSidebarEnabled = useAppSelector(
-        (s) =>
-            (tabId === undefined ? false : s.app.tab.tabStates[tabId]?.tocSidebarEnabled) ?? false,
-    );
     const [tocSidebarAvailable, setTocSidebarAvailable] = useState(false);
     const [tocActiveId, setTocActiveId] = useState<string | null>(null);
     const [tocSidebarWidth, setTocSidebarWidth] = useState(TOC_SIDEBAR_DEFAULT_WIDTH);
@@ -646,17 +639,6 @@ export default function MarkdownPreviewer({
             if (scrolledOut !== tocAvailableRef.current) {
                 tocAvailableRef.current = scrolledOut;
                 setTocSidebarAvailable(scrolledOut);
-                if (tabId !== undefined) {
-                    dispatch(
-                        patchTabState({
-                            tabId,
-                            tocSidebarAvailable: scrolledOut,
-                            // Scrolling the contents back into view closes the
-                            // sidebar; scrolling away again leaves it closed.
-                            ...(scrolledOut ? {} : { tocSidebarEnabled: false }),
-                        }),
-                    );
-                }
             }
             if (!toc) return;
 
@@ -685,17 +667,7 @@ export default function MarkdownPreviewer({
             container.removeEventListener("scroll", update);
             window.removeEventListener("resize", update);
         };
-    }, [previewBoxRef, editContent, tocHeadings, tabId, dispatch]);
-
-    useEffect(
-        () => () => {
-            tocAvailableRef.current = false;
-            if (tabId !== undefined) {
-                dispatch(patchTabState({ tabId, tocSidebarAvailable: false }));
-            }
-        },
-        [tabId, dispatch],
-    );
+    }, [previewBoxRef, editContent, tocHeadings]);
 
     const onTocResizeMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -977,7 +949,7 @@ export default function MarkdownPreviewer({
 
     // ── Render ────────────────────────────────────────────────────────────────
 
-    const showTocSidebar = tocSidebarAvailable && tocSidebarEnabled && tocHeadings.length > 0;
+    const showTocSidebar = tocSidebarAvailable && tocHeadings.length > 0;
 
     return (
         <div className="h-full flex">

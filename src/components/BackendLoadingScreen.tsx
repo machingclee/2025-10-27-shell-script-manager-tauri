@@ -1,18 +1,34 @@
 import { useEffect, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { useBackendHealth } from '../hooks/useBackendHealth';
+import configSlice from '../store/slices/configSlice';
 
 export function BackendLoadingScreen({ children }: { children: React.ReactNode }) {
+  const dispatch = useDispatch();
   const {
     isBackendReady,
     isChecking,
     checkAttempts,
     maxAttempts,
     backendPort,
+    backendHealthy,
     processStatus,
     lastError,
     logs,
   } = useBackendHealth();
   const logEndRef = useRef<HTMLDivElement>(null);
+
+  // The probe keeps running after the first success, so a crash (and the
+  // relaunch that follows it) reaches the status dot and every API call.
+  useEffect(() => {
+    dispatch(configSlice.actions.setBackendHealthy(backendHealthy));
+  }, [dispatch, backendHealthy]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV && backendPort) {
+      dispatch(configSlice.actions.setBackendPort(backendPort));
+    }
+  }, [dispatch, backendPort]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ block: 'end' });

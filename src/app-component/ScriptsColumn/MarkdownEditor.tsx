@@ -562,7 +562,6 @@ export default function MarkdownEditor({
                                 searchOpen={previewSearchOpen}
                                 searchInputRef={previewSearchInputRef}
                                 onSearchClose={() => setPreviewSearchOpen(false)}
-                                tabId={scriptId}
                             />
                         </div>
                     </div>

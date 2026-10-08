@@ -33,16 +33,6 @@ export interface MarkdownTabState {
      * MarkdownEditor to open the save-location dialog.
      */
     saveDialogRequested?: boolean;
-    /**
-     * Whether the floating contents sidebar is open. Shared by the toolbar
-     * button and the previewer so a click in one reaches the other.
-     */
-    tocSidebarEnabled?: boolean;
-    /**
-     * The inline contents block has scrolled out of the preview, so the
-     * toolbar button may open the sidebar.
-     */
-    tocSidebarAvailable?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,8 +189,6 @@ const appSlice = createSlice({
                     edited: false,
                     splitRatio: 50,
                     previewContent: "",
-                    tocSidebarEnabled: false,
-                    tocSidebarAvailable: false,
                     ...patch,
                 };
             }

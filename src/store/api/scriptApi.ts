@@ -223,13 +223,14 @@ export const scriptApi = baseApi.injectEndpoints({
                 method: "POST",
                 body: request,
             }),
+            providesTags: ["SearchResults"],
         }),
         notifyScriptExecuted: builder.mutation<void, { scriptId: number }>({
             query: ({ scriptId }) => ({
                 url: `/scripts/events/script-executed/${scriptId}`,
                 method: "POST",
             }),
-            invalidatesTags: ["ScriptHistory"],
+            invalidatesTags: ["ScriptHistory", "SearchResults"],
         }),
         getDraftScripts: builder.query<ShellScriptResponse[], void>({
             query: () => ({

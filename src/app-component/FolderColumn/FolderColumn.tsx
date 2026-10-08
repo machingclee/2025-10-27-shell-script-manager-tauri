@@ -71,6 +71,7 @@ export default function FolderColumn() {
     const selectedFolderId = useAppSelector((s) => s.folder.selectedRootFolderId);
     const isReordering = useAppSelector((s) => s.folder.isReorderingFolder);
     const backendPort = useAppSelector((s) => s.config.backendPort);
+    const backendHealthy = useAppSelector((s) => s.config.backendHealthy);
     const [openingBackend, setOpeningBackend] = useState(false);
     const [isBackendClicked, setIsBackendClicked] = useState(false);
 
@@ -578,7 +579,15 @@ export default function FolderColumn() {
                 onClick={handleOpenBackendApi}
                 title="Click to open backend API in browser"
             >
-                <span>Backend: localhost:{backendPort}/api</span>
+                <span className="inline-flex items-center gap-2">
+                    <span
+                        className={`inline-block w-2 h-2 rounded-full ${
+                            backendHealthy ? "bg-green-500" : "bg-neutral-400 dark:bg-neutral-500"
+                        }`}
+                        title={backendHealthy ? "Backend is running" : "Backend is not running"}
+                    />
+                    <span>Backend: localhost:{backendPort}/api</span>
+                </span>
                 {openingBackend && (
                     <span className="absolute top-1/2 right-4 -translate-y-1/2">
                         <Loader2 className="w-4 h-4 animate-spin" />
