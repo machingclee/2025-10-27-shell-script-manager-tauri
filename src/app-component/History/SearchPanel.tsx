@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import debounce from "lodash/debounce";
 import { scriptApi } from "@/store/api/scriptApi";
 import SearchResultItem from "./SearchResultItem";
@@ -16,24 +16,24 @@ export default function SearchPanel() {
     const search = useAppSelector((s) => s.app.rightPanel.search.searchText);
     const page = useAppSelector((s) => s.app.rightPanel.search.searchPage);
 
-    const [triggerSearch, { data: results, isFetching: isSearching }] =
-        scriptApi.endpoints.searchScript.useLazyQuery();
-
-    const debouncedSearch = useRef(
-        debounce((params: { search: string; page: number; size: number }) => {
-            triggerSearch(params);
-        }, 400)
-    ).current;
+    const [queryText, setQueryText] = useState("");
 
     useEffect(() => {
-        return () => debouncedSearch.cancel();
-    }, [debouncedSearch]);
+        const update = debounce((value: string) => setQueryText(value.trim()), 400);
+        update(search);
+        return () => update.cancel();
+    }, [search]);
 
-    useEffect(() => {
-        if (backendPort === 0) return;
-        if (!search.trim()) return;
-        debouncedSearch({ search, page, size: PAGE_SIZE });
-    }, [search, page, backendPort]);
+    // A subscribed query, unlike useLazyQuery, stays subscribed after the request
+    // settles — so invalidating SearchResults (on script execution) refetches it.
+    const { currentData, isFetching: isSearching, originalArgs } =
+        scriptApi.endpoints.searchScript.useQuery(
+            { search: queryText, page, size: PAGE_SIZE },
+            { skip: backendPort === 0 || !queryText }
+        );
+
+    // Keep showing the settled query's results while the next one is still debouncing.
+    const results = originalArgs?.search === queryText ? currentData : undefined;
 
     const totalPages = results ? Math.ceil(results.total / PAGE_SIZE) : 0;
 

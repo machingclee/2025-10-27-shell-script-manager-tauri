@@ -40,7 +40,10 @@ interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
         SELECT s FROM ShellScript s
         WHERE LOWER(s.name) LIKE LOWER(CONCAT('%', :search, '%'))
            OR LOWER(s.command) LIKE LOWER(CONCAT('%', :search, '%'))
-        ORDER BY s.createdAt DESC
+        ORDER BY COALESCE(
+            (SELECT MAX(h.executedAt) FROM HistoricalShellScript h WHERE h.shellScriptId = s.id),
+            s.createdAt
+        ) DESC
         """
     )
     fun searchByNameOrCommand(@Param("search") search: String, pageable: Pageable): Page<ShellScript>

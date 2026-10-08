@@ -1,5 +1,6 @@
 import "./App.css";
 import { useCallback, useEffect, useRef, useState } from "react";
+import debounce from "lodash/debounce";
 import dayjs from "dayjs";
 import {
     openMarkdownTab,
@@ -46,7 +47,6 @@ import {
 } from "./components/ui/dialog";
 import { Button } from "./components/ui/button";
 import { folderApi } from "./store/api/folderApi";
-import debounce from "lodash/debounce";
 
 /** Pixel width of the home-screen folder column. Values ≤ 50 are legacy percents. */
 const DEFAULT_FOLDER_COLUMN_WIDTH_PX = 280;
@@ -80,8 +80,23 @@ function App() {
     // -----------------------------------------------------------------------
     const searchText = useAppSelector((s) => s.app.rightPanel.search.searchText);
     const rightPanelMode = useAppSelector((s) => s.app.rightPanel.mode);
+
+    // Stay on history while typing; switch to search only after the query settles.
+    const enterSearchMode = useRef(
+        debounce(() => {
+            dispatch(setRightPanelMode("SEARCH"));
+            dispatch(openHistory());
+        }, 400)
+    ).current;
+
+    useEffect(() => {
+        return () => enterSearchMode.cancel();
+    }, [enterSearchMode]);
+
     const clearSearch = () => {
+        enterSearchMode.cancel();
         dispatch(setSearchText(""));
+        dispatch(setRightPanelMode("HISTORY"));
     };
 
     // -----------------------------------------------------------------------
@@ -657,10 +672,19 @@ function App() {
                             <input
                                 type="text"
                                 value={searchText}
-                                onChange={(e) => dispatch(setSearchText(e.target.value))}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    dispatch(setSearchText(value));
+                                    if (!value.trim()) {
+                                        enterSearchMode.cancel();
+                                        dispatch(setRightPanelMode("HISTORY"));
+                                        return;
+                                    }
+                                    enterSearchMode();
+                                }}
                                 onFocus={() => {
-                                    dispatch(setRightPanelMode("SEARCH"));
-                                    dispatch(openHistory());
+                                    if (!searchText.trim()) return;
+                                    enterSearchMode();
                                 }}
                                 placeholder="Search scripts…"
                                 className="h-8 w-44 focus:w-64 rounded-md border !border-1 border-gray-300 bg-white pl-7 pr-6 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:placeholder-neutral-400 dark:focus:ring-neutral-500 transition-[width] duration-300 ease-in-out"

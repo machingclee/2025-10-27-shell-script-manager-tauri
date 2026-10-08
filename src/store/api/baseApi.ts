@@ -14,6 +14,7 @@ export const baseApi = createApi({
         "Workspace",
         "WorkspaceDetail",
         "ScriptHistory",
+        "SearchResults",
         "EventLog",
     ],
     endpoints: (_builder) => ({}),

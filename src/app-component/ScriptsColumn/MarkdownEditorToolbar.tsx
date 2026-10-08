@@ -6,7 +6,7 @@ import type { MarkdownTabState } from "@/store/slices/appSlice";
 import { useWindowWidth } from "@/hooks/useWindowWidth";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlignLeft, Columns2, Globe, Eye, ListTree, Save } from "lucide-react";
+import { AlignLeft, Columns2, Globe, Eye, Save } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import { generateScriptHtml } from "@/lib/generateScriptHtml";
@@ -55,8 +55,6 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
     const hasChanges = tabState?.hasChanges ?? false;
     const edited = tabState?.edited ?? false;
     const editContent = editorState?.editContent ?? "";
-    const tocSidebarEnabled = tabState?.tocSidebarEnabled ?? false;
-    const tocAvailable = tabState?.tocSidebarAvailable ?? false;
     const maxAvailableInputWidth = Math.max(0, windowWidth - INPUT_HORIZONTAL_PADDING);
     const inputWidth = Math.min(getResponsiveInputWidth(windowWidth), maxAvailableInputWidth);
 
@@ -144,30 +142,6 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
                         </button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">Preview</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <button
-                            onClick={() =>
-                                tocAvailable &&
-                                patch({ tocSidebarEnabled: !tocSidebarEnabled })
-                            }
-                            disabled={!tocAvailable}
-                            aria-pressed={tocSidebarEnabled}
-                            className={`flex items-center gap-1 px-3 py-1.5 text-sm transition-colors rounded-none outline-none focus-visible:outline-none focus-visible:ring-0 ${
-                                !tocAvailable
-                                    ? "bg-transparent text-gray-600 cursor-default pointer-events-none"
-                                    : tocSidebarEnabled
-                                      ? "bg-neutral-600 text-white cursor-pointer"
-                                      : "bg-transparent text-gray-400 hover:text-white hover:bg-neutral-700 cursor-pointer"
-                            }`}
-                        >
-                            <ListTree className="w-3.5 h-3.5" />
-                        </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                        {tocAvailable ? "Contents" : "Contents (scroll to enable)"}
-                    </TooltipContent>
                 </Tooltip>
             </div>
             {/* Title / name input */}
