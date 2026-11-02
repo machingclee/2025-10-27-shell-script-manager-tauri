@@ -94,18 +94,16 @@ class ScriptsFolder(
 
     /**
      * Inserts [copy] immediately before [source].
-     * Every script's ordering is incremented, then every script that now sorts
-     * before [source] is decremented back. [copy] takes [source]'s original
-     * ordering, so copy.ordering = source.ordering - 1 afterward.
+     * Scripts from [source] onward move up by one. [copy] takes [source]'s
+     * original ordering, so copy.ordering = source.ordering - 1 afterward.
      */
     fun addDuplicateBefore(source: ShellScript, copy: ShellScript) {
         val managedSource = shellScripts.find { it.id == source.id }
             ?: throw IllegalArgumentException("Script is not in this folder")
         val originalOrdering = managedSource.ordering
-        shellScripts.forEach { it.ordering += 1 }
         shellScripts
-            .filter { it.ordering < managedSource.ordering }
-            .forEach { it.ordering -= 1 }
+            .filter { it.ordering >= originalOrdering }
+            .forEach { it.ordering += 1 }
         copy.ordering = originalOrdering
         shellScripts.add(copy)
     }
