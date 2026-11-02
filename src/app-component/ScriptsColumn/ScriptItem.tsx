@@ -9,6 +9,7 @@ import {
     Terminal,
     Link,
     FolderOpen,
+    Copy,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -68,6 +69,7 @@ export default function ScriptItem({
     const dispatch = useAppDispatch();
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateScript] = scriptApi.endpoints.updateScript.useMutation();
+    const [duplicateScript] = scriptApi.endpoints.duplicateScript.useMutation();
     const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
     const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
     const { data: appState } = appStateApi.endpoints.getAppState.useQueryState();
@@ -147,6 +149,12 @@ export default function ScriptItem({
     const handleExecuteClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         handleRun(e);
+    };
+
+    const handleDuplicate = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!script.id) return;
+        duplicateScript({ scriptId: script.id });
     };
 
     const handleUpdate = async () => {
@@ -403,6 +411,16 @@ export default function ScriptItem({
                     <Play className="w-4 h-4 mr-2" />
                     Execute
                 </ContextMenuItem>
+
+                {!isHistory && (
+                    <ContextMenuItem
+                        onClick={handleDuplicate}
+                        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                    >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Duplicate
+                    </ContextMenuItem>
+                )}
 
                 {!isHistory && !locked && (
                     <>

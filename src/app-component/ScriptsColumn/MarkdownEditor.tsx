@@ -280,6 +280,8 @@ export default function MarkdownEditor({
         onZoomReset: () => dispatch(setFontSize(BASE_FONT_SIZE)),
         onToggleView: () =>
             patch({ editViewMode: editViewMode === "preview" ? "mixed" : "preview" }),
+        onTogglePreviewPanel: () =>
+            patch({ editViewMode: editViewMode === "mixed" ? "plain" : "mixed" }),
     });
 
     const handleCheckboxToggle = useCallback(
@@ -475,10 +477,34 @@ export default function MarkdownEditor({
                 </div>
             )}
 
-            {/* Content */}
+            {/* Content. Cmd+B hides the editor with display/width only. Hiding the
+                preview does the same to the preview pane, so the editor is not remounted. */}
             <div className="flex-1 overflow-hidden">
-                {editViewMode === "plain" ? (
-                    <div className="relative h-full">
+                <div
+                    className="flex h-full"
+                    style={{ userSelect: isDragging ? "none" : undefined }}
+                >
+                    {/* Left: editor */}
+                    <div
+                        className="relative h-full flex-shrink-0"
+                        style={{
+                            width:
+                                editViewMode === "preview"
+                                    ? "0"
+                                    : editViewMode === "plain"
+                                      ? "100%"
+                                      : `${splitRatio}%`,
+                            overflow: "hidden",
+                            pointerEvents:
+                                editViewMode === "preview"
+                                    ? "none"
+                                    : isDragging
+                                      ? "none"
+                                      : undefined,
+                            userSelect: isDragging ? "none" : undefined,
+                            display: editViewMode === "preview" ? "none" : undefined,
+                        }}
+                    >
                         <MarkdownCodeEditor
                             editContent={editContent}
                             fontSize={fontSize}
@@ -493,79 +519,51 @@ export default function MarkdownEditor({
                             onScrollPreviewToLine={scrollPreviewToLine}
                         />
                     </div>
-                ) : (
+
+                    {/* Divider */}
                     <div
-                        className="flex h-full"
-                        style={{ userSelect: isDragging ? "none" : undefined }}
+                        className="w-1 cursor-col-resize bg-neutral-600 hover:bg-blue-500 flex-shrink-0 transition-colors"
+                        style={{ display: editViewMode === "mixed" ? undefined : "none" }}
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            isDraggingRef.current = true;
+                            setIsDragging(true);
+                            document.body.style.userSelect = "none";
+                            document.body.style.cursor = "col-resize";
+                            window.getSelection()?.removeAllRanges();
+                        }}
+                    />
+
+                    {/* Right: live preview */}
+                    <div
+                        className="h-full"
+                        style={{
+                            width:
+                                editViewMode === "preview"
+                                    ? "100%"
+                                    : editViewMode === "plain"
+                                      ? "0"
+                                      : `${100 - splitRatio}%`,
+                            overflow: "hidden",
+                            pointerEvents: editViewMode === "plain" ? "none" : undefined,
+                            display: editViewMode === "plain" ? "none" : undefined,
+                        }}
                     >
-                        {/* Left: editor */}
-                        <div
-                            className="relative h-full flex-shrink-0"
-                            style={{
-                                width: editViewMode === "preview" ? "0" : `${splitRatio}%`,
-                                overflow: "hidden",
-                                pointerEvents:
-                                    editViewMode === "preview"
-                                        ? "none"
-                                        : isDragging
-                                          ? "none"
-                                          : undefined,
-                                userSelect: isDragging ? "none" : undefined,
-                                display: editViewMode === "preview" ? "none" : undefined,
-                            }}
-                        >
-                            <MarkdownCodeEditor
-                                editContent={editContent}
-                                fontSize={fontSize}
-                                savedScrollTop={savedEditorScrollRef.current}
-                                editorRef={monacoEditorRef}
-                                onChange={(code) => {
-                                    setEditContent(code);
-                                    latestContentRef.current = code;
-                                    patch({ hasChanges: true, edited: false });
-                                    pushHistory(code);
-                                }}
-                                onScrollPreviewToLine={scrollPreviewToLine}
-                            />
-                        </div>
-
-                        {/* Divider */}
-                        <div
-                            className="w-1 cursor-col-resize bg-neutral-600 hover:bg-blue-500 flex-shrink-0 transition-colors"
-                            style={{ display: editViewMode === "preview" ? "none" : undefined }}
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                isDraggingRef.current = true;
-                                setIsDragging(true);
-                                document.body.style.userSelect = "none";
-                                document.body.style.cursor = "col-resize";
-                                window.getSelection()?.removeAllRanges();
-                            }}
+                        <MarkdownPreviewer
+                            editContent={editContent}
+                            fontSize={fontSize}
+                            imagesDir={imagesDir}
+                            previewBoxRef={previewBoxRef}
+                            editorRef={monacoEditorRef}
+                            latestContentRef={latestContentRef}
+                            onImageWidthChange={handleImageWidthChange}
+                            onCheckboxToggle={handleCheckboxToggle}
+                            searchOpen={previewSearchOpen}
+                            searchInputRef={previewSearchInputRef}
+                            onSearchClose={() => setPreviewSearchOpen(false)}
                         />
-
-                        {/* Right: live preview */}
-                        <div
-                            className="h-full"
-                            style={{
-                                width: editViewMode === "preview" ? "100%" : `${100 - splitRatio}%`,
-                            }}
-                        >
-                            <MarkdownPreviewer
-                                editContent={editContent}
-                                fontSize={fontSize}
-                                imagesDir={imagesDir}
-                                previewBoxRef={previewBoxRef}
-                                editorRef={monacoEditorRef}
-                                latestContentRef={latestContentRef}
-                                onImageWidthChange={handleImageWidthChange}
-                                onCheckboxToggle={handleCheckboxToggle}
-                                searchOpen={previewSearchOpen}
-                                searchInputRef={previewSearchInputRef}
-                                onSearchClose={() => setPreviewSearchOpen(false)}
-                            />
-                        </div>
                     </div>
-                )}
+                </div>
             </div>
             <SaveLocationDialog
                 open={saveLocationOpen}

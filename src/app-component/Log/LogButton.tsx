@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollText } from "lucide-react";
 import { useAppDispatch } from "@/store/hooks";
 import { openHistory } from "@/store/slices/historySlice";
-import { setRightPanelMode } from "@/store/slices/appSlice";
+import { HOME_TAB_ID, setActiveTab, setRightPanelMode } from "@/store/slices/appSlice";
 
 export default function LogButton() {
     const dispatch = useAppDispatch();
@@ -15,6 +15,7 @@ export default function LogButton() {
             onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
+                dispatch(setActiveTab(HOME_TAB_ID));
                 dispatch(setRightPanelMode("LOG"));
                 dispatch(openHistory());
             }}

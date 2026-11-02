@@ -248,6 +248,61 @@ class ScriptTest(
 
     @Test
     @Transactional
+    fun `Should duplicate shell script into the same folder`() {
+        val folder = commandInvoker.invoke(CreateFolderCommand("DupFolder_${System.currentTimeMillis()}"))
+        val script = commandInvoker.invoke(
+            CreateScriptCommand(
+                folderId = folder.id!!,
+                name = "Original",
+                content = "echo 'duplicate me'"
+            )
+        )
+        commandInvoker.invoke(
+            UpdateScriptCommand(
+                id = script.id!!,
+                name = "Original",
+                command = "echo 'duplicate me'",
+                showShell = true,
+                locked = true
+            )
+        )
+
+        val copy = commandInvoker.invoke(DuplicateScriptCommand(scriptId = script.id!!))
+
+        assertNotNull(copy.id)
+        assertNotEquals(script.id, copy.id)
+        assertEquals("Original copy", copy.name)
+        assertEquals("echo 'duplicate me'", copy.command)
+        assertTrue(copy.showShell)
+        assertFalse(copy.locked)
+        assertFalse(copy.isMarkdown)
+        assertEquals(folder.id, copy.parentFolderId)
+        assertEquals(0, copy.ordering)
+
+        val original = scriptRepository.findById(script.id!!).orElse(null)
+        assertNotNull(original)
+        assertEquals(true, original.locked)
+        assertEquals(1, original.ordering)
+
+        val reloadedFolder = folderRepository.findById(folder.id!!).orElse(null)
+        assertNotNull(reloadedFolder)
+        assertTrue(reloadedFolder.shellScripts.any { it.id == script.id })
+        assertTrue(reloadedFolder.shellScripts.any { it.id == copy.id })
+
+        val second = commandInvoker.invoke(DuplicateScriptCommand(scriptId = script.id!!))
+        assertEquals("Original copy 2", second.name)
+        assertEquals(folder.id, second.parentFolderId)
+        assertFalse(second.locked)
+        assertEquals(1, second.ordering)
+        assertEquals(2, scriptRepository.findById(script.id!!).orElseThrow().ordering)
+        assertEquals(0, scriptRepository.findById(copy.id!!).orElseThrow().ordering)
+
+        val events = eventRepository.findAll().filter { it.eventType == "ScriptDuplicatedEvent" }
+        assertEquals(2, events.size)
+    }
+
+    @Test
+    @Transactional
     fun `Should create script history`() {
         // Arrange - Create folder and script
         val folder = commandInvoker.invoke(CreateFolderCommand("HistoryFolder_${System.currentTimeMillis()}"))

@@ -111,7 +111,7 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
                             <AlignLeft className="w-3.5 h-3.5" />
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Plain Text</TooltipContent>
+                    <TooltipContent side="bottom">Plain Text (⌘⌥B)</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                     <TooltipTrigger asChild>
@@ -126,7 +126,7 @@ export default function MarkdownEditorToolbar({ scriptId, port }: Props) {
                             <Columns2 className="w-3.5 h-3.5" />
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Mixed</TooltipContent>
+                    <TooltipContent side="bottom">Editor + Preview (⌘⌥B)</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                     <TooltipTrigger asChild>

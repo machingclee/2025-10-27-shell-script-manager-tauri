@@ -133,6 +133,20 @@ class ScriptController(
         return ApiResponse()
     }
 
+    @Operation(
+        summary = "Duplicate a shell script",
+        description = "Creates a copy of a shell script in the same folder"
+    )
+    @PostMapping("/{id}/duplicate")
+    fun duplicateScript(
+        @Parameter(description = "Script ID", required = true)
+        @PathVariable id: Int
+    ): ApiResponse<ShellScriptResponse> {
+        val command = DuplicateScriptCommand(scriptId = id)
+        val result = commandInvoker.invoke(command)
+        return ApiResponse(result)
+    }
+
     @Operation(summary = "Move script to folder", description = "Moves a script to a different folder")
     @PutMapping("/{scriptId}/folder/{folderId}/move")
     fun moveScriptToFolder(

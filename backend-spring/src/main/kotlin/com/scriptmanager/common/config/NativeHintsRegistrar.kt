@@ -34,6 +34,7 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             ScriptDeletedEvent::class.java,
             ScriptsReorderedEvent::class.java,
             ScriptMovedToFolderEvent::class.java,
+            ScriptDuplicatedEvent::class.java,
             WorkspaceCreatedEvent::class.java,
             WorkspaceUpdatedEvent::class.java,
             WorkspaceStatusUpdatedEvent::class.java,
@@ -76,7 +77,8 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             MoveFolderToWorkspaceCommand::class.java,
             AddSubfolderCommand::class.java,
             RemoveFolderFromWorkspaceCommand::class.java,
-            MoveScriptToFolderCommand::class.java
+            MoveScriptToFolderCommand::class.java,
+            DuplicateScriptCommand::class.java
         )
 
         // Register Entity/DTO classes

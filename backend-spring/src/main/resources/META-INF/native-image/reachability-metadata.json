@@ -2820,6 +2820,18 @@
       "queryAllDeclaredMethods": true
     },
     {
+      "type": "com.scriptmanager.boundedcontext.scriptmanager.commandhandler.DuplicateScriptHandler",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "allRecordComponents": true,
+      "queryAllPublicMethods": true,
+      "queryAllDeclaredMethods": true
+    },
+    {
       "type": "com.scriptmanager.boundedcontext.scriptmanager.commandhandler.MoveFolderToWorkspaceHandler",
       "allDeclaredConstructors": true,
       "allPublicConstructors": true,
@@ -3480,6 +3492,18 @@
       "queryAllDeclaredMethods": true
     },
     {
+      "type": "com.scriptmanager.boundedcontext.scriptmanager.command.script.DuplicateScriptCommand",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "allRecordComponents": true,
+      "queryAllPublicMethods": true,
+      "queryAllDeclaredMethods": true
+    },
+    {
       "type": "com.scriptmanager.boundedcontext.scriptmanager.command.script.MoveScriptToFolderCommand",
       "allDeclaredConstructors": true,
       "allPublicConstructors": true,
@@ -3745,6 +3769,18 @@
     },
     {
       "type": "com.scriptmanager.boundedcontext.scriptmanager.event.ScriptDeletedEvent",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "allRecordComponents": true,
+      "queryAllPublicMethods": true,
+      "queryAllDeclaredMethods": true
+    },
+    {
+      "type": "com.scriptmanager.boundedcontext.scriptmanager.event.ScriptDuplicatedEvent",
       "allDeclaredConstructors": true,
       "allPublicConstructors": true,
       "allDeclaredMethods": true,
