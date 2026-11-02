@@ -234,12 +234,16 @@ function ResizableImage({
 // ─── TOC utilities ────────────────────────────────────────────────────────────
 
 function slugify(text: string): string {
-    return text
+    // Keep letters from every script. `\w` is ASCII-only in JavaScript, so a
+    // Chinese heading would otherwise slug to "" and `querySelector("#")` throws,
+    // which blanks the whole preview.
+    const slug = text
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s-]/g, "")
+        .replace(/[^\p{L}\p{N}\s_-]/gu, "")
         .replace(/[\s_]+/g, "-")
         .replace(/^-+|-+$/g, "");
+    return slug || "section";
 }
 
 function extractNodeText(node: any): string {
@@ -316,9 +320,14 @@ function TocList({
 
     useEffect(() => {
         if (!activeId || !tocListRef.current) return;
-        const item = tocListRef.current.querySelector<HTMLElement>(
-            `[data-toc-id="${CSS.escape(activeId)}"]`,
-        );
+        let item: HTMLElement | null = null;
+        try {
+            item = tocListRef.current.querySelector<HTMLElement>(
+                `[data-toc-id="${CSS.escape(activeId)}"]`,
+            );
+        } catch {
+            return;
+        }
         item?.scrollIntoView({ block: "nearest" });
     }, [activeId]);
 
@@ -362,7 +371,12 @@ function TocList({
                             e.preventDefault();
                             const container = previewBoxRef.current;
                             if (!container) return;
-                            const el = container.querySelector(`#${CSS.escape(h.id)}`);
+                            let el: Element | null = null;
+                            try {
+                                el = container.querySelector(`#${CSS.escape(h.id)}`);
+                            } catch {
+                                return;
+                            }
                             if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
                         }}
                     >
@@ -624,6 +638,8 @@ export default function MarkdownPreviewer({
 
     const tocHeadings = useMemo(() => extractHeadingsFromMd(editContent), [editContent]);
     const tocAvailableRef = useRef(false);
+    // A manual collapse stays until the contents control is clicked again.
+    const [tocCollapsed, setTocCollapsed] = useState(false);
 
     useEffect(() => {
         const container = previewBoxRef.current;
@@ -646,7 +662,12 @@ export default function MarkdownPreviewer({
             // the viewport top, so the highlight moves before the heading arrives.
             let activeId: string | null = null;
             for (const heading of tocHeadings) {
-                const el = container.querySelector<HTMLElement>(`#${CSS.escape(heading.id)}`);
+                let el: HTMLElement | null = null;
+                try {
+                    el = container.querySelector<HTMLElement>(`#${CSS.escape(heading.id)}`);
+                } catch {
+                    continue;
+                }
                 if (!el) continue;
                 if (el.getBoundingClientRect().top - containerTop <= TOC_ACTIVE_LEAD)
                     activeId = heading.id;
@@ -949,10 +970,58 @@ export default function MarkdownPreviewer({
 
     // ── Render ────────────────────────────────────────────────────────────────
 
-    const showTocSidebar = tocSidebarAvailable && tocHeadings.length > 0;
+    const tocReady = tocSidebarAvailable && tocHeadings.length > 0;
+    // A manual hide wins over the scroll-out rule. The list stays closed until
+    // the icon is clicked, even after the inline contents leaves the viewport.
+    const showTocSidebar = tocReady && !tocCollapsed;
+
+    const onToggleTocCollapsed = useCallback(() => {
+        setTocCollapsed((collapsed) => !collapsed);
+    }, []);
+
+    const contentsButtonStyle = {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "6px 8px",
+        flexShrink: 0,
+        width: "100%",
+        font: "inherit",
+        border: "none",
+        borderRadius: 0,
+        boxShadow: "none",
+        background: "transparent",
+        color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
+        cursor: "pointer",
+        textAlign: "left" as const,
+    };
 
     return (
         <div className="h-full flex">
+            {tocReady && tocCollapsed && (
+                <button
+                    type="button"
+                    onClick={onToggleTocCollapsed}
+                    title="Show contents"
+                    aria-expanded={false}
+                    style={{
+                        ...contentsButtonStyle,
+                        alignSelf: "flex-start",
+                        width: "auto",
+                        height: "auto",
+                    }}
+                    onMouseEnter={(e) =>
+                        (e.currentTarget.style.background = previewDarkMode
+                            ? "rgba(255,255,255,0.08)"
+                            : "rgba(0,0,0,0.06)")
+                    }
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                    <span style={{ display: "flex", padding: "2px 4px", lineHeight: 1 }}>
+                        <ListTree size={15} />
+                    </span>
+                </button>
+            )}
             {showTocSidebar && (
                 <div
                     style={{
@@ -968,18 +1037,23 @@ export default function MarkdownPreviewer({
                         overflowX: "hidden",
                     }}
                 >
-                    <div
+                    <button
+                        type="button"
+                        onClick={onToggleTocCollapsed}
+                        title="Hide contents"
+                        aria-expanded
                         style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            padding: "6px 8px",
-                            flexShrink: 0,
+                            ...contentsButtonStyle,
                             borderBottom: previewDarkMode
                                 ? "1px solid rgba(255,255,255,0.10)"
                                 : "1px solid rgba(0,0,0,0.08)",
-                            color: previewDarkMode ? "rgb(212,212,212)" : "rgb(50,50,50)",
                         }}
+                        onMouseEnter={(e) =>
+                            (e.currentTarget.style.background = previewDarkMode
+                                ? "rgba(255,255,255,0.08)"
+                                : "rgba(0,0,0,0.06)")
+                        }
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                     >
                         <span style={{ display: "flex", padding: "2px 4px", lineHeight: 1 }}>
                             <ListTree size={15} />
@@ -989,13 +1063,14 @@ export default function MarkdownPreviewer({
                                 fontWeight: 600,
                                 opacity: 0.6,
                                 fontSize: "0.75em",
+                                whiteSpace: "nowrap",
                                 textTransform: "uppercase",
                                 letterSpacing: "0.05em",
                             }}
                         >
                             Contents
                         </span>
-                    </div>
+                    </button>
                     <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
                         <OverlayScrollbar
                             style={{ flex: 1, minWidth: 0 }}
@@ -1165,6 +1240,10 @@ export default function MarkdownPreviewer({
                     userSelect: "text",
                     cursor: "text",
                     overflowY: "auto",
+                    // :root sets font-synthesis: none. CJK faces ship no italic glyphs,
+                    // so without synthesis <em> on Chinese (***複現***) renders upright and
+                    // looks identical to plain bold.
+                    fontSynthesis: "style",
                     backgroundColor: previewDarkMode ? "rgb(25, 25, 25)" : "rgb(248, 249, 250)",
                     color: previewDarkMode ? "rgb(212, 212, 212)" : "rgb(30, 30, 30)",
                     padding: "48px 24px 48px 24px",

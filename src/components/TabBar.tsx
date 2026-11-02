@@ -69,10 +69,10 @@ function TabPill({
             }}
             onClick={onActivate}
             className={cn(
-                "w-full flex flex-1 items-center gap-1.5 px-3 h-8 select-none rounded-t border-t border-l border-r transition-colors",
+                "w-full flex flex-1 items-center gap-1.5 px-3 h-8 select-none rounded-md border transition-colors",
                 tab.type !== "home" && "cursor-grab active:cursor-grabbing",
                 isActive
-                    ? "bg-neutral-800 text-white border-neutral-700"
+                    ? "bg-[#505052] text-white border-[#505052]"
                     : "bg-transparent text-neutral-500 border-transparent hover:text-neutral-200 hover:bg-neutral-800/40"
             )}
         >
@@ -176,9 +176,9 @@ export default function TabBar() {
                 {activeDragTab ? (
                     <div
                         className={cn(
-                            "flex items-center gap-1.5 px-3 h-8 select-none rounded-t border-t border-l border-r",
+                            "flex items-center gap-1.5 px-3 h-8 select-none rounded-md border",
                             activeDragTab.scriptId === activeTabId
-                                ? "bg-neutral-700 text-white border-neutral-600"
+                                ? "bg-[#505052] text-white border-[#505052]"
                                 : "bg-neutral-800 text-neutral-200 border-neutral-600",
                             "shadow-lg opacity-90"
                         )}

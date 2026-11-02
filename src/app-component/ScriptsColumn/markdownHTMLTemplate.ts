@@ -11,7 +11,7 @@ export default function markdownHTMLTemplate(props: { scriptName: string; bodyHt
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; background: #ffffff; color: #1f2328; line-height: 1.7; }
     #toc-sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 320px; display: none; flex-direction: column; background: rgba(255,255,255,0.85); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); border-right: 1px solid rgba(0,0,0,0.10); box-shadow: 0 2px 8px rgba(0,0,0,0.08); z-index: 20; overflow: hidden; }
-    #toc-sidebar.toc-open { display: flex; }
+    #toc-sidebar.toc-open, #toc-sidebar.toc-collapsed { display: flex; }
     #toc-sidebar-head { display: flex; align-items: center; gap: 6px; padding: 6px 8px; flex-shrink: 0; border-bottom: 1px solid rgba(0,0,0,0.08); cursor: pointer; }
     #toc-sidebar.toc-collapsed { width: auto; bottom: auto; }
     #toc-sidebar.toc-collapsed #toc-sidebar-head { border-bottom: none; }
@@ -214,11 +214,13 @@ export default function markdownHTMLTemplate(props: { scriptName: string; bodyHt
     function applyState() {
       // With an inline contents block, wait until its bottom edge has scrolled
       // past the top of the viewport. Otherwise show on any scroll.
-      var show = inline
+      var scrolledOut = inline
         ? inline.getBoundingClientRect().bottom < 0
         : window.scrollY > 0;
+      // A manual hide stays hidden. Scrolling the contents away must not open it.
+      var show = scrolledOut && enabled;
       sidebar.classList.toggle('toc-open', show);
-      sidebar.classList.toggle('toc-collapsed', !enabled);
+      sidebar.classList.toggle('toc-collapsed', scrolledOut && !enabled);
       if (body) body.hidden = !enabled;
       if (title) title.hidden = !enabled;
       toggle.title = enabled ? 'Hide contents' : 'Show contents';

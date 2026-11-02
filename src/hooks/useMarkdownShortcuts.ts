@@ -21,6 +21,8 @@ export interface MarkdownShortcutOptions {
     onZoomReset?: () => void;
     /** Cmd/Ctrl + B — toggle between mixed and preview mode */
     onToggleView?: () => void;
+    /** Cmd/Ctrl + Opt/Alt + B — toggle the right preview pane (plain ↔ mixed) */
+    onTogglePreviewPanel?: () => void;
 }
 
 /**
@@ -42,6 +44,7 @@ export function useMarkdownShortcuts({
     onZoomOut,
     onZoomReset,
     onToggleView,
+    onTogglePreviewPanel,
 }: MarkdownShortcutOptions) {
     useEffect(() => {
         if (!enabled) return;
@@ -54,6 +57,20 @@ export function useMarkdownShortcuts({
             }
 
             if (!(e.metaKey || e.ctrlKey)) return;
+
+            // Option remaps e.key (Cmd+Opt+B reports "∫" on a US layout), so match the
+            // physical key. Checked before Cmd+B so the two shortcuts stay distinct.
+            if (
+                e.altKey &&
+                !e.shiftKey &&
+                !e.repeat &&
+                e.code === "KeyB" &&
+                onTogglePreviewPanel
+            ) {
+                e.preventDefault();
+                onTogglePreviewPanel();
+                return;
+            }
 
             if (e.key === "s" && onSave) {
                 e.preventDefault();
@@ -97,7 +114,7 @@ export function useMarkdownShortcuts({
                 return;
             }
 
-            if (e.key === "b" && onToggleView) {
+            if (e.key === "b" && !e.altKey && onToggleView) {
                 e.preventDefault();
                 onToggleView();
                 return;
@@ -117,5 +134,6 @@ export function useMarkdownShortcuts({
         onZoomOut,
         onZoomReset,
         onToggleView,
+        onTogglePreviewPanel,
     ]);
 }

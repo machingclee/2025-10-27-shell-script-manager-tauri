@@ -16,12 +16,15 @@ const TERMINAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height=
 // ─── TOC utilities ────────────────────────────────────────────────────────────
 
 function slugify(text: string): string {
-    return text
+    // Keep letters from every script. `\w` is ASCII-only in JavaScript, so a
+    // Chinese heading would otherwise slug to "" — an id no anchor can target.
+    const slug = text
         .toLowerCase()
         .trim()
-        .replace(/[^\w\s-]/g, "")
+        .replace(/[^\p{L}\p{N}\s_-]/gu, "")
         .replace(/[\s_]+/g, "-")
         .replace(/^-+|-+$/g, "");
+    return slug || "section";
 }
 
 function escapeHtml(text: string): string {

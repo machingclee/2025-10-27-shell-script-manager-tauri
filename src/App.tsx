@@ -7,6 +7,7 @@ import {
     closeTab,
     reopenLastClosedTab,
     HOME_TAB_ID,
+    setActiveTab,
     setSearchText,
     setRightPanelMode,
     patchTabState,
@@ -32,7 +33,6 @@ import HistoryPanel from "./app-component/History/HistoryPanel";
 import LogButton from "./app-component/Log/LogButton";
 import LogPanel from "./app-component/Log/LogPanel";
 import SearchPanel from "./app-component/History/SearchPanel";
-import QuickNavDropdown from "./app-component/ScriptsColumn/QuickNavDropdown";
 import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
@@ -97,7 +97,12 @@ function App() {
         enterSearchMode.cancel();
         dispatch(setSearchText(""));
         dispatch(setRightPanelMode("HISTORY"));
+        dispatch(setActiveTab(HOME_TAB_ID));
     };
+
+    const returnHome = useCallback(() => {
+        dispatch(setActiveTab(HOME_TAB_ID));
+    }, [dispatch]);
 
     // -----------------------------------------------------------------------
     // Tab system (state lives in Redux)
@@ -649,7 +654,6 @@ function App() {
                             {isFullscreen ? "−" : "+"}
                         </span>
                     </button>
-                    <QuickNavDropdown />
                     <div
                         className="flex items-center flex-1 "
                         onMouseDown={(e) => e.stopPropagation()}
@@ -658,68 +662,69 @@ function App() {
                     </div>
                 </div>
 
-                {/* Right-side controls */}
-                {activeTabId === HOME_TAB_ID && (
-                    <div className="flex-1 right-4 z-10 flex items-center gap-2 px-4 justify-end">
-                        <div
-                            className="relative flex items-center"
-                            style={{
-                                opacity: rightPanelMode === "SEARCH" ? 1 : 0.5,
-                                transition: "opacity 0.2s ease",
+                {/* Right-side controls — stay available on markdown tabs and return home */}
+                <div className="flex-1 right-4 z-10 flex items-center gap-2 px-4 justify-end">
+                    <div
+                        className="relative flex items-center"
+                        style={{
+                            opacity: rightPanelMode === "SEARCH" ? 1 : 0.5,
+                            transition: "opacity 0.2s ease",
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <input
+                            type="text"
+                            value={searchText}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                dispatch(setSearchText(value));
+                                returnHome();
+                                if (!value.trim()) {
+                                    enterSearchMode.cancel();
+                                    dispatch(setRightPanelMode("HISTORY"));
+                                    return;
+                                }
+                                enterSearchMode();
                             }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                        >
-                            <input
-                                type="text"
-                                value={searchText}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    dispatch(setSearchText(value));
-                                    if (!value.trim()) {
-                                        enterSearchMode.cancel();
-                                        dispatch(setRightPanelMode("HISTORY"));
-                                        return;
-                                    }
-                                    enterSearchMode();
-                                }}
-                                onFocus={() => {
-                                    if (!searchText.trim()) return;
-                                    enterSearchMode();
-                                }}
-                                placeholder="Search scripts…"
-                                className="h-8 w-44 focus:w-64 rounded-md border !border-1 border-gray-300 bg-white pl-7 pr-6 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:placeholder-neutral-400 dark:focus:ring-neutral-500 transition-[width] duration-300 ease-in-out"
-                            />
-                            <Search className="absolute left-2 w-3.5 h-3.5 text-gray-400 dark:text-neutral-400 pointer-events-none" />
-                            {searchText && (
-                                <button
-                                    tabIndex={-1}
-                                    onClick={clearSearch}
-                                    className="text-[18px] absolute right-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-neutral-400 dark:hover:text-neutral-200 bg-transparent active:bg-transparent focus:outline-none"
-                                    aria-label="Clear search"
-                                >
-                                    ×
-                                </button>
-                            )}
-                        </div>
-                        <div
-                            style={{
-                                opacity: rightPanelMode === "LOG" ? 1 : 0.3,
-                                transition: "opacity 0.2s ease",
+                            onFocus={() => {
+                                returnHome();
+                                if (!searchText.trim()) return;
+                                enterSearchMode();
                             }}
-                            onMouseDown={(e) => e.stopPropagation()}
-                        >
-                            <LogButton />
-                        </div>
-                        <div
-                            style={{
-                                opacity: rightPanelMode === "HISTORY" ? 1 : 0.3,
-                                transition: "opacity 0.2s ease",
-                            }}
-                        >
-                            <HistoryButton />
-                        </div>
+                            placeholder="Search scripts…"
+                            className="h-8 w-44 focus:w-64 rounded-md border !border-1 border-gray-300 bg-white pl-7 pr-6 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:placeholder-neutral-400 dark:focus:ring-neutral-500 transition-[width] duration-300 ease-in-out"
+                        />
+                        <Search className="absolute left-2 w-3.5 h-3.5 text-gray-400 dark:text-neutral-400 pointer-events-none" />
+                        {searchText && (
+                            <button
+                                tabIndex={-1}
+                                onClick={clearSearch}
+                                className="text-[18px] absolute right-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-neutral-400 dark:hover:text-neutral-200 bg-transparent active:bg-transparent focus:outline-none"
+                                aria-label="Clear search"
+                            >
+                                ×
+                            </button>
+                        )}
                     </div>
-                )}
+                    <div
+                        style={{
+                            opacity: rightPanelMode === "LOG" ? 1 : 0.3,
+                            transition: "opacity 0.2s ease",
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <LogButton />
+                    </div>
+                    <div
+                        style={{
+                            opacity: rightPanelMode === "HISTORY" ? 1 : 0.3,
+                            transition: "opacity 0.2s ease",
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <HistoryButton />
+                    </div>
+                </div>
             </div>
             {/* Tab bar */}
 

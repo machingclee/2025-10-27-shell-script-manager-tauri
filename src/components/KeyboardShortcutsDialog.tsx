@@ -24,6 +24,7 @@ const SECTIONS: ShortcutSection[] = [
             { keys: ["⌘", "W"], description: "Close / Dismiss" },
             { keys: ["⌘", "F"], description: "Find in document" },
             { keys: ["⌘", "B"], description: "Toggle Mixed / Preview mode" },
+            { keys: ["⌘", "⌥", "B"], description: "Toggle plain editor / editor + preview" },
             { keys: ["⌘", "D"], description: "Edit all occurrences of selection" },
             { keys: ["⌘", "="], description: "Zoom In" },
             { keys: ["⌘", "−"], description: "Zoom Out" },

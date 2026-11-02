@@ -45,6 +45,13 @@ export const scriptApi = baseApi.injectEndpoints({
             }),
             providesTags: (_result, _error, id) => [{ type: "Script", id }],
         }),
+        duplicateScript: builder.mutation<ShellScriptResponse, { scriptId: number }>({
+            query: ({ scriptId }) => ({
+                url: `/scripts/${scriptId}/duplicate`,
+                method: "POST",
+            }),
+            invalidatesTags: ["FolderContent", "Folder"],
+        }),
         createScript: builder.mutation<ShellScriptResponse, CreateScriptRequest>({
             query: (request) => ({
                 url: "/scripts",
