@@ -70,13 +70,18 @@ interface TabState {
     closedMarkdownQueue: { scriptId: number; scriptName: string }[];
 }
 
+export type RightPanelMode = "SEARCH" | "HISTORY" | "LOG" | "TAG";
+export type SearchMode = "content" | "tags";
+
 interface AppState {
     tab: TabState;
     rightPanel: {
-        mode: "SEARCH" | "HISTORY" | "LOG";
+        mode: RightPanelMode;
         search: {
             searchText: string;
             searchPage: number;
+            mode: SearchMode;
+            tagIds: number[];
         };
     };
 }
@@ -99,6 +104,8 @@ const initialState: AppState = {
         search: {
             searchText: "",
             searchPage: 0,
+            mode: "content",
+            tagIds: [],
         },
     },
 };
@@ -238,7 +245,16 @@ const appSlice = createSlice({
         setSearchPage(state, action: PayloadAction<number>) {
             state.rightPanel.search.searchPage = action.payload;
         },
-        setRightPanelMode(state, action: PayloadAction<"SEARCH" | "HISTORY" | "LOG">) {
+        setSearchMode(state, action: PayloadAction<SearchMode>) {
+            state.rightPanel.search.mode = action.payload;
+            state.rightPanel.search.searchPage = 0;
+        },
+        setSearchTagIds(state, action: PayloadAction<number[]>) {
+            state.rightPanel.search.tagIds = action.payload;
+            state.rightPanel.search.mode = "tags";
+            state.rightPanel.search.searchPage = 0;
+        },
+        setRightPanelMode(state, action: PayloadAction<RightPanelMode>) {
             state.rightPanel.mode = action.payload;
         },
         renameTab(state, action: PayloadAction<{ scriptId: number; scriptName: string }>) {
@@ -265,6 +281,8 @@ export const {
     reopenLastClosedTab,
     setSearchText,
     setSearchPage,
+    setSearchMode,
+    setSearchTagIds,
     setRightPanelMode,
     renameTab,
 } = appSlice.actions;

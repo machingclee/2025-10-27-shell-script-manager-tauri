@@ -53,4 +53,16 @@ class ShellScript(
         inverseJoinColumns = [JoinColumn(name = "scripts_folder_id", referencedColumnName = "id", insertable = false, updatable = false)]
     )
     var parentFolder: ScriptsFolder? = null
+
+    // Owning side. JoinColumn insertable/updatable stay at their default, true,
+    // so assignedTags.add() inserts rel_shellscript_tag. ALL also persists a new
+    // assigned_tag and removes those rows when the script is deleted. The Tag
+    // catalog is a separate association and is not cascaded.
+    @OneToMany(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @JoinTable(
+        name = "rel_shellscript_tag",
+        joinColumns = [JoinColumn(name = "shell_script_id", referencedColumnName = "id")],
+        inverseJoinColumns = [JoinColumn(name = "assigned_tag_id", referencedColumnName = "id")]
+    )
+    var assignedTags: MutableSet<AssignedTag> = mutableSetOf()
 }

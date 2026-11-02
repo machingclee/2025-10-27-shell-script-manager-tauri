@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, FolderOpen, Loader2, Terminal } from "lucide-react";
+import { FileText, FolderOpen, Loader2, Tag, Terminal } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit } from "@tauri-apps/api/event";
 import {
@@ -13,6 +13,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 import { appStateApi } from "@/store/api/appStateApi";
 import { scriptApi } from "@/store/api/scriptApi";
+import AssignTagDialog from "@/app-component/ScriptsColumn/AssignTagDialog";
+import type { ScriptAssignedTag } from "@/types/dto";
 
 type SearchResultScript = {
     id?: number | null;
@@ -20,6 +22,7 @@ type SearchResultScript = {
     command?: string;
     showShell?: boolean;
     isMarkdown: boolean;
+    assignedTags?: ScriptAssignedTag[];
 };
 
 /**
@@ -41,6 +44,7 @@ export default function SearchResultItem({
 }) {
     const dispatch = useAppDispatch();
     const [isSelected, setIsSelected] = useState(false);
+    const [isAssignTagOpen, setIsAssignTagOpen] = useState(false);
     const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
     const [notifyScriptExecuted] = scriptApi.endpoints.notifyScriptExecuted.useMutation();
     const { data: appState } = appStateApi.endpoints.getAppState.useQueryState();
@@ -106,6 +110,7 @@ export default function SearchResultItem({
     };
 
     return (
+        <>
         <ContextMenu>
             <ContextMenuTrigger asChild>
                 <div
@@ -154,7 +159,26 @@ export default function SearchResultItem({
                     <FolderOpen className="w-4 h-4 mr-2" />
                     Go to root folder
                 </ContextMenuItem>
+                {script.id != null && (
+                    <ContextMenuItem
+                        onClick={() => setIsAssignTagOpen(true)}
+                        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                    >
+                        <Tag className="w-4 h-4 mr-2" />
+                        Assign Tag
+                    </ContextMenuItem>
+                )}
             </ContextMenuContent>
         </ContextMenu>
+        {script.id != null && (
+            <AssignTagDialog
+                open={isAssignTagOpen}
+                onOpenChange={setIsAssignTagOpen}
+                scriptId={script.id}
+                scriptName={script.name}
+                assignedTags={script.assignedTags}
+            />
+        )}
+        </>
     );
 }

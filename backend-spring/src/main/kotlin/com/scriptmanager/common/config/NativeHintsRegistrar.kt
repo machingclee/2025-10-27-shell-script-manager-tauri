@@ -3,8 +3,10 @@ package com.scriptmanager.common.config
 import com.scriptmanager.boundedcontext.scriptmanager.command.appstate.UpdateAppStateCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.*
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
+import com.scriptmanager.boundedcontext.scriptmanager.command.tag.*
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.*
 import com.scriptmanager.boundedcontext.scriptmanager.event.*
+import com.scriptmanager.common.dto.ScriptAssignedTagResponse
 import com.scriptmanager.common.entity.*
 import org.springframework.aot.hint.MemberCategory
 import org.springframework.aot.hint.RuntimeHints
@@ -34,6 +36,7 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             ScriptDeletedEvent::class.java,
             ScriptsReorderedEvent::class.java,
             ScriptMovedToFolderEvent::class.java,
+            TagAssignedToScriptEvent::class.java,
             ScriptDuplicatedEvent::class.java,
             WorkspaceCreatedEvent::class.java,
             WorkspaceUpdatedEvent::class.java,
@@ -47,7 +50,14 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             ScriptHistoryCreatedEvent::class.java,
             ScriptExecutedEvent::class.java,
             MarkdownCreatedEvent::class.java,
-            MarkdownUpdatedEvent::class.java
+            MarkdownUpdatedEvent::class.java,
+            TagCreatedEvent::class.java,
+            TagUpdatedEvent::class.java,
+            TagDeletedEvent::class.java,
+            TagFolderCreatedEvent::class.java,
+            TagFolderUpdatedEvent::class.java,
+            TagFolderDeletedEvent::class.java,
+            TagFoldersReorderedEvent::class.java
         )
 
         // Register all Command classes. Jackson (domain-util audit) uses a
@@ -78,7 +88,15 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             AddSubfolderCommand::class.java,
             RemoveFolderFromWorkspaceCommand::class.java,
             MoveScriptToFolderCommand::class.java,
-            DuplicateScriptCommand::class.java
+            AssignTagToScriptCommand::class.java,
+            DuplicateScriptCommand::class.java,
+            CreateTagCommand::class.java,
+            UpdateTagCommand::class.java,
+            DeleteTagCommand::class.java,
+            CreateTagFolderCommand::class.java,
+            UpdateTagFolderCommand::class.java,
+            DeleteTagFolderCommand::class.java,
+            ReorderTagFoldersCommand::class.java
         )
 
         // Register Entity/DTO classes
@@ -90,7 +108,10 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             HistoricalShellScriptDTO::class.java,
             ScriptsFolderDTO::class.java,
             ShellScriptDTO::class.java,
-            WorkspaceDTO::class.java
+            WorkspaceDTO::class.java,
+            TagDTO::class.java,
+            TagFolderDTO::class.java,
+            ScriptAssignedTagResponse::class.java
         )
     }
 

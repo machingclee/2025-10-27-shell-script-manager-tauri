@@ -14,6 +14,12 @@ export type ScriptsFolderDTO = {
     systemLevel: string;
 };
 
+export type ScriptAssignedTag = {
+    assignedTagId: number;
+    tagId: number;
+    name: string;
+};
+
 export type ShellScriptDTO = {
     id?: number;
     name: string;
@@ -24,6 +30,7 @@ export type ShellScriptDTO = {
     createdAt?: number;
     createdAtHk?: string;
     isMarkdown: boolean;
+    assignedTags?: ScriptAssignedTag[];
 };
 
 export type ScriptsFolderResponse = {
@@ -50,6 +57,7 @@ export type ShellScriptResponse = {
     createdAtHk: string;
     parentFolderId: number | null;
     isMarkdown: boolean;
+    assignedTags?: ScriptAssignedTag[];
 };
 
 export type AppStateDTO = {

@@ -16,6 +16,8 @@ export const baseApi = createApi({
         "ScriptHistory",
         "SearchResults",
         "EventLog",
+        "Tag",
+        "TagFolder",
     ],
     endpoints: (_builder) => ({}),
 });

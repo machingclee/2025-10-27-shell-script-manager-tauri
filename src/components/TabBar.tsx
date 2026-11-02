@@ -1,5 +1,11 @@
 import { useCallback, useState } from "react";
-import { AppTab, closeTab, setActiveTab, reorderTabs } from "../store/slices/appSlice";
+import {
+    AppTab,
+    closeTab,
+    setActiveTab,
+    setRightPanelMode,
+    reorderTabs,
+} from "../store/slices/appSlice";
 import {
     DndContext,
     PointerSensor,
@@ -16,6 +22,8 @@ import { Home, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { scriptApi } from "../store/api/scriptApi";
+import { openHistory } from "../store/slices/historySlice";
+import { useTagSelection } from "../app-component/Tag/tagSelection";
 
 function TabPill({
     tab,
@@ -109,8 +117,10 @@ function TabPill({
 
 export default function TabBar() {
     const dispatch = useAppDispatch();
+    const { clear: clearTagSelection } = useTagSelection();
     const tabs = useAppSelector((s) => s.app.tab.tabs);
     const activeTabId = useAppSelector((s) => s.app.tab.activeTabId);
+    const rightPanelMode = useAppSelector((s) => s.app.rightPanel.mode);
 
     const [activeDragId, setActiveDragId] = useState<number | null>(null);
     const activeDragTab =
@@ -162,7 +172,15 @@ export default function TabBar() {
                             key={tab.scriptId}
                             tab={tab}
                             isActive={tab.scriptId === activeTabId}
-                            onActivate={() => dispatch(setActiveTab(tab.scriptId))}
+                            onActivate={() => {
+                                dispatch(setActiveTab(tab.scriptId));
+                                if (tab.type !== "home") return;
+                                clearTagSelection();
+                                if (rightPanelMode === "TAG") {
+                                    dispatch(setRightPanelMode("HISTORY"));
+                                    dispatch(openHistory());
+                                }
+                            }}
                             onClose={
                                 tab.type !== "home"
                                     ? () => dispatch(closeTab(tab.scriptId))

@@ -1,6 +1,9 @@
 export const TAG_BADGE_CLASS =
     "text-sm font-semibold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700 dark:bg-neutral-600 dark:text-neutral-200 flex-shrink-0";
 
+export const ASSIGNED_TAG_BADGE_CLASS =
+    "text-xs font-mono font-medium px-2 py-1.5 rounded-sm bg-gray-600 text-white dark:bg-neutral-500 dark:text-white flex-shrink-0 inline-flex items-center gap-1";
+
 export function parseNameTags(name: string): { tags: string[]; rest: string } {
     const tags: string[] = [];
     let rest = name;

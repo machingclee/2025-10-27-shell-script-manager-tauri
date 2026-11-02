@@ -232,6 +232,25 @@ export const scriptApi = baseApi.injectEndpoints({
             }),
             providesTags: ["SearchResults"],
         }),
+        searchScriptsByTags: builder.query<
+            ScriptsWithTotal,
+            { tagIds: number[]; page?: number; size?: number }
+        >({
+            query: (request) => ({
+                url: "/scripts/search/by-tags",
+                method: "POST",
+                body: request,
+            }),
+            providesTags: ["SearchResults"],
+        }),
+        assignTagToScript: builder.mutation<void, { scriptId: number; tagId: number }>({
+            query: ({ scriptId, tagId }) => ({
+                url: `/scripts/${scriptId}/tags`,
+                method: "POST",
+                body: { tagId },
+            }),
+            invalidatesTags: ["FolderContent", "Script", "SearchResults"],
+        }),
         notifyScriptExecuted: builder.mutation<void, { scriptId: number }>({
             query: ({ scriptId }) => ({
                 url: `/scripts/events/script-executed/${scriptId}`,

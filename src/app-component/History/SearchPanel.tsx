@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import debounce from "lodash/debounce";
 import { scriptApi } from "@/store/api/scriptApi";
+import { tagApi } from "@/store/api/tagApi";
 import SearchResultItem from "./SearchResultItem";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
@@ -14,6 +15,8 @@ export default function SearchPanel() {
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const search = useAppSelector((s) => s.app.rightPanel.search.searchText);
+    const searchMode = useAppSelector((s) => s.app.rightPanel.search.mode);
+    const tagIds = useAppSelector((s) => s.app.rightPanel.search.tagIds);
     const page = useAppSelector((s) => s.app.rightPanel.search.searchPage);
 
     const [queryText, setQueryText] = useState("");
@@ -26,14 +29,27 @@ export default function SearchPanel() {
 
     // A subscribed query, unlike useLazyQuery, stays subscribed after the request
     // settles — so invalidating SearchResults (on script execution) refetches it.
-    const { currentData, isFetching: isSearching, originalArgs } =
+    const { currentData, isFetching: isContentSearching, originalArgs } =
         scriptApi.endpoints.searchScript.useQuery(
             { search: queryText, page, size: PAGE_SIZE },
-            { skip: backendPort === 0 || !queryText }
+            { skip: backendPort === 0 || searchMode !== "content" || !queryText }
         );
+    const { currentData: tagResults, isFetching: isTagSearching } =
+        scriptApi.endpoints.searchScriptsByTags.useQuery(
+            { tagIds, page, size: PAGE_SIZE },
+            { skip: backendPort === 0 || searchMode !== "tags" || tagIds.length === 0 }
+        );
+    const { data: tags = [] } = tagApi.endpoints.getAllTags.useQuery(undefined, {
+        skip: backendPort === 0 || searchMode !== "tags",
+    });
 
     // Keep showing the settled query's results while the next one is still debouncing.
-    const results = originalArgs?.search === queryText ? currentData : undefined;
+    const contentResults = originalArgs?.search === queryText ? currentData : undefined;
+    const results = searchMode === "tags" ? tagResults : contentResults;
+    const isSearching = searchMode === "tags" ? isTagSearching : isContentSearching;
+    const selectedTagNames = tags
+        .filter((tag) => tagIds.includes(tag.id))
+        .map((tag) => tag.name);
 
     const totalPages = results ? Math.ceil(results.total / PAGE_SIZE) : 0;
 
@@ -51,9 +67,15 @@ export default function SearchPanel() {
                     {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
                     {isSearching
                         ? "Searching…"
-                        : results
-                          ? `${results.total} result${results.total !== 1 ? "s" : ""} for "${search}"`
-                          : `Searching for "${search}"`}
+                        : searchMode === "tags"
+                          ? results
+                              ? `${results.total} result${results.total !== 1 ? "s" : ""} for any of ${
+                                    selectedTagNames.join(", ") || `${tagIds.length} tags`
+                                }`
+                              : "Searching by tags…"
+                          : results
+                            ? `${results.total} result${results.total !== 1 ? "s" : ""} for "${search}"`
+                            : `Searching for "${search}"`}
                 </p>
             </div>
 

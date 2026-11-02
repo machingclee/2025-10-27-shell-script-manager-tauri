@@ -47,4 +47,18 @@ interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
         """
     )
     fun searchByNameOrCommand(@Param("search") search: String, pageable: Pageable): Page<ShellScript>
+
+    @Query(
+        """
+        SELECT s FROM ShellScript s
+        WHERE EXISTS (
+            SELECT a FROM s.assignedTags a WHERE a.tagId IN :tagIds
+        )
+        ORDER BY COALESCE(
+            (SELECT MAX(h.executedAt) FROM HistoricalShellScript h WHERE h.shellScriptId = s.id),
+            s.createdAt
+        ) DESC
+        """
+    )
+    fun searchByAnyTagId(@Param("tagIds") tagIds: Collection<Int>, pageable: Pageable): Page<ShellScript>
 }
