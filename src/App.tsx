@@ -9,6 +9,8 @@ import {
     HOME_TAB_ID,
     setActiveTab,
     setSearchText,
+    setSearchMode,
+    setSearchTagIds,
     setRightPanelMode,
     patchTabState,
 } from "./store/slices/appSlice";
@@ -32,7 +34,13 @@ import HistoryButton from "./app-component/History/HistoryButton";
 import HistoryPanel from "./app-component/History/HistoryPanel";
 import LogButton from "./app-component/Log/LogButton";
 import LogPanel from "./app-component/Log/LogPanel";
+import TagButton from "./app-component/Tag/TagButton";
+import TagFolderColumn from "./app-component/Tag/TagFolderColumn";
+import TagsColumn from "./app-component/Tag/TagsColumn";
+import { TagSelectionProvider } from "./app-component/Tag/tagSelection";
 import SearchPanel from "./app-component/History/SearchPanel";
+import SearchByTagsDialog from "./app-component/History/SearchByTagsDialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./components/ui/tooltip";
 import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
@@ -79,7 +87,10 @@ function App() {
     // Search panel state
     // -----------------------------------------------------------------------
     const searchText = useAppSelector((s) => s.app.rightPanel.search.searchText);
+    const searchMode = useAppSelector((s) => s.app.rightPanel.search.mode);
+    const searchTagIds = useAppSelector((s) => s.app.rightPanel.search.tagIds);
     const rightPanelMode = useAppSelector((s) => s.app.rightPanel.mode);
+    const [tagFilterOpen, setTagFilterOpen] = useState(false);
 
     // Stay on history while typing; switch to search only after the query settles.
     const enterSearchMode = useRef(
@@ -96,6 +107,7 @@ function App() {
     const clearSearch = () => {
         enterSearchMode.cancel();
         dispatch(setSearchText(""));
+        if (searchMode === "tags") return;
         dispatch(setRightPanelMode("HISTORY"));
         dispatch(setActiveTab(HOME_TAB_ID));
     };
@@ -618,6 +630,7 @@ function App() {
     };
 
     return (
+        <TagSelectionProvider>
         <div className="h-screen w-screen bg-neutral-100 dark:bg-neutral-800 flex flex-col">
             {/* Custom title bar with window controls */}
             <div
@@ -665,18 +678,20 @@ function App() {
                 {/* Right-side controls — stay available on markdown tabs and return home */}
                 <div className="flex-1 right-4 z-10 flex items-center gap-2 px-4 justify-end">
                     <div
-                        className="relative flex items-center"
+                        className="flex h-8 w-80 items-center overflow-hidden rounded-md border border-gray-300 bg-white focus-within:w-[26rem] focus-within:ring-1 focus-within:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:focus-within:ring-neutral-500 transition-[width] duration-300 ease-in-out"
                         style={{
                             opacity: rightPanelMode === "SEARCH" ? 1 : 0.5,
-                            transition: "opacity 0.2s ease",
+                            transition: "opacity 0.2s ease, width 0.3s ease",
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
                     >
+                        <Search className="ml-2 w-3.5 h-3.5 shrink-0 text-gray-400 dark:text-neutral-400 pointer-events-none" />
                         <input
                             type="text"
                             value={searchText}
                             onChange={(e) => {
                                 const value = e.target.value;
+                                dispatch(setSearchMode("content"));
                                 dispatch(setSearchText(value));
                                 returnHome();
                                 if (!value.trim()) {
@@ -692,19 +707,84 @@ function App() {
                                 enterSearchMode();
                             }}
                             placeholder="Search scripts…"
-                            className="h-8 w-44 focus:w-64 rounded-md border !border-1 border-gray-300 bg-white pl-7 pr-6 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white dark:placeholder-neutral-400 dark:focus:ring-neutral-500 transition-[width] duration-300 ease-in-out"
+                            className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-sm text-gray-800 placeholder-gray-400 outline-none dark:text-white dark:placeholder-neutral-400"
                         />
-                        <Search className="absolute left-2 w-3.5 h-3.5 text-gray-400 dark:text-neutral-400 pointer-events-none" />
                         {searchText && (
                             <button
                                 tabIndex={-1}
                                 onClick={clearSearch}
-                                className="text-[18px] absolute right-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:text-neutral-400 dark:hover:text-neutral-200 bg-transparent active:bg-transparent focus:outline-none"
+                                className="flex shrink-0 items-center justify-center bg-transparent px-1 text-[18px] text-gray-400 hover:text-gray-600 focus:outline-none dark:text-neutral-400 dark:hover:text-neutral-200"
                                 aria-label="Clear search"
                             >
                                 ×
                             </button>
                         )}
+                        <div className="flex h-full shrink-0 items-stretch overflow-hidden">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            dispatch(setSearchMode("content"));
+                                            returnHome();
+                                            if (!searchText.trim()) {
+                                                enterSearchMode.cancel();
+                                                dispatch(setRightPanelMode("HISTORY"));
+                                                return;
+                                            }
+                                            enterSearchMode();
+                                        }}
+                                        className={`flex items-center px-2 text-xs transition-colors rounded-none outline-none focus-visible:outline-none focus-visible:ring-0 ${
+                                            searchMode === "content"
+                                                ? "bg-neutral-600 text-white"
+                                                : "bg-transparent text-neutral-100 hover:text-white hover:bg-neutral-700"
+                                        }`}
+                                    >
+                                        By content
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">Search by name or command</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            returnHome();
+                                            setTagFilterOpen(true);
+                                        }}
+                                        className={`flex items-center px-2 text-xs transition-colors rounded-none outline-none focus-visible:outline-none focus-visible:ring-0 ${
+                                            searchMode === "tags"
+                                                ? "bg-neutral-600 text-white"
+                                                : "bg-transparent text-neutral-100 hover:text-white hover:bg-neutral-700"
+                                        }`}
+                                    >
+                                        By tags
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">Filter by tags</TooltipContent>
+                            </Tooltip>
+                        </div>
+                    </div>
+                    <SearchByTagsDialog
+                        open={tagFilterOpen}
+                        onOpenChange={setTagFilterOpen}
+                        initialTagIds={searchTagIds}
+                        onConfirm={(tagIds) => {
+                            dispatch(setSearchTagIds(tagIds));
+                            dispatch(setRightPanelMode("SEARCH"));
+                            dispatch(openHistory());
+                            returnHome();
+                        }}
+                    />
+                    <div
+                        style={{
+                            opacity: rightPanelMode === "TAG" ? 1 : 0.3,
+                            transition: "opacity 0.2s ease",
+                        }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <TagButton />
                     </div>
                     <div
                         style={{
@@ -749,41 +829,41 @@ function App() {
                 <div
                     className={`flex-1 overflow-hidden flex flex-row ${activeTabId !== HOME_TAB_ID ? "hidden" : ""}`}
                 >
-                    {appState ? (
-                        <div
-                            ref={folderSplitRef}
-                            className="flex h-full flex-1 min-w-0"
-                            style={{ userSelect: isDraggingFolder ? "none" : undefined }}
-                        >
+                    {appState || rightPanelMode === "TAG" ? (
                             <div
-                                className="h-full flex-shrink-0 overflow-hidden"
-                                style={{ width: folderColumnPx }}
+                                ref={folderSplitRef}
+                                className="flex h-full flex-1 min-w-0"
+                                style={{ userSelect: isDraggingFolder ? "none" : undefined }}
                             >
-                                <FolderColumn />
-                            </div>
-                            <div
-                                className="relative flex w-2 flex-shrink-0 items-center justify-center bg-border hover:bg-blue-200 transition-colors cursor-col-resize"
-                                onMouseDown={(e) => {
-                                    if (e.button !== 0) return;
-                                    e.preventDefault();
-                                    isDraggingFolderRef.current = true;
-                                    setIsDraggingFolder(true);
-                                    document.body.style.userSelect = "none";
-                                    document.body.style.cursor = "col-resize";
-                                }}
-                            >
-                                <div className="flex h-10 w-6 items-center justify-center rounded-md border bg-gray-100 hover:bg-gray-200 transition-colors shadow-sm">
-                                    <GripVertical className="h-4 w-4 text-gray-600" />
+                                <div
+                                    className="h-full flex-shrink-0 overflow-hidden"
+                                    style={{ width: folderColumnPx }}
+                                >
+                                    {rightPanelMode === "TAG" ? <TagFolderColumn /> : <FolderColumn />}
+                                </div>
+                                <div
+                                    className="relative flex w-2 flex-shrink-0 items-center justify-center bg-border hover:bg-blue-200 transition-colors cursor-col-resize"
+                                    onMouseDown={(e) => {
+                                        if (e.button !== 0) return;
+                                        e.preventDefault();
+                                        isDraggingFolderRef.current = true;
+                                        setIsDraggingFolder(true);
+                                        document.body.style.userSelect = "none";
+                                        document.body.style.cursor = "col-resize";
+                                    }}
+                                >
+                                    <div className="flex h-10 w-6 items-center justify-center rounded-md border bg-gray-100 hover:bg-gray-200 transition-colors shadow-sm">
+                                        <GripVertical className="h-4 w-4 text-gray-600" />
+                                    </div>
+                                </div>
+                                <div className="h-full min-w-0 flex-1 overflow-hidden">
+                                    {rightPanelMode === "TAG" ? <TagsColumn /> : <ScriptsColumn />}
                                 </div>
                             </div>
-                            <div className="h-full min-w-0 flex-1 overflow-hidden">
-                                <ScriptsColumn />
-                            </div>
-                        </div>
                     ) : (
                         <div className="flex-1" />
                     )}
-                    {isHistoryOpen && (
+                    {isHistoryOpen && rightPanelMode !== "TAG" && (
                         <div
                             className={`${rightPanelMode === "LOG" ? "w-[460px]" : "w-[350px]"} h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in`}
                         >
@@ -857,6 +937,7 @@ function App() {
                 </DialogContent>
             </Dialog>
         </div>
+        </TagSelectionProvider>
     );
 }
 

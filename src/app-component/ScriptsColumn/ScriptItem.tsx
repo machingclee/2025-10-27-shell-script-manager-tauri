@@ -10,6 +10,7 @@ import {
     Link,
     FolderOpen,
     Copy,
+    Tag,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import {
@@ -49,6 +50,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 import MoveToFolderMenu from "./MoveToFolderMenu";
 import NameTagDisplay from "@/lib/NameTagDisplay";
+import { ASSIGNED_TAG_BADGE_CLASS } from "@/lib/nameTag";
+import AssignTagDialog from "./AssignTagDialog";
 import type { ScriptItemVariant } from "./GenericScriptItem";
 
 export default function ScriptItem({
@@ -76,6 +79,7 @@ export default function ScriptItem({
 
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isAssignTagOpen, setIsAssignTagOpen] = useState(false);
     const [editName, setEditName] = useState(script.name);
     const [editCommand, setEditCommand] = useState(script.command);
     const [isSelected, setIsSelected] = useState(false);
@@ -236,6 +240,19 @@ export default function ScriptItem({
                                 </span>
                             )}
                         </div>
+                        {(script.assignedTags ?? []).length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                {(script.assignedTags ?? []).map((tag) => (
+                                    <span
+                                        key={tag.assignedTagId}
+                                        className={ASSIGNED_TAG_BADGE_CLASS}
+                                    >
+                                            <Tag className="w-4 h-4 text-green-400" />
+                                        {tag.name}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {executingScript && <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />}
@@ -248,8 +265,17 @@ export default function ScriptItem({
                     onMouseUp={(e) => e.stopPropagation()}
                     onDoubleClick={(e) => e.stopPropagation()}
                 >
-                    {!liteVersionDisplay && (
+                    {!liteVersionDisplay && !isHistory && !isSearch && script.id != null && (
                         <>
+                            {/* <button
+                                type="button"
+                                onClick={() => setIsAssignTagOpen(true)}
+                                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-neutral-700 transition-all duration-200 active:scale-95 border-0 outline-none shadow-none focus:outline-none focus:ring-0"
+                                title="Assign tag"
+                                aria-label="Assign tag"
+                            >
+                                <Tag className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            </button> */}
                             <div className="flex items-center gap-2 mr-2">
                                 <button
                                     onClick={onLockedToggle}
@@ -384,46 +410,56 @@ export default function ScriptItem({
     // Search results: only navigate to workspace root folder
     if (isSearch) {
         return (
-            <ContextMenu>
-                <ContextMenuTrigger asChild>{scriptCard}</ContextMenuTrigger>
-                <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
-                    <ContextMenuItem
-                        onClick={handleGoToRootFolder}
-                        disabled={!parentFolderId}
-                        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
-                    >
-                        <FolderOpen className="w-4 h-4 mr-2" />
-                        Go to root folder
-                    </ContextMenuItem>
-                </ContextMenuContent>
-            </ContextMenu>
+            <>
+                <ContextMenu>
+                    <ContextMenuTrigger asChild>{scriptCard}</ContextMenuTrigger>
+                    <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
+                        <ContextMenuItem
+                            onClick={handleGoToRootFolder}
+                            disabled={!parentFolderId}
+                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                        >
+                            <FolderOpen className="w-4 h-4 mr-2" />
+                            Go to root folder
+                        </ContextMenuItem>
+                        {script.id != null && (
+                            <ContextMenuItem
+                                onClick={() => setIsAssignTagOpen(true)}
+                                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                            >
+                                <Tag className="w-4 h-4 mr-2" />
+                                Assign Tag
+                            </ContextMenuItem>
+                        )}
+                    </ContextMenuContent>
+                </ContextMenu>
+                {script.id != null && (
+                    <AssignTagDialog
+                        open={isAssignTagOpen}
+                        onOpenChange={setIsAssignTagOpen}
+                        scriptId={script.id}
+                        scriptName={script.name}
+                        assignedTags={script.assignedTags}
+                    />
+                )}
+            </>
         );
     }
 
     return (
-        <ContextMenu>
-            <ContextMenuTrigger asChild>{scriptCard}</ContextMenuTrigger>
-            <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
-                <ContextMenuItem
-                    onClick={handleExecuteClick}
-                    className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
-                >
-                    <Play className="w-4 h-4 mr-2" />
-                    Execute
-                </ContextMenuItem>
-
-                {!isHistory && (
+        <>
+            <ContextMenu>
+                <ContextMenuTrigger asChild>{scriptCard}</ContextMenuTrigger>
+                <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
                     <ContextMenuItem
-                        onClick={handleDuplicate}
+                        onClick={handleExecuteClick}
                         className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
                     >
-                        <Copy className="w-4 h-4 mr-2" />
-                        Duplicate
+                        <Play className="w-4 h-4 mr-2" />
+                        Execute
                     </ContextMenuItem>
-                )}
 
-                {!isHistory && !locked && (
-                    <>
+                    {!isHistory && !locked && (
                         <ContextMenuItem
                             onClick={handleEditClick}
                             className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
@@ -431,30 +467,61 @@ export default function ScriptItem({
                             <Edit className="w-4 h-4 mr-2" />
                             Edit
                         </ContextMenuItem>
-                        <MoveToFolderMenu
-                            scriptId={script.id!}
-                            currentFolderId={parentFolderId}
-                        />
+                    )}
+
+                    {!isHistory && (
                         <ContextMenuItem
-                            onClick={() =>
-                                navigator.clipboard.writeText(`[item#${script.id}]`)
-                            }
-                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 pr-4"
+                            onClick={handleDuplicate}
+                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
                         >
-                            <Link className="w-4 h-4 mr-2" />
-                            Copy as Markdown Reference
+                            <Copy className="w-4 h-4 mr-2" />
+                            Duplicate
                         </ContextMenuItem>
-                        <ContextMenuSeparator className="dark:bg-neutral-700" />
+                    )}
+                    {script.id != null && (
                         <ContextMenuItem
-                            onClick={handleDeleteClick}
-                            className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                            onClick={() => setIsAssignTagOpen(true)}
+                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
                         >
-                            <Trash className="w-4 h-4 mr-2" />
-                            Delete
+                            <Tag className="w-4 h-4 mr-2" />
+                            Assign Tag
                         </ContextMenuItem>
-                    </>
-                )}
-            </ContextMenuContent>
-        </ContextMenu>
+                    )}
+
+                    {!isHistory && !locked && (
+                        <>
+                            <MoveToFolderMenu
+                                scriptId={script.id!}
+                                currentFolderId={parentFolderId}
+                            />
+                            <ContextMenuItem
+                                onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
+                                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700 pr-4"
+                            >
+                                <Link className="w-4 h-4 mr-2" />
+                                Copy as Markdown Reference
+                            </ContextMenuItem>
+                            <ContextMenuSeparator className="dark:bg-neutral-700" />
+                            <ContextMenuItem
+                                onClick={handleDeleteClick}
+                                className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                            >
+                                <Trash className="w-4 h-4 mr-2" />
+                                Delete
+                            </ContextMenuItem>
+                        </>
+                    )}
+                </ContextMenuContent>
+            </ContextMenu>
+            {script.id != null && (
+                <AssignTagDialog
+                    open={isAssignTagOpen}
+                    onOpenChange={setIsAssignTagOpen}
+                    scriptId={script.id}
+                    scriptName={script.name}
+                    assignedTags={script.assignedTags}
+                />
+            )}
+        </>
     );
 }

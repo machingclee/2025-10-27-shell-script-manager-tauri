@@ -55,9 +55,11 @@ import {
     Link,
     Building2,
     Plus,
+    Tag,
 } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import ExecuteConfirmDialog from "./ExecuteConfirmDialog";
+import AssignTagDialog from "./AssignTagDialog";
 
 // ─── Script right-click context actions ───────────────────────────────────────
 function ScriptContextActions({
@@ -65,11 +67,13 @@ function ScriptContextActions({
     folderId,
     onDeleteRequest,
     onExecuteRequest,
+    onAssignTag,
 }: {
     script: ShellScriptResponse;
     folderId: number;
     onDeleteRequest: (script: ShellScriptResponse, folderId: number) => void;
     onExecuteRequest: (script: ShellScriptResponse) => void;
+    onAssignTag: () => void;
 }) {
     return (
         <>
@@ -111,6 +115,13 @@ function ScriptContextActions({
                     Execute
                 </ContextMenuItem>
             )}
+            <ContextMenuItem
+                className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
+                onClick={onAssignTag}
+            >
+                <Tag className="w-4 h-4 mr-2" />
+                Assign Tag
+            </ContextMenuItem>
             <ContextMenuSeparator className="dark:bg-neutral-700" />
             <ContextMenuItem
                 className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
@@ -161,11 +172,67 @@ function FolderContextActions({
     );
 }
 
+function ScriptNavEntry({
+    script,
+    folderId,
+    onDeleteRequest,
+    onExecuteRequest,
+    onAssignTag,
+    onContextMenuOpenChange,
+}: {
+    script: ShellScriptResponse;
+    folderId: number;
+    onDeleteRequest: (script: ShellScriptResponse, folderId: number) => void;
+    onExecuteRequest: (script: ShellScriptResponse) => void;
+    onAssignTag: (script: ShellScriptResponse) => void;
+    onContextMenuOpenChange: (open: boolean) => void;
+}) {
+    return (
+        <>
+            <ContextMenu onOpenChange={onContextMenuOpenChange}>
+                <ContextMenuTrigger asChild>
+                    <DropdownMenuItem
+                        className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
+                        onSelect={() => {
+                            if (script.isMarkdown) {
+                                emit("quick-nav-open-markdown", {
+                                    scriptId: script.id,
+                                    editMode: false,
+                                    scriptName: script.name,
+                                });
+                            } else {
+                                onExecuteRequest(script);
+                            }
+                        }}
+                    >
+                        {script.isMarkdown ? (
+                            <FileText className="w-4 h-4 mr-2 text-blue-400" />
+                        ) : (
+                            <Terminal className="w-4 h-4 mr-2 text-green-400" />
+                        )}
+                        {script.name}
+                    </DropdownMenuItem>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                    <ScriptContextActions
+                        script={script}
+                        folderId={folderId}
+                        onDeleteRequest={onDeleteRequest}
+                        onExecuteRequest={onExecuteRequest}
+                        onAssignTag={() => onAssignTag(script)}
+                    />
+                </ContextMenuContent>
+            </ContextMenu>
+        </>
+    );
+}
+
 // ─── Recursive folder node ─────────────────────────────────────────────────────
 function FolderNode({
     folder,
     onDeleteRequest,
     onExecuteRequest,
+    onAssignTag,
     onAddMarkdownRequest,
     onAddScriptRequest,
     onContextMenuOpenChange,
@@ -173,6 +240,7 @@ function FolderNode({
     folder: ScriptsFolderResponse;
     onDeleteRequest: (script: ShellScriptResponse, folderId: number) => void;
     onExecuteRequest: (script: ShellScriptResponse) => void;
+    onAssignTag: (script: ShellScriptResponse) => void;
     onAddMarkdownRequest: (folder: ScriptsFolderResponse) => void;
     onAddScriptRequest: (folder: ScriptsFolderResponse) => void;
     onContextMenuOpenChange: (open: boolean) => void;
@@ -230,6 +298,7 @@ function FolderNode({
                         folder={sub}
                         onDeleteRequest={onDeleteRequest}
                         onExecuteRequest={onExecuteRequest}
+                        onAssignTag={onAssignTag}
                         onAddMarkdownRequest={onAddMarkdownRequest}
                         onAddScriptRequest={onAddScriptRequest}
                         onContextMenuOpenChange={onContextMenuOpenChange}
@@ -239,39 +308,15 @@ function FolderNode({
                     <DropdownMenuSeparator className="dark:bg-neutral-700" />
                 )}
                 {folder.shellScripts.map((script) => (
-                    <ContextMenu key={script.id} onOpenChange={onContextMenuOpenChange}>
-                        <ContextMenuTrigger asChild>
-                            <DropdownMenuItem
-                                className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
-                                onSelect={() => {
-                                    if (script.isMarkdown) {
-                                        emit("quick-nav-open-markdown", {
-                                            scriptId: script.id,
-                                            editMode: false,
-                                            scriptName: script.name,
-                                        });
-                                    } else {
-                                        onExecuteRequest(script);
-                                    }
-                                }}
-                            >
-                                {script.isMarkdown ? (
-                                    <FileText className="w-4 h-4 mr-2 text-blue-400" />
-                                ) : (
-                                    <Terminal className="w-4 h-4 mr-2 text-green-400" />
-                                )}
-                                {script.name}
-                            </DropdownMenuItem>
-                        </ContextMenuTrigger>
-                        <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
-                            <ScriptContextActions
-                                script={script}
-                                folderId={folder.id}
-                                onDeleteRequest={onDeleteRequest}
-                                onExecuteRequest={onExecuteRequest}
-                            />
-                        </ContextMenuContent>
-                    </ContextMenu>
+                    <ScriptNavEntry
+                        key={script.id}
+                        script={script}
+                        folderId={folder.id}
+                        onDeleteRequest={onDeleteRequest}
+                        onExecuteRequest={onExecuteRequest}
+                        onAssignTag={onAssignTag}
+                        onContextMenuOpenChange={onContextMenuOpenChange}
+                    />
                 ))}
             </DropdownMenuSubContent>
         </DropdownMenuSub>
@@ -294,6 +339,7 @@ export default function QuickNavDropdown() {
     } | null>(null);
 
     const [pendingExecute, setPendingExecute] = useState<ShellScriptResponse | null>(null);
+    const [pendingAssign, setPendingAssign] = useState<ShellScriptResponse | null>(null);
 
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const contextMenuOpenRef = useRef(false);
@@ -399,6 +445,7 @@ export default function QuickNavDropdown() {
                                             folder={folder}
                                             onDeleteRequest={handleDeleteRequest}
                                             onExecuteRequest={handleExecuteRequest}
+                                            onAssignTag={setPendingAssign}
                                             onAddMarkdownRequest={handleAddMarkdownRequest}
                                             onAddScriptRequest={handleAddScriptRequest}
                                             onContextMenuOpenChange={(open) => {
@@ -412,6 +459,18 @@ export default function QuickNavDropdown() {
                     ))}
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            {pendingAssign && (
+                <AssignTagDialog
+                    open
+                    onOpenChange={(open) => {
+                        if (!open) setPendingAssign(null);
+                    }}
+                    scriptId={pendingAssign.id}
+                    scriptName={pendingAssign.name}
+                    assignedTags={pendingAssign.assignedTags}
+                />
+            )}
 
             <AlertDialog
                 open={pendingDelete !== null}

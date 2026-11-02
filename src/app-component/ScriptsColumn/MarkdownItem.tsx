@@ -23,8 +23,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, FileText, Link, ExternalLink, Pencil, FolderOpen } from "lucide-react";
+import { Trash2, FileText, Link, ExternalLink, Pencil, FolderOpen, Tag } from "lucide-react";
 import MoveToFolderMenu from "./MoveToFolderMenu";
+import AssignTagDialog from "./AssignTagDialog";
+import { ASSIGNED_TAG_BADGE_CLASS } from "@/lib/nameTag";
 import {
     Dialog,
     DialogContent,
@@ -61,6 +63,7 @@ export default function MarkdownItem({
     const dispatch = useAppDispatch();
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isRenameOpen, setIsRenameOpen] = useState(false);
+    const [isAssignTagOpen, setIsAssignTagOpen] = useState(false);
     const [newName, setNewName] = useState(script.name);
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
     const [updateMarkdownScript] = scriptApi.endpoints.updateMarkdownScript.useMutation();
@@ -143,6 +146,19 @@ export default function MarkdownItem({
                                     </span>
                                 )}
                             </div>
+                            {(script.assignedTags ?? []).length > 0 && (
+                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                    {(script.assignedTags ?? []).map((tag) => (
+                                        <span
+                                            key={tag.assignedTagId}
+                                            className={ASSIGNED_TAG_BADGE_CLASS}
+                                        >
+                                            <Tag className="w-4 h-4 text-green-400" />
+                                            {tag.name}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                             {liteVersionDisplay && liteVersionDisplay}
                         </div>
                         {variant === "default" && (
@@ -202,6 +218,15 @@ export default function MarkdownItem({
                             <FolderOpen className="w-4 h-4 mr-2" />
                             Go to root folder
                         </ContextMenuItem>
+                        {script.id != null && (
+                            <ContextMenuItem
+                                onClick={() => setIsAssignTagOpen(true)}
+                                className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                            >
+                                <Tag className="w-4 h-4 mr-2" />
+                                Assign Tag
+                            </ContextMenuItem>
+                        )}
                     </ContextMenuContent>
                 ) : isHistory ? (
                     <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
@@ -212,6 +237,15 @@ export default function MarkdownItem({
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Open
                         </ContextMenuItem>
+                        {script.id != null && (
+                            <ContextMenuItem
+                                onClick={() => setIsAssignTagOpen(true)}
+                                className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                            >
+                                <Tag className="w-4 h-4 mr-2" />
+                                Assign Tag
+                            </ContextMenuItem>
+                        )}
                     </ContextMenuContent>
                 ) : (
                     <ContextMenuContent className="dark:bg-neutral-800 dark:border-neutral-700">
@@ -232,15 +266,19 @@ export default function MarkdownItem({
                             <Pencil className="w-4 h-4 mr-2" />
                             Rename
                         </ContextMenuItem>
+                        {script.id != null && (
+                            <ContextMenuItem
+                                onClick={() => setIsAssignTagOpen(true)}
+                                className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                            >
+                                <Tag className="w-4 h-4 mr-2" />
+                                Assign Tag
+                            </ContextMenuItem>
+                        )}
                         <ContextMenuSeparator className="dark:bg-neutral-700" />
-                        <MoveToFolderMenu
-                            scriptId={script.id!}
-                            currentFolderId={parentFolderId}
-                        />
+                        <MoveToFolderMenu scriptId={script.id!} currentFolderId={parentFolderId} />
                         <ContextMenuItem
-                            onClick={() =>
-                                navigator.clipboard.writeText(`[item#${script.id}]`)
-                            }
+                            onClick={() => navigator.clipboard.writeText(`[item#${script.id}]`)}
                             className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
                         >
                             <Link className="w-4 h-4 mr-2" />
@@ -257,6 +295,16 @@ export default function MarkdownItem({
                     </ContextMenuContent>
                 )}
             </ContextMenu>
+
+            {script.id != null && (
+                <AssignTagDialog
+                    open={isAssignTagOpen}
+                    onOpenChange={setIsAssignTagOpen}
+                    scriptId={script.id}
+                    scriptName={script.name}
+                    assignedTags={script.assignedTags}
+                />
+            )}
 
             <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
                 <DialogContent

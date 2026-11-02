@@ -147,6 +147,17 @@ class ScriptController(
         return ApiResponse(result)
     }
 
+    @Operation(summary = "Assign a tag to a script", description = "Creates an assignment and links it with assignedTags.add()")
+    @PostMapping("/{id}/tags")
+    fun assignTag(
+        @Parameter(description = "Script ID", required = true)
+        @PathVariable id: Int,
+        @RequestBody request: AssignTagRequest
+    ): ApiResponse<Unit> {
+        commandInvoker.invoke(AssignTagToScriptCommand(scriptId = id, tagId = request.tagId))
+        return ApiResponse()
+    }
+
     @Operation(summary = "Move script to folder", description = "Moves a script to a different folder")
     @PutMapping("/{scriptId}/folder/{folderId}/move")
     fun moveScriptToFolder(
@@ -193,6 +204,16 @@ class ScriptController(
         val query = SearchScriptQuery(search = request.search, page = request.page, size = request.size)
         val result = queryInvoker.invoke(query)
         return ApiResponse(result)
+    }
+
+    @Operation(
+        summary = "Search scripts by tags",
+        description = "Returns scripts that have any of the given tags"
+    )
+    @PostMapping("/search/by-tags")
+    fun searchScriptsByTags(@RequestBody request: SearchScriptsByTagsRequest): ApiResponse<ScriptsWithTotal> {
+        val query = SearchScriptsByTagsQuery(tagIds = request.tagIds, page = request.page, size = request.size)
+        return ApiResponse(queryInvoker.invoke(query))
     }
 
     @Operation(summary = "Get draft scripts", description = "Retrieves all scripts that are not in any folder (parentFolder is null)")

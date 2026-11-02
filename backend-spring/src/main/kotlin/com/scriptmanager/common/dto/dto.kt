@@ -35,6 +35,11 @@ data class ReorderRequest(
     val toIndex: Int
 )
 
+data class ReorderTagFoldersRequest(
+    val fromIndex: Int,
+    val toIndex: Int
+)
+
 data class ReorderScriptsRequest(
     val folderId: Int,
     val fromIndex: Int,
@@ -42,6 +47,15 @@ data class ReorderScriptsRequest(
 )
 
 data class CreateFolderRequest(
+    val name: String
+)
+
+data class CreateTagRequest(
+    val name: String,
+    val tagFolderId: Int? = null
+)
+
+data class CreateTagFolderRequest(
     val name: String
 )
 
@@ -100,10 +114,26 @@ fun ShellScript.toResponse(): ShellScriptResponse {
         createdAt = this.createdAt,
         createdAtHk = this.createdAtHk,
         parentFolderId = this.parentFolder?.id,
-        isMarkdown = this.isMarkdown ?: false
+        isMarkdown = this.isMarkdown ?: false,
+        assignedTags = this.assignedTags.map {
+            ScriptAssignedTagResponse(
+                assignedTagId = it.id,
+                tagId = it.tagId,
+                name = it.tag?.name ?: ""
+            )
+        }.sortedBy { it.name.lowercase() }
     )
 }
 
+data class ScriptAssignedTagResponse(
+    val assignedTagId: Int?,
+    val tagId: Int,
+    val name: String
+)
+
+data class AssignTagRequest(
+    val tagId: Int
+)
 
 data class ShellScriptResponse(
     val id: Int?,
@@ -115,7 +145,8 @@ data class ShellScriptResponse(
     val createdAt: Double?,
     val createdAtHk: String?,
     val parentFolderId: Int?,
-    val isMarkdown: Boolean
+    val isMarkdown: Boolean,
+    val assignedTags: List<ScriptAssignedTagResponse> = emptyList()
 )
 
 data class CreateSubfolderRequest(
@@ -218,6 +249,18 @@ data class SearchScriptRequest(
 
 data class SearchScriptQuery(
     val search: String,
+    val page: Int = 0,
+    val size: Int = 10
+) : Query<ScriptsWithTotal>
+
+data class SearchScriptsByTagsRequest(
+    val tagIds: List<Int>,
+    val page: Int = 0,
+    val size: Int = 10
+)
+
+data class SearchScriptsByTagsQuery(
+    val tagIds: List<Int>,
     val page: Int = 0,
     val size: Int = 10
 ) : Query<ScriptsWithTotal>
