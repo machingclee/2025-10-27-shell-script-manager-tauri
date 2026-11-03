@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/core";
 import {
     SortableContext,
+    arrayMove,
     defaultAnimateLayoutChanges,
     sortableKeyboardCoordinates,
     useSortable,
@@ -70,11 +71,21 @@ export default function TagFolderColumn() {
     const [createTag] = tagApi.endpoints.createTag.useMutation();
     const [reorderTagFolders] = tagApi.endpoints.reorderTagFolders.useMutation();
     const [activeId, setActiveId] = useState<number | null>(null);
+    const [displayFolders, setDisplayFolders] = useState(folders);
+    const reorderInFlight = useRef(false);
+    const foldersRef = useRef(folders);
+    foldersRef.current = folders;
+    const folderOrderKey = folders.map((folder) => folder.id).join(",");
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
-    const activeFolder = folders.find((folder) => folder.id === activeId) ?? null;
+    const activeFolder = displayFolders.find((folder) => folder.id === activeId) ?? null;
+
+    useEffect(() => {
+        if (reorderInFlight.current) return;
+        setDisplayFolders(foldersRef.current);
+    }, [folderOrderKey]);
 
     function stopReordering() {
         setActiveId(null);
@@ -90,13 +101,18 @@ export default function TagFolderColumn() {
         const { active, over } = event;
         stopReordering();
         if (!over || active.id === over.id) return;
-        const fromIndex = folders.findIndex((folder) => folder.id === active.id);
-        const toIndex = folders.findIndex((folder) => folder.id === over.id);
+        const fromIndex = displayFolders.findIndex((folder) => folder.id === active.id);
+        const toIndex = displayFolders.findIndex((folder) => folder.id === over.id);
         if (fromIndex < 0 || toIndex < 0) return;
+        const previous = displayFolders;
+        reorderInFlight.current = true;
+        setDisplayFolders(arrayMove(displayFolders, fromIndex, toIndex));
         try {
             await reorderTagFolders({ fromIndex, toIndex }).unwrap();
         } catch {
-            // The request layer already surfaces the server message.
+            setDisplayFolders(previous);
+        } finally {
+            reorderInFlight.current = false;
         }
     }
 
@@ -151,7 +167,7 @@ export default function TagFolderColumn() {
             <div className="h-[3px] bg-gray-400 dark:bg-neutral-700/70" />
             <div className="space-y-1 p-4 overflow-y-auto flex-1">
                 {isLoading && <div>Loading...</div>}
-                {!isLoading && folders.length === 0 && (
+                {!isLoading && displayFolders.length === 0 && (
                     <div className="text-sm text-neutral-400 dark:text-neutral-500 py-4 text-center">
                         No tag folders yet.
                     </div>
@@ -164,10 +180,10 @@ export default function TagFolderColumn() {
                     onDragCancel={stopReordering}
                 >
                 <SortableContext
-                    items={folders.map((folder) => folder.id)}
+                    items={displayFolders.map((folder) => folder.id)}
                     strategy={verticalListSortingStrategy}
                 >
-                {folders.map((folder) => (
+                {displayFolders.map((folder) => (
                     <TagFolderRow
                         key={folder.id}
                         folder={folder}
@@ -177,7 +193,7 @@ export default function TagFolderColumn() {
                         onDelete={async () => {
                             await deleteTagFolder(folder.id);
                             if (selectedId === folder.id) {
-                                const remaining = folders.filter((item) => item.id !== folder.id);
+                                const remaining = displayFolders.filter((item) => item.id !== folder.id);
                                 choose(remaining[0]?.id ?? "ungrouped");
                             }
                         }}

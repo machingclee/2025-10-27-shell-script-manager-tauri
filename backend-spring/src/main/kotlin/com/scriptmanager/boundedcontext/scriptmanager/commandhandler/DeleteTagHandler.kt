@@ -18,8 +18,9 @@ class DeleteTagHandler(
     override fun handle(eventQueue: EventQueue, command: DeleteTagCommand) {
         val tag = tagRepository.findByIdOrNull(command.tagId)
             ?: throw ScriptManagerException("Tag not found")
+        val assignedTags = tag.assignedTags.map { it.toDTO() }
         val dto = tag.toDTO()
         tagRepository.delete(tag)
-        eventQueue.add(TagDeletedEvent(dto))
+        eventQueue.add(TagDeletedEvent(tag = dto, assignedTags = assignedTags))
     }
 }

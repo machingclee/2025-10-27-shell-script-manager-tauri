@@ -2700,6 +2700,18 @@
       "queryAllDeclaredMethods": true
     },
     {
+      "type": "com.scriptmanager.boundedcontext.scriptmanager.commandhandler.UnassignTagFromScriptHandler",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "allRecordComponents": true,
+      "queryAllPublicMethods": true,
+      "queryAllDeclaredMethods": true
+    },
+    {
       "type": "com.scriptmanager.boundedcontext.scriptmanager.commandhandler.AssignTagToScriptHandler",
       "allDeclaredConstructors": true,
       "allPublicConstructors": true,
@@ -3096,7 +3108,7 @@
       "queryAllDeclaredMethods": true
     },
     {
-      "type": "com.scriptmanager.boundedcontext.scriptmanager.policy.TagDeletedPolicy",
+      "type": "com.scriptmanager.boundedcontext.scriptmanager.policy.TagPolicy",
       "allDeclaredConstructors": true,
       "allPublicConstructors": true,
       "allDeclaredMethods": true,
@@ -3432,6 +3444,18 @@
       "queryAllDeclaredMethods": true
     },
     {
+      "type": "com.scriptmanager.common.entity.AssignedTagDTO",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "allRecordComponents": true,
+      "queryAllPublicMethods": true,
+      "queryAllDeclaredMethods": true
+    },
+    {
       "type": "com.scriptmanager.common.entity.TagDTO",
       "allDeclaredConstructors": true,
       "allPublicConstructors": true,
@@ -3697,6 +3721,18 @@
     },
     {
       "type": "com.scriptmanager.boundedcontext.scriptmanager.command.folder.UpdateFolderCommand",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "allRecordComponents": true,
+      "queryAllPublicMethods": true,
+      "queryAllDeclaredMethods": true
+    },
+    {
+      "type": "com.scriptmanager.boundedcontext.scriptmanager.command.script.UnassignTagFromScriptCommand",
       "allDeclaredConstructors": true,
       "allPublicConstructors": true,
       "allDeclaredMethods": true,
@@ -4213,6 +4249,18 @@
     },
     {
       "type": "com.scriptmanager.boundedcontext.scriptmanager.event.SubfolderAddedEvent",
+      "allDeclaredConstructors": true,
+      "allPublicConstructors": true,
+      "allDeclaredMethods": true,
+      "allPublicMethods": true,
+      "allDeclaredFields": true,
+      "allPublicFields": true,
+      "allRecordComponents": true,
+      "queryAllPublicMethods": true,
+      "queryAllDeclaredMethods": true
+    },
+    {
+      "type": "com.scriptmanager.boundedcontext.scriptmanager.event.TagUnassignedFromScriptEvent",
       "allDeclaredConstructors": true,
       "allPublicConstructors": true,
       "allDeclaredMethods": true,

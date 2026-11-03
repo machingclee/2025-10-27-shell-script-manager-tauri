@@ -11,8 +11,25 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface EventRepository : AuditEventRepository<Event> {
-    fun findAllByEventType(eventType: String): List<Event>
-    fun findAllByRequestIdAndEventType(requestId: String, eventType: String): List<Event>
+    // Derived queries would use the AuditEvent getter names (requestId, eventType).
+    // Those are not persistent attributes; the columns are requestIdValue and eventTypeValue.
+    @Query("select e from Event e where e.eventTypeValue = :eventType")
+    fun findAllByEventType(@Param("eventType") eventType: String): List<Event>
+
+    @Query("select e from Event e where e.requestIdValue = :requestId")
+    override fun findAllByRequestId(@Param("requestId") requestId: String): List<Event>
+
+    @Query(
+        """
+        select e from Event e
+        where e.requestIdValue = :requestId
+          and e.eventTypeValue = :eventType
+        """
+    )
+    fun findAllByRequestIdAndEventType(
+        @Param("requestId") requestId: String,
+        @Param("eventType") eventType: String
+    ): List<Event>
 
     // Property names are the entity's backing fields (requestIdValue, …), not the
     // AuditEvent getters — Spring Data resolves JPQL against the persistent fields.

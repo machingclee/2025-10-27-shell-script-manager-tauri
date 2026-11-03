@@ -1,3 +1,4 @@
+import type { RootState } from "../store";
 import { baseApi } from "./baseApi";
 
 export type TagDTO = {
@@ -57,21 +58,31 @@ export const tagApi = baseApi.injectEndpoints({
         }),
         reorderTagFolders: builder.mutation<void, { fromIndex: number; toIndex: number }>({
             query: (body) => ({ url: "/tag-folders/reorder", method: "PATCH", body }),
-            onQueryStarted: async ({ fromIndex, toIndex }, { dispatch, queryFulfilled }) => {
-                const patch = dispatch(
-                    tagApi.util.updateQueryData("getAllTagFolders", undefined, (draft) => {
-                        const [moved] = draft.splice(fromIndex, 1);
-                        if (!moved) return;
-                        draft.splice(toIndex, 0, moved);
-                        draft.forEach((folder, index) => {
-                            folder.ordering = index;
-                        });
-                    })
+            onQueryStarted: async ({ fromIndex, toIndex }, { dispatch, getState, queryFulfilled }) => {
+                const cachedArgs = tagApi.util.selectCachedArgsForQuery(
+                    getState() as RootState,
+                    "getAllTagFolders"
+                );
+                const queryArgs = cachedArgs.length > 0 ? cachedArgs : [undefined];
+                const patches = queryArgs.map((queryArg) =>
+                    dispatch(
+                        tagApi.util.updateQueryData("getAllTagFolders", queryArg, (draft) => {
+                            if (fromIndex < 0 || fromIndex >= draft.length || toIndex < 0 || toIndex >= draft.length) {
+                                return;
+                            }
+                            const [moved] = draft.splice(fromIndex, 1);
+                            if (!moved) return;
+                            draft.splice(toIndex, 0, moved);
+                            draft.forEach((folder, index) => {
+                                folder.ordering = index;
+                            });
+                        })
+                    )
                 );
                 try {
                     await queryFulfilled;
                 } catch {
-                    patch.undo();
+                    patches.forEach((patch) => patch.undo());
                 }
             },
         }),

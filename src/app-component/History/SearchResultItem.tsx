@@ -6,6 +6,7 @@ import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
+    ContextMenuSeparator,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import NameTagDisplay from "@/lib/NameTagDisplay";
@@ -160,13 +161,16 @@ export default function SearchResultItem({
                     Go to root folder
                 </ContextMenuItem>
                 {script.id != null && (
-                    <ContextMenuItem
-                        onClick={() => setIsAssignTagOpen(true)}
-                        className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
-                    >
-                        <Tag className="w-4 h-4 mr-2" />
-                        Assign Tag
-                    </ContextMenuItem>
+                    <>
+                        <ContextMenuSeparator className="dark:bg-neutral-700" />
+                        <ContextMenuItem
+                            onClick={() => setIsAssignTagOpen(true)}
+                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                        >
+                            <Tag className="w-4 h-4 mr-2" />
+                            Tag Assignment
+                        </ContextMenuItem>
+                    </>
                 )}
             </ContextMenuContent>
         </ContextMenu>
