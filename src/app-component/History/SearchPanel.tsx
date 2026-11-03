@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { resetTagSearch, setRightPanelMode, setSearchPage } from "@/store/slices/appSlice";
 import { openHistory } from "@/store/slices/historySlice";
+import AssignedTagBadge from "@/lib/AssignedTagBadge";
 import clsx from "clsx";
 
 const PAGE_SIZE = 10;
@@ -48,9 +49,10 @@ export default function SearchPanel() {
     const contentResults = originalArgs?.search === queryText ? currentData : undefined;
     const results = searchMode === "tags" ? tagResults : contentResults;
     const isSearching = searchMode === "tags" ? isTagSearching : isContentSearching;
-    const selectedTagNames = tags
-        .filter((tag) => tagIds.includes(tag.id))
-        .map((tag) => tag.name);
+    const selectedTags = tagIds.flatMap((id) => {
+        const tag = tags.find((item) => item.id === id);
+        return tag ? [tag] : [];
+    });
 
     const totalPages = results ? Math.ceil(results.total / PAGE_SIZE) : 0;
 
@@ -79,20 +81,34 @@ export default function SearchPanel() {
                         </Button>
                     )}
                 </div>
-                <p className="text-sm text-gray-600 dark:text-neutral-400 italic mt-1 flex items-center gap-1.5">
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-gray-600 dark:text-neutral-400">
                     {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
-                    {isSearching
-                        ? "Searching…"
-                        : searchMode === "tags"
-                          ? results
-                              ? `${results.total} result${results.total !== 1 ? "s" : ""} for any of ${
-                                    selectedTagNames.join(", ") || `${tagIds.length} tags`
-                                }`
-                              : "Searching by tags…"
-                          : results
-                            ? `${results.total} result${results.total !== 1 ? "s" : ""} for "${search}"`
-                            : `Searching for "${search}"`}
-                </p>
+                    {isSearching ? (
+                        <span className="italic">Searching…</span>
+                    ) : searchMode === "tags" ? (
+                        results ? (
+                            <>
+                                <span className="italic">
+                                    {results.total} result{results.total !== 1 ? "s" : ""} for any of
+                                </span>
+                                {selectedTags.map((tag) => (
+                                    <AssignedTagBadge key={tag.id} name={tag.name} />
+                                ))}
+                                {selectedTags.length === 0 && (
+                                    <span className="italic">{tagIds.length} tags</span>
+                                )}
+                            </>
+                        ) : (
+                            <span className="italic">Searching by tags…</span>
+                        )
+                    ) : (
+                        <span className="italic">
+                            {results
+                                ? `${results.total} result${results.total !== 1 ? "s" : ""} for "${search}"`
+                                : `Searching for "${search}"`}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Pagination — shown above results */}

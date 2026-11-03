@@ -11,6 +11,12 @@ spring:
   application:
     name: script-manager-backend
 
+  threads:
+    virtual:
+      # Tomcat runs each MVC request on a virtual thread when this process is
+      # Java 21+. Controller methods stay ordinary blocking functions.
+      enabled: true
+
   datasource:
     # AUTO_SERVER=TRUE: mixed mode so a local JDBC client (DBeaver) can attach
     # while the app holds the file. First opener starts a loopback TCP server.
@@ -36,7 +42,8 @@ spring:
   flyway:
     enabled: true
 
-  # Task executor for async operations (if needed)
+  # Unused while virtual threads are enabled. Boot then builds
+  # applicationTaskExecutor from virtual threads, not this platform pool.
   task:
     execution:
       pool:

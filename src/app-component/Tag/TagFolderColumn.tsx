@@ -60,7 +60,8 @@ const inputClass =
 export default function TagFolderColumn() {
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
-    const { selectedId, select } = useTagSelection();
+    const { selectedId, select, tagFilter } = useTagSelection();
+    const searchingAll = tagFilter.trim().length > 0;
     const { data: folders = [], isLoading } = tagApi.endpoints.getAllTagFolders.useQuery(
         undefined,
         { skip: !backendPort }
@@ -148,12 +149,12 @@ export default function TagFolderColumn() {
     }
 
     return (
-        <div className="flex flex-col h-full dark:text-white">
-            <div className="flex items-center justify-end w-full pt-[6px] pb-[7px] pr-[10px]">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden dark:text-white">
+            <div className="flex flex-shrink-0 items-center justify-end border-b border-gray-200 px-2 py-1.5 dark:border-neutral-700">
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="bg-white p-1 !h-8 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
+                    className="bg-white p-1 !h-8 rounded-md border-0 !shadow-none hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
                     onClick={() => {
                         setNewFolderName("");
                         setIsCreateOpen(true);
@@ -164,8 +165,7 @@ export default function TagFolderColumn() {
                     Tag Folder
                 </Button>
             </div>
-            <div className="h-[3px] bg-gray-400 dark:bg-neutral-700/70" />
-            <div className="space-y-1 p-4 overflow-y-auto flex-1">
+            <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
                 {isLoading && <div>Loading...</div>}
                 {!isLoading && displayFolders.length === 0 && (
                     <div className="text-sm text-neutral-400 dark:text-neutral-500 py-4 text-center">
@@ -187,7 +187,7 @@ export default function TagFolderColumn() {
                     <TagFolderRow
                         key={folder.id}
                         folder={folder}
-                        isSelected={selectedId === folder.id}
+                        isSelected={!searchingAll && selectedId === folder.id}
                         onSelect={() => choose(folder.id)}
                         onRename={(name) => updateTagFolder({ ...folder, name })}
                         onDelete={async () => {
@@ -208,7 +208,7 @@ export default function TagFolderColumn() {
                         <div className="opacity-80 cursor-grabbing">
                             <TagFolderRowFace
                                 folder={activeFolder}
-                                isSelected={selectedId === activeFolder.id}
+                                isSelected={!searchingAll && selectedId === activeFolder.id}
                                 dragHandle={
                                     <div className="p-0.5 flex-shrink-0">
                                         <GripVertical className="w-4 h-4" />
@@ -219,12 +219,12 @@ export default function TagFolderColumn() {
                     ) : null}
                 </DragOverlay>
                 </DndContext>
+                <UngroupedRow
+                    isSelected={!searchingAll && selectedId === "ungrouped"}
+                    onSelect={() => choose("ungrouped")}
+                    onAddTag={(name) => createTag({ name, tagFolderId: null }).unwrap()}
+                />
             </div>
-            <UngroupedRow
-                isSelected={selectedId === "ungrouped"}
-                onSelect={() => choose("ungrouped")}
-                onAddTag={(name) => createTag({ name, tagFolderId: null }).unwrap()}
-            />
 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
@@ -278,7 +278,7 @@ function TagFolderRowFace({
     return (
         <div
             className={clsx(
-                "flex items-center gap-2 px-3 py-2 rounded-md transition-colors w-full flex-shrink-0",
+                "flex items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors w-full flex-shrink-0",
                 "hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-600",
                 isSelected &&
                     "bg-gray-600 text-white hover:bg-gray-700 active:bg-gray-800 dark:bg-neutral-500 dark:hover:bg-neutral-600 dark:active:bg-neutral-700",
@@ -287,7 +287,7 @@ function TagFolderRowFace({
             )}
         >
             {dragHandle}
-            <Folder className="w-5 h-5 flex-shrink-0" fill="currentColor" />
+            <Folder className="h-4 w-4 flex-shrink-0" fill="currentColor" />
             <div className="flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                 {folder.name}
             </div>

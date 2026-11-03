@@ -11,6 +11,7 @@ import {
     setSearchText,
     setSearchMode,
     setSearchTagIds,
+    setOpenPopover,
     setRightPanelMode,
     patchTabState,
 } from "./store/slices/appSlice";
@@ -35,11 +36,13 @@ import HistoryPanel from "./app-component/History/HistoryPanel";
 import LogButton from "./app-component/Log/LogButton";
 import LogPanel from "./app-component/Log/LogPanel";
 import TagButton from "./app-component/Tag/TagButton";
-import TagFolderColumn from "./app-component/Tag/TagFolderColumn";
-import TagsColumn from "./app-component/Tag/TagsColumn";
 import { TagSelectionProvider } from "./app-component/Tag/tagSelection";
 import SearchPanel from "./app-component/History/SearchPanel";
 import SearchByTagsDropdown from "./app-component/History/SearchByTagsDropdown";
+import SearchTagSuggestions, {
+    isTagsCommandPrefix,
+    type SearchTagSuggestionsHandle,
+} from "./app-component/History/SearchTagSuggestions";
 import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
@@ -85,34 +88,58 @@ function App() {
     // -----------------------------------------------------------------------
     // Search panel state
     // -----------------------------------------------------------------------
-    const searchText = useAppSelector((s) => s.app.rightPanel.search.searchText);
     const searchMode = useAppSelector((s) => s.app.rightPanel.search.mode);
     const searchTagIds = useAppSelector((s) => s.app.rightPanel.search.tagIds);
     const rightPanelMode = useAppSelector((s) => s.app.rightPanel.mode);
-
-    // Stay on history while typing; switch to search only after the query settles.
-    const enterSearchMode = useRef(
-        debounce(() => {
-            dispatch(setRightPanelMode("SEARCH"));
-            dispatch(openHistory());
-        }, 400)
-    ).current;
-
-    useEffect(() => {
-        return () => enterSearchMode.cancel();
-    }, [enterSearchMode]);
+    const tagPickerOpen = useAppSelector((s) => s.app.openPopover === "search-by-tags");
+    const searchFieldRef = useRef<HTMLDivElement>(null);
+    const tagSuggestionsRef = useRef<SearchTagSuggestionsHandle>(null);
+    const [searchDraft, setSearchDraft] = useState("");
+    const [searchFocused, setSearchFocused] = useState(false);
+    const tagSuggestionsOpen =
+        searchFocused && searchDraft.trim().length > 0 && !tagPickerOpen;
 
     const clearSearch = () => {
-        enterSearchMode.cancel();
-        dispatch(setSearchText(""));
+        setSearchDraft("");
         if (searchMode === "tags") return;
+        dispatch(setSearchText(""));
         dispatch(setRightPanelMode("HISTORY"));
         dispatch(setActiveTab(HOME_TAB_ID));
+    };
+
+    const openTagPicker = () => {
+        setSearchDraft("");
+        dispatch(setOpenPopover("search-by-tags"));
+    };
+
+    const pickSearchTag = (tagId: number) => {
+        const next = searchTagIds.includes(tagId) ? searchTagIds : [...searchTagIds, tagId];
+        dispatch(setSearchTagIds(next));
+        dispatch(setRightPanelMode("SEARCH"));
+        dispatch(openHistory());
+        returnHome();
+        setSearchDraft("");
+    };
+
+    const submitContentSearch = () => {
+        const value = searchDraft.trim();
+        if (!value) return;
+        if (isTagsCommandPrefix(value)) {
+            openTagPicker();
+            return;
+        }
+        dispatch(setSearchMode("content"));
+        dispatch(setSearchText(value));
+        dispatch(setRightPanelMode("SEARCH"));
+        dispatch(openHistory());
+        returnHome();
     };
 
     const returnHome = useCallback(() => {
         dispatch(setActiveTab(HOME_TAB_ID));
     }, [dispatch]);
+
+    const closeTagSuggestions = useCallback(() => setSearchFocused(false), []);
 
     // -----------------------------------------------------------------------
     // Tab system (state lives in Redux)
@@ -676,9 +703,10 @@ function App() {
                 {/* Right-side controls — stay available on markdown tabs and return home */}
                 <div className="flex-1 right-4 z-10 flex items-center gap-2 px-4 justify-end">
                     <div
+                        ref={searchFieldRef}
                         className="flex h-8 w-48 items-center overflow-hidden rounded-md border border-gray-300 bg-white focus-within:w-72 focus-within:ring-1 focus-within:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:focus-within:ring-neutral-500"
                         style={{
-                            opacity: rightPanelMode === "SEARCH" && searchMode === "content" ? 1 : 0.5,
+                            opacity: searchFocused || rightPanelMode === "SEARCH" ? 1 : 0.5,
                             transition: "opacity 0.2s ease, width 0.3s ease",
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
@@ -686,28 +714,48 @@ function App() {
                         <Search className="ml-2 w-3.5 h-3.5 shrink-0 text-gray-400 dark:text-neutral-400 pointer-events-none" />
                         <input
                             type="text"
-                            value={searchText}
+                            value={searchDraft}
                             onChange={(e) => {
                                 const value = e.target.value;
-                                dispatch(setSearchMode("content"));
-                                dispatch(setSearchText(value));
+                                setSearchDraft(value);
                                 returnHome();
-                                if (!value.trim()) {
-                                    enterSearchMode.cancel();
-                                    dispatch(setRightPanelMode("HISTORY"));
+                                if (value.trim() || searchMode === "tags") return;
+                                dispatch(setSearchText(""));
+                                dispatch(setRightPanelMode("HISTORY"));
+                            }}
+                            onFocus={() => setSearchFocused(true)}
+                            onBlur={(e) => {
+                                if (tagSuggestionsRef.current?.contains(e.relatedTarget)) return;
+                                setSearchFocused(false);
+                            }}
+                            onKeyDown={(e) => {
+                                if (
+                                    (e.key === "ArrowDown" || e.key === "ArrowUp") &&
+                                    tagSuggestionsOpen &&
+                                    tagSuggestionsRef.current?.hasOption()
+                                ) {
+                                    e.preventDefault();
+                                    if (e.key === "ArrowDown") tagSuggestionsRef.current.selectNext();
+                                    else tagSuggestionsRef.current.selectUp();
                                     return;
                                 }
-                                enterSearchMode();
+                                if (e.key === "Tab" && tagSuggestionsOpen && tagSuggestionsRef.current?.hasOption()) {
+                                    const handled = e.shiftKey
+                                        ? tagSuggestionsRef.current.selectPrevious()
+                                        : tagSuggestionsRef.current.selectNext();
+                                    if (handled) e.preventDefault();
+                                    return;
+                                }
+                                if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                                e.preventDefault();
+                                // A row highlighted with Tab wins over searching the typed text.
+                                if (tagSuggestionsOpen && tagSuggestionsRef.current?.chooseActive()) return;
+                                submitContentSearch();
                             }}
-                            onFocus={() => {
-                                returnHome();
-                                if (!searchText.trim()) return;
-                                enterSearchMode();
-                            }}
-                            placeholder="Search scripts…"
+                            placeholder="/tags for a more refined tag search"
                             className="h-full min-w-0 flex-1 border-0 bg-transparent px-2 text-sm text-gray-800 placeholder-gray-400 outline-none dark:text-white dark:placeholder-neutral-400"
                         />
-                        {searchText && (
+                        {searchDraft && (
                             <button
                                 tabIndex={-1}
                                 onClick={clearSearch}
@@ -718,7 +766,17 @@ function App() {
                             </button>
                         )}
                     </div>
+                    <SearchTagSuggestions
+                        ref={tagSuggestionsRef}
+                        anchorRef={searchFieldRef}
+                        query={searchDraft}
+                        open={tagSuggestionsOpen}
+                        onPickTag={pickSearchTag}
+                        onPickCommand={openTagPicker}
+                        onClose={closeTagSuggestions}
+                    />
                     <SearchByTagsDropdown
+                        anchorRef={searchFieldRef}
                         initialTagIds={searchTagIds}
                         onConfirm={(tagIds) => {
                             dispatch(setSearchTagIds(tagIds));
@@ -727,15 +785,7 @@ function App() {
                             returnHome();
                         }}
                     />
-                    <div
-                        style={{
-                            opacity: rightPanelMode === "TAG" ? 1 : 0.3,
-                            transition: "opacity 0.2s ease",
-                        }}
-                        onMouseDown={(e) => e.stopPropagation()}
-                    >
-                        <TagButton />
-                    </div>
+                    <TagButton />
                     <div
                         style={{
                             opacity: rightPanelMode === "LOG" ? 1 : 0.3,
@@ -773,7 +823,7 @@ function App() {
                 <div
                     className={`flex-1 overflow-hidden flex flex-row ${activeTabId !== HOME_TAB_ID ? "hidden" : ""}`}
                 >
-                    {appState || rightPanelMode === "TAG" ? (
+                    {appState ? (
                             <div
                                 ref={folderSplitRef}
                                 className="flex h-full flex-1 min-w-0"
@@ -783,7 +833,7 @@ function App() {
                                     className="h-full flex-shrink-0 overflow-hidden"
                                     style={{ width: folderColumnPx }}
                                 >
-                                    {rightPanelMode === "TAG" ? <TagFolderColumn /> : <FolderColumn />}
+                                    <FolderColumn />
                                 </div>
                                 <div
                                     className="relative flex w-2 flex-shrink-0 items-center justify-center bg-border hover:bg-blue-200 transition-colors cursor-col-resize"
@@ -801,13 +851,13 @@ function App() {
                                     </div>
                                 </div>
                                 <div className="h-full min-w-0 flex-1 overflow-hidden">
-                                    {rightPanelMode === "TAG" ? <TagsColumn /> : <ScriptsColumn />}
+                                    <ScriptsColumn />
                                 </div>
                             </div>
                     ) : (
                         <div className="flex-1" />
                     )}
-                    {isHistoryOpen && rightPanelMode !== "TAG" && (
+                    {isHistoryOpen && (
                         <div
                             className={`${rightPanelMode === "LOG" ? "w-[460px]" : "w-[350px]"} h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in`}
                         >

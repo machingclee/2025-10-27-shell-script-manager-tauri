@@ -72,9 +72,12 @@ interface TabState {
 
 export type RightPanelMode = "SEARCH" | "HISTORY" | "LOG" | "TAG";
 export type SearchMode = "content" | "tags";
+export type TitlePopover = "search-by-tags" | "tags";
 
 interface AppState {
     tab: TabState;
+    /** The title-bar popover that is open. Opening one closes the other. */
+    openPopover: TitlePopover | null;
     rightPanel: {
         mode: RightPanelMode;
         search: {
@@ -99,6 +102,7 @@ const initialState: AppState = {
         previewDarkMode: true,
         closedMarkdownQueue: [],
     },
+    openPopover: null,
     rightPanel: {
         mode: "HISTORY",
         search: {
@@ -262,6 +266,12 @@ const appSlice = createSlice({
         setRightPanelMode(state, action: PayloadAction<RightPanelMode>) {
             state.rightPanel.mode = action.payload;
         },
+        setOpenPopover(state, action: PayloadAction<TitlePopover | null>) {
+            state.openPopover = action.payload;
+        },
+        toggleOpenPopover(state, action: PayloadAction<TitlePopover>) {
+            state.openPopover = state.openPopover === action.payload ? null : action.payload;
+        },
         renameTab(state, action: PayloadAction<{ scriptId: number; scriptName: string }>) {
             const { scriptId, scriptName } = action.payload;
             const tab = state.tab.tabs.find((t) => t.scriptId === scriptId);
@@ -290,6 +300,8 @@ export const {
     setSearchTagIds,
     resetTagSearch,
     setRightPanelMode,
+    setOpenPopover,
+    toggleOpenPopover,
     renameTab,
 } = appSlice.actions;
 export default appSlice;

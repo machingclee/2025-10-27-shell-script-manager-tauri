@@ -13,8 +13,16 @@ version = "0.0.1-SNAPSHOT"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        // bootRun, tests, and the compiler use this JDK.
+        languageVersion = JavaLanguageVersion.of(25)
     }
+}
+
+// Kotlin 2.2.21 can emit up to JVM 24, so javac must target 24 too.
+// The toolchain above still runs bootRun and tests on JDK 25.
+tasks.withType<JavaCompile>().configureEach {
+    sourceCompatibility = "24"
+    targetCompatibility = "24"
 }
 
 repositories {
@@ -73,7 +81,7 @@ configurations.all {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_24)
         freeCompilerArgs.addAll(
             "-Xannotation-default-target=param-property",
             "-java-parameters"

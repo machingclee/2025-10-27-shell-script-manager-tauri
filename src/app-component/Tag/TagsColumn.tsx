@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { tagApi, type TagDTO } from "@/store/api/tagApi";
 import { useAppSelector } from "@/store/hooks";
+import { matchesTagFilter } from "@/lib/tagFilter";
 import { useTagSelection } from "./tagSelection";
 
 const inputClass =
@@ -40,7 +41,8 @@ const inputClass =
 
 export default function TagsColumn() {
     const backendPort = useAppSelector((s) => s.config.backendPort);
-    const { selectedId } = useTagSelection();
+    const { selectedId, tagFilter } = useTagSelection();
+    const searchingAll = tagFilter.trim().length > 0;
     const { data: tags = [], isLoading } = tagApi.endpoints.getAllTags.useQuery(undefined, {
         skip: !backendPort,
     });
@@ -59,12 +61,14 @@ export default function TagsColumn() {
             : selectedId === "ungrouped"
               ? "Ungrouped"
               : (folders.find((folder) => folder.id === selectedId)?.name ?? "Folder");
-    const visibleTags =
-        selectedId == null
-            ? []
-            : tags.filter((tag) =>
-                  folderId == null ? tag.tagFolderId == null : tag.tagFolderId === folderId
-              );
+    const folderTags = searchingAll
+        ? tags
+        : selectedId == null
+          ? []
+          : tags.filter((tag) =>
+                folderId == null ? tag.tagFolderId == null : tag.tagFolderId === folderId
+            );
+    const visibleTags = folderTags.filter((tag) => matchesTagFilter(tag.name, tagFilter));
 
     async function handleCreate() {
         const name = tagName.trim();
@@ -79,30 +83,28 @@ export default function TagsColumn() {
     }
 
     return (
-        <div className="flex flex-col h-full dark:text-white">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 p-4" />
-                <div className="flex items-center gap-2 mr-4">
-                    <Button
-                        variant="ghost"
-                        className="bg-white p-1 mt-[6px] mb-[7px] h-8 rounded-md border-0 !shadow-none transition-transform duration-150 hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
-                        onClick={() => {
-                            setTagName("");
-                            setIsAddOpen(true);
-                        }}
-                        title={`Add a tag to ${folderName}`}
-                    >
-                        <Plus className="!w-3 !h-3" /> Tag
-                    </Button>
-                </div>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden dark:text-white">
+            <div className="flex flex-shrink-0 items-center justify-end border-b border-gray-200 px-2 py-1.5 dark:border-neutral-700">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-md border-0 bg-white p-1 !shadow-none hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
+                    onClick={() => {
+                        setTagName("");
+                        setIsAddOpen(true);
+                    }}
+                    title={`Add a tag to ${folderName}`}
+                >
+                    <Plus className="h-4 w-4" />
+                    Tag
+                </Button>
             </div>
-            <div className="h-[3px] bg-gray-400 dark:bg-neutral-700/70" />
-            <div className="space-y-2 p-4 overflow-y-auto flex-1 min-h-[400px] bg-gray-50 dark:bg-neutral-800">
-                {isLoading && <div>Loading...</div>}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+                {isLoading && <p className="p-3 text-sm text-neutral-500">Loading...</p>}
                 {!isLoading && visibleTags.length === 0 && (
-                    <div className="text-sm text-neutral-400 dark:text-neutral-500 py-4 text-center">
-                        No tags in {folderName}.
-                    </div>
+                    <p className="p-3 text-sm text-neutral-500">
+                        {searchingAll ? "No matching tags." : `No tags in ${folderName}.`}
+                    </p>
                 )}
                 {visibleTags.map((tag) => (
                     <TagCard key={tag.id} tag={tag} />
@@ -177,10 +179,10 @@ function TagCard({ tag }: { tag: TagDTO }) {
         <ContextMenu>
             <ContextMenuTrigger asChild>
                 <div
-                    className={`px-3 py-2 rounded-md border transition-colors cursor-pointer w-full overflow-hidden select-none ${
+                    className={`flex w-full cursor-pointer items-center gap-2 rounded-none px-3 py-2 text-left text-sm select-none ${
                         pressed
-                            ? "bg-gray-200 border-gray-400 dark:bg-[rgba(0,0,0,0.2)] dark:border-neutral-500"
-                            : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-[rgba(255,255,255,0.05)] dark:border-neutral-600 dark:hover:bg-[rgba(255,255,255,0.2)]"
+                            ? "bg-gray-200 dark:bg-neutral-600"
+                            : "hover:bg-gray-100 dark:hover:bg-neutral-700"
                     }`}
                     onMouseDown={() => setPressed(true)}
                     onMouseUp={() => setPressed(false)}
@@ -190,10 +192,8 @@ function TagCard({ tag }: { tag: TagDTO }) {
                         setIsRenameOpen(true);
                     }}
                 >
-                    <div className="flex items-center gap-2 min-w-0 py-2">
-                        <Tag className="w-7 h-7 flex-shrink-0 text-green-500 dark:text-green-400" />
-                        <div className="font-bold text-lg break-words min-w-0">{tag.name}</div>
-                    </div>
+                    <Tag className="h-4 w-4 flex-shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{tag.name}</span>
                 </div>
             </ContextMenuTrigger>
             <ContextMenuContent className="bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700">
