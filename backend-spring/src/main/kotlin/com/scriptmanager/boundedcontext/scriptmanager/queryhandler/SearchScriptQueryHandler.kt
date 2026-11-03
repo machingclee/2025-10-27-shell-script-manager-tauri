@@ -18,6 +18,8 @@ class SearchScriptQueryHandler(
     override fun handle(query: SearchScriptQuery): ScriptsWithTotal {
         val pageable = PageRequest.of(query.page, query.size)
         val scriptPage = shellScriptRepository.searchByNameOrCommand(query.search, pageable)
+        val ids = scriptPage.content.mapNotNull { it.id }
+        if (ids.isNotEmpty()) shellScriptRepository.fetchAssignedTags(ids)
         return ScriptsWithTotal(
             // parentFolderId = workspace-level root folder (direct child of workspace),
             // not the script's immediate containing folder.

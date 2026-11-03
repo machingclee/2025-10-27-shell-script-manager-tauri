@@ -52,6 +52,7 @@ import MoveToFolderMenu from "./MoveToFolderMenu";
 import NameTagDisplay from "@/lib/NameTagDisplay";
 import AssignedTagBadge from "@/lib/AssignedTagBadge";
 import AssignTagDialog from "./AssignTagDialog";
+import ScriptTagClipboardItems from "./ScriptTagClipboardItems";
 import type { ScriptItemVariant } from "./GenericScriptItem";
 
 export default function ScriptItem({
@@ -430,6 +431,10 @@ export default function ScriptItem({
                                     <Tag className="w-4 h-4 mr-2" />
                                     Tag Assignment
                                 </ContextMenuItem>
+                                <ScriptTagClipboardItems
+                                    scriptId={script.id}
+                                    assignedTags={script.assignedTags}
+                                />
                             </>
                         )}
                     </ContextMenuContent>
@@ -489,6 +494,10 @@ export default function ScriptItem({
                                 <Tag className="w-4 h-4 mr-2" />
                                 Tag Assignment
                             </ContextMenuItem>
+                            <ScriptTagClipboardItems
+                                scriptId={script.id}
+                                assignedTags={script.assignedTags}
+                            />
                         </>
                     )}
 

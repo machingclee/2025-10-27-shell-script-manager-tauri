@@ -61,4 +61,15 @@ interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
         """
     )
     fun searchByAnyTagId(@Param("tagIds") tagIds: Collection<Int>, pageable: Pageable): Page<ShellScript>
+
+    /** Initializes assigned tags and their names for scripts already loaded in this session. */
+    @Query(
+        """
+        SELECT DISTINCT s FROM ShellScript s
+        LEFT JOIN FETCH s.assignedTags assignedTag
+        LEFT JOIN FETCH assignedTag.tag
+        WHERE s.id IN :ids
+        """
+    )
+    fun fetchAssignedTags(@Param("ids") ids: Collection<Int>): List<ShellScript>
 }

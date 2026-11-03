@@ -10,11 +10,13 @@ import {
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import NameTagDisplay from "@/lib/NameTagDisplay";
+import AssignedTagBadge from "@/lib/AssignedTagBadge";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 import { appStateApi } from "@/store/api/appStateApi";
 import { scriptApi } from "@/store/api/scriptApi";
 import AssignTagDialog from "@/app-component/ScriptsColumn/AssignTagDialog";
+import ScriptTagClipboardItems from "@/app-component/ScriptsColumn/ScriptTagClipboardItems";
 import type { ScriptAssignedTag } from "@/types/dto";
 
 type SearchResultScript = {
@@ -149,6 +151,13 @@ export default function SearchResultItem({
                             )}
                         </div>
                     </div>
+                    {(script.assignedTags ?? []).length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                            {(script.assignedTags ?? []).map((tag) => (
+                                <AssignedTagBadge key={tag.assignedTagId} name={tag.name} />
+                            ))}
+                        </div>
+                    )}
                     {preview}
                 </div>
             </ContextMenuTrigger>
@@ -170,6 +179,10 @@ export default function SearchResultItem({
                             <Tag className="w-4 h-4 mr-2" />
                             Tag Assignment
                         </ContextMenuItem>
+                        <ScriptTagClipboardItems
+                            scriptId={script.id}
+                            assignedTags={script.assignedTags}
+                        />
                     </>
                 )}
             </ContextMenuContent>

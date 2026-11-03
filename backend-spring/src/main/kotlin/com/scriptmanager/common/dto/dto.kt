@@ -234,7 +234,7 @@ data class HistoricalShellScriptResponse(
     /** Workspace-level root folder id (direct child of workspace), used for navigation */
     val rootFolderId: Int? = null,
     val history: HistoricalShellScriptDTO,
-    val shellScript: ShellScriptDTO
+    val shellScript: ShellScriptResponse
 )
 
 data class UpdateWorkspaceStatusRequest(

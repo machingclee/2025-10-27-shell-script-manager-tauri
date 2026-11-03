@@ -30,11 +30,11 @@ export const tagApi = baseApi.injectEndpoints({
         }),
         updateTag: builder.mutation<TagDTO, TagDTO>({
             query: (tag) => ({ url: `/tags/${tag.id}`, method: "PUT", body: tag }),
-            invalidatesTags: ["Tag"],
+            invalidatesTags: ["Tag", "SearchResults", "ScriptHistory"],
         }),
         deleteTag: builder.mutation<void, number>({
             query: (id) => ({ url: `/tags/${id}`, method: "DELETE" }),
-            invalidatesTags: ["Tag"],
+            invalidatesTags: ["Tag", "SearchResults", "ScriptHistory"],
         }),
         getAllTagFolders: builder.query<TagFolderDTO[], void>({
             query: () => ({ url: "/tag-folders", method: "GET" }),

@@ -78,6 +78,8 @@ interface AppState {
     tab: TabState;
     /** The title-bar popover that is open. Opening one closes the other. */
     openPopover: TitlePopover | null;
+    /** Tag ids copied from a script, ready to paste onto another script. */
+    copiedTagIds: number[];
     rightPanel: {
         mode: RightPanelMode;
         search: {
@@ -103,6 +105,7 @@ const initialState: AppState = {
         closedMarkdownQueue: [],
     },
     openPopover: null,
+    copiedTagIds: [],
     rightPanel: {
         mode: "HISTORY",
         search: {
@@ -272,6 +275,9 @@ const appSlice = createSlice({
         toggleOpenPopover(state, action: PayloadAction<TitlePopover>) {
             state.openPopover = state.openPopover === action.payload ? null : action.payload;
         },
+        setCopiedTagIds(state, action: PayloadAction<number[]>) {
+            state.copiedTagIds = action.payload;
+        },
         renameTab(state, action: PayloadAction<{ scriptId: number; scriptName: string }>) {
             const { scriptId, scriptName } = action.payload;
             const tab = state.tab.tabs.find((t) => t.scriptId === scriptId);
@@ -302,6 +308,7 @@ export const {
     setRightPanelMode,
     setOpenPopover,
     toggleOpenPopover,
+    setCopiedTagIds,
     renameTab,
 } = appSlice.actions;
 export default appSlice;
