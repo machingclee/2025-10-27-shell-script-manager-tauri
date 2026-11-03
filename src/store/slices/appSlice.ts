@@ -254,6 +254,11 @@ const appSlice = createSlice({
             state.rightPanel.search.mode = "tags";
             state.rightPanel.search.searchPage = 0;
         },
+        resetTagSearch(state) {
+            state.rightPanel.search.tagIds = [];
+            state.rightPanel.search.mode = "content";
+            state.rightPanel.search.searchPage = 0;
+        },
         setRightPanelMode(state, action: PayloadAction<RightPanelMode>) {
             state.rightPanel.mode = action.payload;
         },
@@ -283,6 +288,7 @@ export const {
     setSearchPage,
     setSearchMode,
     setSearchTagIds,
+    resetTagSearch,
     setRightPanelMode,
     renameTab,
 } = appSlice.actions;

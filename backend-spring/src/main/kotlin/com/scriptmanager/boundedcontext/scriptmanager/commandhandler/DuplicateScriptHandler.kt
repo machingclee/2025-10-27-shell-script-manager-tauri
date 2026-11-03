@@ -23,10 +23,6 @@ class DuplicateScriptHandler(
         val source = scriptRepository.findByIdOrNull(command.scriptId)
             ?: throw ScriptManagerException("Script not found")
 
-        if (source.isMarkdown) {
-            throw ScriptManagerException("Only shell scripts can be duplicated")
-        }
-
         val folder = source.parentFolder
             ?: throw ScriptManagerException("Script is not in a folder")
 
@@ -35,7 +31,7 @@ class DuplicateScriptHandler(
             command = source.command,
             showShell = source.showShell,
             locked = false,
-            isMarkdown = false
+            isMarkdown = source.isMarkdown
         )
 
         val saved = scriptRepository.save(copy)

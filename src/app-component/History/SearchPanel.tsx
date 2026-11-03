@@ -6,7 +6,8 @@ import SearchResultItem from "./SearchResultItem";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setSearchPage } from "@/store/slices/appSlice";
+import { resetTagSearch, setRightPanelMode, setSearchPage } from "@/store/slices/appSlice";
+import { openHistory } from "@/store/slices/historySlice";
 import clsx from "clsx";
 
 const PAGE_SIZE = 10;
@@ -62,7 +63,22 @@ export default function SearchPanel() {
         <div className="h-full flex flex-col bg-white dark:bg-neutral-800 border-l border-gray-200 dark:border-neutral-700">
             {/* Header */}
             <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-neutral-700">
-                <h2 className="text-lg font-semibold text-black dark:text-white">Search Results</h2>
+                <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-lg font-semibold text-black dark:text-white">Search Results</h2>
+                    {searchMode === "tags" && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                dispatch(resetTagSearch());
+                                dispatch(openHistory());
+                                dispatch(setRightPanelMode(search.trim() ? "SEARCH" : "HISTORY"));
+                            }}
+                        >
+                            Reset
+                        </Button>
+                    )}
+                </div>
                 <p className="text-sm text-gray-600 dark:text-neutral-400 italic mt-1 flex items-center gap-1.5">
                     {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
                     {isSearching

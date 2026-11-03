@@ -115,12 +115,13 @@ function ScriptContextActions({
                     Execute
                 </ContextMenuItem>
             )}
+            <ContextMenuSeparator className="dark:bg-neutral-700" />
             <ContextMenuItem
                 className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"
                 onClick={onAssignTag}
             >
                 <Tag className="w-4 h-4 mr-2" />
-                Assign Tag
+                Tag Assignment
             </ContextMenuItem>
             <ContextMenuSeparator className="dark:bg-neutral-700" />
             <ContextMenuItem

@@ -23,10 +23,10 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, FileText, Link, ExternalLink, Pencil, FolderOpen, Tag } from "lucide-react";
+import { Trash2, FileText, Link, ExternalLink, Pencil, FolderOpen, Tag, Copy } from "lucide-react";
 import MoveToFolderMenu from "./MoveToFolderMenu";
 import AssignTagDialog from "./AssignTagDialog";
-import { ASSIGNED_TAG_BADGE_CLASS } from "@/lib/nameTag";
+import AssignedTagBadge from "@/lib/AssignedTagBadge";
 import {
     Dialog,
     DialogContent,
@@ -66,6 +66,7 @@ export default function MarkdownItem({
     const [isAssignTagOpen, setIsAssignTagOpen] = useState(false);
     const [newName, setNewName] = useState(script.name);
     const [deleteScript] = scriptApi.endpoints.deleteScript.useMutation();
+    const [duplicateScript] = scriptApi.endpoints.duplicateScript.useMutation();
     const [updateMarkdownScript] = scriptApi.endpoints.updateMarkdownScript.useMutation();
     const [updateAppState] = appStateApi.endpoints.updateAppState.useMutation();
     const { data: appState } = appStateApi.endpoints.getAppState.useQueryState();
@@ -149,13 +150,10 @@ export default function MarkdownItem({
                             {(script.assignedTags ?? []).length > 0 && (
                                 <div className="flex flex-wrap items-center gap-2 mb-2">
                                     {(script.assignedTags ?? []).map((tag) => (
-                                        <span
+                                        <AssignedTagBadge
                                             key={tag.assignedTagId}
-                                            className={ASSIGNED_TAG_BADGE_CLASS}
-                                        >
-                                            <Tag className="w-4 h-4 text-green-400" />
-                                            {tag.name}
-                                        </span>
+                                            name={tag.name}
+                                        />
                                     ))}
                                 </div>
                             )}
@@ -219,13 +217,16 @@ export default function MarkdownItem({
                             Go to root folder
                         </ContextMenuItem>
                         {script.id != null && (
-                            <ContextMenuItem
-                                onClick={() => setIsAssignTagOpen(true)}
-                                className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
-                            >
-                                <Tag className="w-4 h-4 mr-2" />
-                                Assign Tag
-                            </ContextMenuItem>
+                            <>
+                                <ContextMenuSeparator className="dark:bg-neutral-700" />
+                                <ContextMenuItem
+                                    onClick={() => setIsAssignTagOpen(true)}
+                                    className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                                >
+                                    <Tag className="w-4 h-4 mr-2" />
+                                    Tag Assignment
+                                </ContextMenuItem>
+                            </>
                         )}
                     </ContextMenuContent>
                 ) : isHistory ? (
@@ -238,13 +239,16 @@ export default function MarkdownItem({
                             Open
                         </ContextMenuItem>
                         {script.id != null && (
-                            <ContextMenuItem
-                                onClick={() => setIsAssignTagOpen(true)}
-                                className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
-                            >
-                                <Tag className="w-4 h-4 mr-2" />
-                                Assign Tag
-                            </ContextMenuItem>
+                            <>
+                                <ContextMenuSeparator className="dark:bg-neutral-700" />
+                                <ContextMenuItem
+                                    onClick={() => setIsAssignTagOpen(true)}
+                                    className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                                >
+                                    <Tag className="w-4 h-4 mr-2" />
+                                    Tag Assignment
+                                </ContextMenuItem>
+                            </>
                         )}
                     </ContextMenuContent>
                 ) : (
@@ -266,14 +270,27 @@ export default function MarkdownItem({
                             <Pencil className="w-4 h-4 mr-2" />
                             Rename
                         </ContextMenuItem>
+                        <ContextMenuItem
+                            onClick={() => {
+                                if (!script.id) return;
+                                duplicateScript({ scriptId: script.id });
+                            }}
+                            className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                        >
+                            <Copy className="w-4 h-4 mr-2" />
+                            Duplicate
+                        </ContextMenuItem>
                         {script.id != null && (
-                            <ContextMenuItem
-                                onClick={() => setIsAssignTagOpen(true)}
-                                className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
-                            >
-                                <Tag className="w-4 h-4 mr-2" />
-                                Assign Tag
-                            </ContextMenuItem>
+                            <>
+                                <ContextMenuSeparator className="dark:bg-neutral-700" />
+                                <ContextMenuItem
+                                    onClick={() => setIsAssignTagOpen(true)}
+                                    className="dark:text-neutral-200 dark:focus:bg-neutral-700 cursor-pointer pr-4"
+                                >
+                                    <Tag className="w-4 h-4 mr-2" />
+                                    Tag Assignment
+                                </ContextMenuItem>
+                            </>
                         )}
                         <ContextMenuSeparator className="dark:bg-neutral-700" />
                         <MoveToFolderMenu scriptId={script.id!} currentFolderId={parentFolderId} />

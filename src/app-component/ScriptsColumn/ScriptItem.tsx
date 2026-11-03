@@ -50,7 +50,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { rootFolderSlice } from "@/store/slices/rootFolderSlice";
 import MoveToFolderMenu from "./MoveToFolderMenu";
 import NameTagDisplay from "@/lib/NameTagDisplay";
-import { ASSIGNED_TAG_BADGE_CLASS } from "@/lib/nameTag";
+import AssignedTagBadge from "@/lib/AssignedTagBadge";
 import AssignTagDialog from "./AssignTagDialog";
 import type { ScriptItemVariant } from "./GenericScriptItem";
 
@@ -228,7 +228,11 @@ export default function ScriptItem({
                     {parentFolderPath}
                 </div>
             )}
-            <div className="flex items-center gap-2 justify-between mb-4 min-w-0 pt-2">
+            <div
+                className={`flex items-center gap-2 justify-between min-w-0 pt-2 ${
+                    (script.assignedTags ?? []).length > 0 ? "" : "mb-4"
+                }`}
+            >
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="min-w-0 flex-1">
                         <div className="font-bold text-lg break-words select-none flex items-center gap-2 flex-wrap">
@@ -240,19 +244,6 @@ export default function ScriptItem({
                                 </span>
                             )}
                         </div>
-                        {(script.assignedTags ?? []).length > 0 && (
-                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                                {(script.assignedTags ?? []).map((tag) => (
-                                    <span
-                                        key={tag.assignedTagId}
-                                        className={ASSIGNED_TAG_BADGE_CLASS}
-                                    >
-                                            <Tag className="w-4 h-4 text-green-400" />
-                                        {tag.name}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
                     </div>
 
                     {executingScript && <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" />}
@@ -312,6 +303,13 @@ export default function ScriptItem({
                     )}
                 </div>
             </div>
+            {(script.assignedTags ?? []).length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-4">
+                    {(script.assignedTags ?? []).map((tag) => (
+                        <AssignedTagBadge key={tag.assignedTagId} name={tag.name} />
+                    ))}
+                </div>
+            )}
             {!liteVersionDisplay && (
                 <div className="border border-[rgba(0,0,0,0.1)] text-xs text-gray-600 mt-1 font-mono bg-gray-100 p-2 rounded-md dark:text-neutral-300 dark:bg-[rgba(0,0,0,0.1)] dark:border dark:border-[rgba(255,255,255,0.1)] max-h-16 overflow-y-auto overflow-x-hidden break-all whitespace-pre-wrap w-full">
                     {script.command}
@@ -423,13 +421,16 @@ export default function ScriptItem({
                             Go to root folder
                         </ContextMenuItem>
                         {script.id != null && (
-                            <ContextMenuItem
-                                onClick={() => setIsAssignTagOpen(true)}
-                                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
-                            >
-                                <Tag className="w-4 h-4 mr-2" />
-                                Assign Tag
-                            </ContextMenuItem>
+                            <>
+                                <ContextMenuSeparator className="dark:bg-neutral-700" />
+                                <ContextMenuItem
+                                    onClick={() => setIsAssignTagOpen(true)}
+                                    className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                                >
+                                    <Tag className="w-4 h-4 mr-2" />
+                                    Tag Assignment
+                                </ContextMenuItem>
+                            </>
                         )}
                     </ContextMenuContent>
                 </ContextMenu>
@@ -479,17 +480,21 @@ export default function ScriptItem({
                         </ContextMenuItem>
                     )}
                     {script.id != null && (
-                        <ContextMenuItem
-                            onClick={() => setIsAssignTagOpen(true)}
-                            className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
-                        >
-                            <Tag className="w-4 h-4 mr-2" />
-                            Assign Tag
-                        </ContextMenuItem>
+                        <>
+                            <ContextMenuSeparator className="dark:bg-neutral-700" />
+                            <ContextMenuItem
+                                onClick={() => setIsAssignTagOpen(true)}
+                                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-700"
+                            >
+                                <Tag className="w-4 h-4 mr-2" />
+                                Tag Assignment
+                            </ContextMenuItem>
+                        </>
                     )}
 
                     {!isHistory && !locked && (
                         <>
+                            <ContextMenuSeparator className="dark:bg-neutral-700" />
                             <MoveToFolderMenu
                                 scriptId={script.id!}
                                 currentFolderId={parentFolderId}

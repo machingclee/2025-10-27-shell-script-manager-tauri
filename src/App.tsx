@@ -39,8 +39,7 @@ import TagFolderColumn from "./app-component/Tag/TagFolderColumn";
 import TagsColumn from "./app-component/Tag/TagsColumn";
 import { TagSelectionProvider } from "./app-component/Tag/tagSelection";
 import SearchPanel from "./app-component/History/SearchPanel";
-import SearchByTagsDialog from "./app-component/History/SearchByTagsDialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./components/ui/tooltip";
+import SearchByTagsDropdown from "./app-component/History/SearchByTagsDropdown";
 import { Toaster } from "./components/ui/toaster";
 import AppClosingOverlay from "./components/AppClosingOverlay";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
@@ -90,7 +89,6 @@ function App() {
     const searchMode = useAppSelector((s) => s.app.rightPanel.search.mode);
     const searchTagIds = useAppSelector((s) => s.app.rightPanel.search.tagIds);
     const rightPanelMode = useAppSelector((s) => s.app.rightPanel.mode);
-    const [tagFilterOpen, setTagFilterOpen] = useState(false);
 
     // Stay on history while typing; switch to search only after the query settles.
     const enterSearchMode = useRef(
@@ -678,9 +676,9 @@ function App() {
                 {/* Right-side controls — stay available on markdown tabs and return home */}
                 <div className="flex-1 right-4 z-10 flex items-center gap-2 px-4 justify-end">
                     <div
-                        className="flex h-8 w-80 items-center overflow-hidden rounded-md border border-gray-300 bg-white focus-within:w-[26rem] focus-within:ring-1 focus-within:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:focus-within:ring-neutral-500 transition-[width] duration-300 ease-in-out"
+                        className="flex h-8 w-48 items-center overflow-hidden rounded-md border border-gray-300 bg-white focus-within:w-72 focus-within:ring-1 focus-within:ring-gray-400 dark:border-neutral-600 dark:bg-neutral-700 dark:focus-within:ring-neutral-500"
                         style={{
-                            opacity: rightPanelMode === "SEARCH" ? 1 : 0.5,
+                            opacity: rightPanelMode === "SEARCH" && searchMode === "content" ? 1 : 0.5,
                             transition: "opacity 0.2s ease, width 0.3s ease",
                         }}
                         onMouseDown={(e) => e.stopPropagation()}
@@ -719,56 +717,8 @@ function App() {
                                 ×
                             </button>
                         )}
-                        <div className="flex h-full shrink-0 items-stretch overflow-hidden">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            dispatch(setSearchMode("content"));
-                                            returnHome();
-                                            if (!searchText.trim()) {
-                                                enterSearchMode.cancel();
-                                                dispatch(setRightPanelMode("HISTORY"));
-                                                return;
-                                            }
-                                            enterSearchMode();
-                                        }}
-                                        className={`flex items-center px-2 text-xs transition-colors rounded-none outline-none focus-visible:outline-none focus-visible:ring-0 ${
-                                            searchMode === "content"
-                                                ? "bg-neutral-600 text-white"
-                                                : "bg-transparent text-neutral-100 hover:text-white hover:bg-neutral-700"
-                                        }`}
-                                    >
-                                        By content
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom">Search by name or command</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            returnHome();
-                                            setTagFilterOpen(true);
-                                        }}
-                                        className={`flex items-center px-2 text-xs transition-colors rounded-none outline-none focus-visible:outline-none focus-visible:ring-0 ${
-                                            searchMode === "tags"
-                                                ? "bg-neutral-600 text-white"
-                                                : "bg-transparent text-neutral-100 hover:text-white hover:bg-neutral-700"
-                                        }`}
-                                    >
-                                        By tags
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom">Filter by tags</TooltipContent>
-                            </Tooltip>
-                        </div>
                     </div>
-                    <SearchByTagsDialog
-                        open={tagFilterOpen}
-                        onOpenChange={setTagFilterOpen}
+                    <SearchByTagsDropdown
                         initialTagIds={searchTagIds}
                         onConfirm={(tagIds) => {
                             dispatch(setSearchTagIds(tagIds));
@@ -809,18 +759,12 @@ function App() {
             {/* Tab bar */}
 
             {/* Window title / Markdown toolbar */}
-            {activeTabId !== HOME_TAB_ID && (
+            {tabs.some((tab) => tab.type === "markdown" && tab.scriptId === activeTabId) && (
                 <div className="flex-shrink-0 flex items-center bg-white dark:bg-neutral-800 border-b border-neutral-800">
-                    {(() => {
-                        const activeTab = tabs.find((t) => t.scriptId === activeTabId);
-                        if (!activeTab || activeTab.type !== "markdown") return null;
-                        return (
-                            <MarkdownEditorToolbar
-                                scriptId={activeTab.scriptId}
-                                port={backendPort ?? null}
-                            />
-                        );
-                    })()}
+                    <MarkdownEditorToolbar
+                        scriptId={activeTabId}
+                        port={backendPort ?? null}
+                    />
                 </div>
             )}
             {/* Main content */}

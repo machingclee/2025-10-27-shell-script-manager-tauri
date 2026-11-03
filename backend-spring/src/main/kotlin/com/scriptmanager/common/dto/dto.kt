@@ -132,7 +132,7 @@ data class ScriptAssignedTagResponse(
 )
 
 data class AssignTagRequest(
-    val tagId: Int
+    val tagIds: List<Int>
 )
 
 data class ShellScriptResponse(

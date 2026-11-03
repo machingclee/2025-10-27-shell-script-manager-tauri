@@ -243,11 +243,19 @@ export const scriptApi = baseApi.injectEndpoints({
             }),
             providesTags: ["SearchResults"],
         }),
-        assignTagToScript: builder.mutation<void, { scriptId: number; tagId: number }>({
-            query: ({ scriptId, tagId }) => ({
+        assignTagToScript: builder.mutation<void, { scriptId: number; tagIds: number[] }>({
+            query: ({ scriptId, tagIds }) => ({
                 url: `/scripts/${scriptId}/tags`,
                 method: "POST",
-                body: { tagId },
+                body: { tagIds },
+            }),
+            invalidatesTags: ["FolderContent", "Script", "SearchResults"],
+        }),
+        unassignTagFromScript: builder.mutation<void, { scriptId: number; tagIds: number[] }>({
+            query: ({ scriptId, tagIds }) => ({
+                url: `/scripts/${scriptId}/tags`,
+                method: "DELETE",
+                body: { tagIds },
             }),
             invalidatesTags: ["FolderContent", "Script", "SearchResults"],
         }),

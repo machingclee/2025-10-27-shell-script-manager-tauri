@@ -20,25 +20,36 @@ class AssignTagToScriptHandler(
 ) : CommandHandler<AssignTagToScriptCommand, Unit> {
 
     override fun handle(eventQueue: EventQueue, command: AssignTagToScriptCommand) {
+        val tagIds = command.tagIds.distinct()
+        require(tagIds.isNotEmpty()) { "No tags selected" }
+
         val script = scriptRepository.findByIdOrNull(command.scriptId)
             ?: throw ScriptManagerException("Script not found")
-        val tag = tagRepository.findByIdOrNull(command.tagId)
-            ?: throw ScriptManagerException("Tag not found")
-        if (script.assignedTags.any { it.tagId == tag.id }) {
-            throw ScriptManagerException("Tag already assigned")
+        val tags = tagIds.map { tagId ->
+            val tag = tagRepository.findByIdOrNull(tagId)
+                ?: throw ScriptManagerException("Tag not found")
+            if (script.assignedTags.any { it.tagId == tag.id }) {
+                throw ScriptManagerException("Tag already assigned")
+            }
+            tag
         }
 
-        val assigned = AssignedTag(tagId = tag.id!!)
-        assigned.tag = tag
-        script.assignedTags.add(assigned)
+        val assigned = tags.map { tag ->
+            val row = AssignedTag(tagId = tag.id!!)
+            row.tag = tag
+            script.assignedTags.add(row)
+            row
+        }
         entityManager.flush()
 
-        eventQueue.add(
-            TagAssignedToScriptEvent(
-                scriptId = command.scriptId,
-                tagId = command.tagId,
-                assignedTagId = assigned.id ?: 0
+        assigned.forEach { row ->
+            eventQueue.add(
+                TagAssignedToScriptEvent(
+                    scriptId = command.scriptId,
+                    tagId = row.tagId,
+                    assignedTagId = row.id ?: 0
+                )
             )
-        )
+        }
     }
 }

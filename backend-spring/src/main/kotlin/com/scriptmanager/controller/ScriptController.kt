@@ -134,8 +134,8 @@ class ScriptController(
     }
 
     @Operation(
-        summary = "Duplicate a shell script",
-        description = "Creates a copy of a shell script in the same folder"
+        summary = "Duplicate a script",
+        description = "Creates a copy of a shell script or markdown script in the same folder"
     )
     @PostMapping("/{id}/duplicate")
     fun duplicateScript(
@@ -147,14 +147,25 @@ class ScriptController(
         return ApiResponse(result)
     }
 
-    @Operation(summary = "Assign a tag to a script", description = "Creates an assignment and links it with assignedTags.add()")
+    @Operation(summary = "Assign tags to a script", description = "Creates one assignment per tag and links each with assignedTags.add()")
     @PostMapping("/{id}/tags")
     fun assignTag(
         @Parameter(description = "Script ID", required = true)
         @PathVariable id: Int,
         @RequestBody request: AssignTagRequest
     ): ApiResponse<Unit> {
-        commandInvoker.invoke(AssignTagToScriptCommand(scriptId = id, tagId = request.tagId))
+        commandInvoker.invoke(AssignTagToScriptCommand(scriptId = id, tagIds = request.tagIds))
+        return ApiResponse()
+    }
+
+    @Operation(summary = "Remove tags from a script", description = "Deletes the assignment rows for the given tags")
+    @DeleteMapping("/{id}/tags")
+    fun unassignTag(
+        @Parameter(description = "Script ID", required = true)
+        @PathVariable id: Int,
+        @RequestBody request: AssignTagRequest
+    ): ApiResponse<Unit> {
+        commandInvoker.invoke(UnassignTagFromScriptCommand(scriptId = id, tagIds = request.tagIds))
         return ApiResponse()
     }
 

@@ -37,6 +37,7 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             ScriptsReorderedEvent::class.java,
             ScriptMovedToFolderEvent::class.java,
             TagAssignedToScriptEvent::class.java,
+            TagUnassignedFromScriptEvent::class.java,
             ScriptDuplicatedEvent::class.java,
             WorkspaceCreatedEvent::class.java,
             WorkspaceUpdatedEvent::class.java,
@@ -89,6 +90,7 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             RemoveFolderFromWorkspaceCommand::class.java,
             MoveScriptToFolderCommand::class.java,
             AssignTagToScriptCommand::class.java,
+            UnassignTagFromScriptCommand::class.java,
             DuplicateScriptCommand::class.java,
             CreateTagCommand::class.java,
             UpdateTagCommand::class.java,
@@ -110,6 +112,7 @@ class NativeHintsRegistrar : RuntimeHintsRegistrar {
             ShellScriptDTO::class.java,
             WorkspaceDTO::class.java,
             TagDTO::class.java,
+            AssignedTagDTO::class.java,
             TagFolderDTO::class.java,
             ScriptAssignedTagResponse::class.java
         )
