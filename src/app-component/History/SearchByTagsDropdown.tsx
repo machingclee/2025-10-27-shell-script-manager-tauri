@@ -7,22 +7,25 @@ import { tagApi } from "@/store/api/tagApi";
 import SortableTagFolderList, {
     TagFolderPickerRow,
 } from "@/app-component/Tag/SortableTagFolderList";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setOpenPopover } from "@/store/slices/appSlice";
 import { matchesTagFilter } from "@/lib/tagFilter";
 
 type FolderSelection = number | "ungrouped";
 
 export default function SearchByTagsDropdown({
+    anchorRef,
     initialTagIds,
     onConfirm,
 }: {
+    anchorRef: React.RefObject<HTMLElement | null>;
     initialTagIds: number[];
     onConfirm: (tagIds: number[]) => void;
 }) {
+    const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
-    const rootRef = useRef<HTMLDivElement>(null);
+    const open = useAppSelector((s) => s.app.openPopover === "search-by-tags");
     const panelRef = useRef<HTMLDivElement>(null);
-    const [open, setOpen] = useState(false);
     const [panelBox, setPanelBox] = useState({ top: 0, right: 0 });
     const [folderId, setFolderId] = useState<FolderSelection>("ungrouped");
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -50,25 +53,25 @@ export default function SearchByTagsDropdown({
     useLayoutEffect(() => {
         if (!open) return;
         function place() {
-            const rect = rootRef.current?.getBoundingClientRect();
+            const rect = anchorRef.current?.getBoundingClientRect();
             if (!rect) return;
             setPanelBox({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
         }
         place();
         window.addEventListener("resize", place);
         return () => window.removeEventListener("resize", place);
-    }, [open]);
+    }, [open, anchorRef]);
 
     useEffect(() => {
         if (!open) return;
         function onPointerDown(event: MouseEvent) {
             const target = event.target as Node;
-            if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-            setOpen(false);
+            if (anchorRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+            dispatch(setOpenPopover(null));
         }
-        document.addEventListener("mousedown", onPointerDown);
-        return () => document.removeEventListener("mousedown", onPointerDown);
-    }, [open]);
+        document.addEventListener("mousedown", onPointerDown, true);
+        return () => document.removeEventListener("mousedown", onPointerDown, true);
+    }, [open, dispatch, anchorRef]);
 
     const searchingAll = tagFilter.trim().length > 0;
     const folderTags = searchingAll
@@ -96,25 +99,9 @@ export default function SearchByTagsDropdown({
         setSelectedIds((current) => current.filter((id) => id !== tagId));
     }
 
-    return (
-        <div
-            ref={rootRef}
-            className="relative"
-            style={{ opacity: open ? 1 : 0.3, transition: "opacity 0.2s ease" }}
-            onMouseDown={(event) => event.stopPropagation()}
-        >
-            <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 bg-white p-1 rounded-md border-0 !shadow-none hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
-                onClick={() => setOpen((current) => !current)}
-            >
-                <Tag className="w-4 h-4" />
-                Search by Tags
-            </Button>
-            {open &&
-                createPortal(
+    if (!open) return null;
+
+    return createPortal(
                     <div
                         ref={panelRef}
                         className="fixed z-[10000] flex w-[36rem] max-h-[70vh] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-lg dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
@@ -211,22 +198,20 @@ export default function SearchByTagsDropdown({
                             </div>
                         )}
                         <div className="flex flex-shrink-0 justify-end gap-2 border-t border-gray-200 p-3 dark:border-neutral-700">
-                            <Button variant="outline" onClick={() => setOpen(false)}>
+                            <Button variant="outline" onClick={() => dispatch(setOpenPopover(null))}>
                                 Cancel
                             </Button>
                             <Button
                                 disabled={selectedIds.length === 0}
                                 onClick={() => {
                                     onConfirm(selectedIds);
-                                    setOpen(false);
+                                    dispatch(setOpenPopover(null));
                                 }}
                             >
                                 Confirm
                             </Button>
                         </div>
                     </div>,
-                    document.body
-                )}
-        </div>
+        document.body
     );
 }
