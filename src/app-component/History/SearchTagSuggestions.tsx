@@ -4,6 +4,7 @@ import { Tag } from "lucide-react";
 import { tagApi } from "@/store/api/tagApi";
 import { useAppSelector } from "@/store/hooks";
 import { matchesTagFilter } from "@/lib/tagFilter";
+import { fadePopoverClass, useFadePresence } from "@/lib/useFadePresence";
 
 export const TAGS_COMMAND = "/tags";
 
@@ -45,6 +46,7 @@ const SearchTagSuggestions = forwardRef<
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const panelRef = useRef<HTMLDivElement>(null);
     const [box, setBox] = useState({ top: 0, left: 0, width: 0 });
+    const { mounted, visible } = useFadePresence(open);
     const [activeIndex, setActiveIndex] = useState<number | null>(null);
     // The imperative handle is created once. Tab updates this ref immediately,
     // so Enter reads the highlighted row even before the next render.
@@ -166,12 +168,12 @@ const SearchTagSuggestions = forwardRef<
         return () => document.removeEventListener("mousedown", onPointerDown);
     }, [open, anchorRef, onClose]);
 
-    if (!open) return null;
+    if (!mounted) return null;
 
     return createPortal(
         <div
             ref={panelRef}
-            className="fixed z-[10000] flex max-h-80 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-lg dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+            className={`fixed z-[10000] flex max-h-80 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-lg dark:border-neutral-700 dark:bg-neutral-800 dark:text-white ${fadePopoverClass(visible)}`}
             style={{ top: box.top, left: box.left, width: box.width }}
             onMouseDown={(event) => event.preventDefault()}
         >

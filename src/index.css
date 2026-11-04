@@ -42,6 +42,30 @@
         opacity: 0;
     }
 }
+@keyframes menu-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+@keyframes menu-fade-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+/* Distinct animation names so Radix keeps the menu mounted until the close fade ends. */
+.context-menu-fade[data-state="open"] {
+    animation: menu-fade-in 0.1s ease-out both;
+}
+.context-menu-fade[data-state="closed"] {
+    animation: menu-fade-out 0.1s ease-out both;
+    pointer-events: none;
+}
 
 /* Prism.js Dark Theme for Code Editor */
 @import "prismjs/themes/prism-okaidia.css";

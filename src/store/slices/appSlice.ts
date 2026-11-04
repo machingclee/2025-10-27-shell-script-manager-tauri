@@ -74,12 +74,22 @@ export type RightPanelMode = "SEARCH" | "HISTORY" | "LOG" | "TAG";
 export type SearchMode = "content" | "tags";
 export type TitlePopover = "search-by-tags" | "tags";
 
+export type CopiedTag = { tagId: number; name: string };
+
+/** A paste onto a script that already has tags, waiting for confirmation. */
+export type PendingTagPaste = {
+    scriptId: number;
+    existingTags: CopiedTag[];
+};
+
 interface AppState {
     tab: TabState;
     /** The title-bar popover that is open. Opening one closes the other. */
     openPopover: TitlePopover | null;
-    /** Tag ids copied from a script, ready to paste onto another script. */
-    copiedTagIds: number[];
+    /** Tags copied from a script, ready to paste onto another script. */
+    copiedTags: CopiedTag[];
+    /** Set when pasting onto a script that already has tags. */
+    pendingTagPaste: PendingTagPaste | null;
     rightPanel: {
         mode: RightPanelMode;
         search: {
@@ -105,7 +115,8 @@ const initialState: AppState = {
         closedMarkdownQueue: [],
     },
     openPopover: null,
-    copiedTagIds: [],
+    copiedTags: [],
+    pendingTagPaste: null,
     rightPanel: {
         mode: "HISTORY",
         search: {
@@ -275,8 +286,11 @@ const appSlice = createSlice({
         toggleOpenPopover(state, action: PayloadAction<TitlePopover>) {
             state.openPopover = state.openPopover === action.payload ? null : action.payload;
         },
-        setCopiedTagIds(state, action: PayloadAction<number[]>) {
-            state.copiedTagIds = action.payload;
+        setCopiedTags(state, action: PayloadAction<CopiedTag[]>) {
+            state.copiedTags = action.payload;
+        },
+        setPendingTagPaste(state, action: PayloadAction<PendingTagPaste | null>) {
+            state.pendingTagPaste = action.payload;
         },
         renameTab(state, action: PayloadAction<{ scriptId: number; scriptName: string }>) {
             const { scriptId, scriptName } = action.payload;
@@ -308,7 +322,8 @@ export const {
     setRightPanelMode,
     setOpenPopover,
     toggleOpenPopover,
-    setCopiedTagIds,
+    setCopiedTags,
+    setPendingTagPaste,
     renameTab,
 } = appSlice.actions;
 export default appSlice;

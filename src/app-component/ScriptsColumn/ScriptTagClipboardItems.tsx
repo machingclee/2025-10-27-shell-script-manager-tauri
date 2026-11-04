@@ -2,7 +2,7 @@ import { ClipboardCopy, ClipboardPaste } from "lucide-react";
 import { ContextMenuItem } from "@/components/ui/context-menu";
 import { scriptApi } from "@/store/api/scriptApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setCopiedTagIds } from "@/store/slices/appSlice";
+import { setCopiedTags, setPendingTagPaste } from "@/store/slices/appSlice";
 import type { ScriptAssignedTag } from "@/types/dto";
 
 const itemClass =
@@ -17,25 +17,44 @@ export default function ScriptTagClipboardItems({
     assignedTags?: ScriptAssignedTag[];
 }) {
     const dispatch = useAppDispatch();
-    const copiedTagIds = useAppSelector((state) => state.app.copiedTagIds);
+    const copiedTags = useAppSelector((state) => state.app.copiedTags);
     const [assignTag] = scriptApi.endpoints.assignTagToScript.useMutation();
-    const currentIds = assignedTags.map((tag) => tag.tagId);
-    const tagsToPaste = copiedTagIds.filter((id) => !currentIds.includes(id));
 
     return (
         <>
             <ContextMenuItem
-                disabled={currentIds.length === 0}
-                onClick={() => dispatch(setCopiedTagIds(currentIds))}
+                disabled={assignedTags.length === 0}
+                onSelect={() =>
+                    dispatch(
+                        setCopiedTags(
+                            assignedTags.map((tag) => ({ tagId: tag.tagId, name: tag.name }))
+                        )
+                    )
+                }
                 className={itemClass}
             >
                 <ClipboardCopy className="w-4 h-4 mr-2" />
                 Copy Tags
             </ContextMenuItem>
             <ContextMenuItem
-                disabled={tagsToPaste.length === 0}
-                onClick={() => {
-                    assignTag({ scriptId, tagIds: tagsToPaste });
+                disabled={copiedTags.length === 0}
+                onSelect={() => {
+                    if (assignedTags.length > 0) {
+                        dispatch(
+                            setPendingTagPaste({
+                                scriptId,
+                                existingTags: assignedTags.map((tag) => ({
+                                    tagId: tag.tagId,
+                                    name: tag.name,
+                                })),
+                            })
+                        );
+                        return;
+                    }
+                    assignTag({
+                        scriptId,
+                        tagIds: copiedTags.map((tag) => tag.tagId),
+                    });
                 }}
                 className={itemClass}
             >

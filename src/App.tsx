@@ -44,6 +44,7 @@ import SearchTagSuggestions, {
     type SearchTagSuggestionsHandle,
 } from "./app-component/History/SearchTagSuggestions";
 import { Toaster } from "./components/ui/toaster";
+import PasteTagReplaceDialog from "./app-component/ScriptsColumn/PasteTagReplaceDialog";
 import AppClosingOverlay from "./components/AppClosingOverlay";
 import UnsavedChangesDialog from "./components/UnsavedChangesDialog";
 import TabBar from "./components/TabBar";
@@ -64,9 +65,21 @@ const FOLDER_COLUMN_MIN_PX = 0;
 const FOLDER_COLUMN_MAX_PX = 800;
 const FOLDER_COLUMN_MAX_PERCENT = 50;
 
+/** Shared pixel width of the history, log, and search column. */
+const DEFAULT_RIGHT_COLUMN_WIDTH_PX = 350;
+const RIGHT_COLUMN_MIN_PX = 200;
+const RIGHT_COLUMN_MAX_PX = 800;
+const RIGHT_COLUMN_MAX_PERCENT = 70;
+
 function clampFolderColumnPx(px: number, groupWidth: number): number {
     const maxPx = Math.min(FOLDER_COLUMN_MAX_PX, (groupWidth * FOLDER_COLUMN_MAX_PERCENT) / 100);
     return Math.min(maxPx, Math.max(FOLDER_COLUMN_MIN_PX, px));
+}
+
+function clampRightColumnPx(px: number, groupWidth: number): number {
+    const maxPx = Math.min(RIGHT_COLUMN_MAX_PX, (groupWidth * RIGHT_COLUMN_MAX_PERCENT) / 100);
+    const minPx = Math.min(RIGHT_COLUMN_MIN_PX, Math.max(0, maxPx));
+    return Math.min(maxPx, Math.max(minPx, px));
 }
 
 function resolveFolderColumnPx(saved: number | undefined, groupWidth: number): number {
@@ -78,6 +91,13 @@ function resolveFolderColumnPx(saved: number | undefined, groupWidth: number): n
         return clampFolderColumnPx((saved / 100) * groupWidth, groupWidth);
     }
     return clampFolderColumnPx(saved, groupWidth);
+}
+
+function resolveRightColumnPx(saved: number | undefined, groupWidth: number): number {
+    if (saved == null || Number.isNaN(saved)) {
+        return clampRightColumnPx(DEFAULT_RIGHT_COLUMN_WIDTH_PX, groupWidth);
+    }
+    return clampRightColumnPx(saved, groupWidth);
 }
 
 function App() {
@@ -265,9 +285,14 @@ function App() {
     const darkMode = appState?.darkMode ?? false;
 
     const folderSplitRef = useRef<HTMLDivElement>(null);
+    const rightSplitRef = useRef<HTMLDivElement>(null);
     const isDraggingFolderRef = useRef(false);
+    const isDraggingRightRef = useRef(false);
     const [isDraggingFolder, setIsDraggingFolder] = useState(false);
+    const [isDraggingRight, setIsDraggingRight] = useState(false);
     const [folderColumnPx, setFolderColumnPx] = useState(DEFAULT_FOLDER_COLUMN_WIDTH_PX);
+    const [rightColumnPx, setRightColumnPx] = useState(DEFAULT_RIGHT_COLUMN_WIDTH_PX);
+    const rightColumnPreferredRef = useRef(DEFAULT_RIGHT_COLUMN_WIDTH_PX);
 
     // Fetch backend port on mount (only in production, dev uses default 7070)
     useEffect(() => {
@@ -313,6 +338,18 @@ function App() {
 
     useEffect(() => () => persistFolderColumnWidth.cancel(), [persistFolderColumnWidth]);
 
+    const persistRightColumnWidth = useRef(
+        debounce((widthPx: number) => {
+            const current = appStateDataRef.current;
+            if (!current) return;
+            const previous = current.rightColumnWidth;
+            if (previous != null && Math.abs(previous - widthPx) < 1) return;
+            updateAppStateRef.current({ ...current, rightColumnWidth: widthPx });
+        }, 250)
+    ).current;
+
+    useEffect(() => () => persistRightColumnWidth.cancel(), [persistRightColumnWidth]);
+
     useEffect(() => {
         if (!appState || isDraggingFolderRef.current) return;
         const groupWidth =
@@ -324,6 +361,33 @@ function App() {
             persistFolderColumnWidth(resolved);
         }
     }, [appState, persistFolderColumnWidth]);
+
+    useEffect(() => {
+        if (!appState || isDraggingRightRef.current) return;
+        const saved = appState.rightColumnWidth;
+        if (saved != null && !Number.isNaN(saved)) {
+            rightColumnPreferredRef.current = saved;
+        }
+        const groupWidth =
+            rightSplitRef.current?.getBoundingClientRect().width || window.innerWidth;
+        const resolved = resolveRightColumnPx(rightColumnPreferredRef.current, groupWidth);
+        setRightColumnPx((prev) => (Math.abs(prev - resolved) < 1 ? prev : resolved));
+    }, [appState]);
+
+    useEffect(() => {
+        const group = rightSplitRef.current;
+        if (!group) return;
+        const apply = () => {
+            if (isDraggingRightRef.current) return;
+            const groupWidth = group.getBoundingClientRect().width;
+            if (groupWidth <= 0) return;
+            const resolved = resolveRightColumnPx(rightColumnPreferredRef.current, groupWidth);
+            setRightColumnPx((prev) => (Math.abs(prev - resolved) < 1 ? prev : resolved));
+        };
+        const observer = new ResizeObserver(apply);
+        observer.observe(group);
+        return () => observer.disconnect();
+    }, [appState]);
 
     useEffect(() => {
         const onMove = (e: MouseEvent) => {
@@ -348,6 +412,31 @@ function App() {
             window.removeEventListener("mouseup", onUp);
         };
     }, [persistFolderColumnWidth]);
+
+    useEffect(() => {
+        const onMove = (e: MouseEvent) => {
+            if (!isDraggingRightRef.current) return;
+            const rect = rightSplitRef.current?.getBoundingClientRect();
+            if (!rect || rect.width <= 0) return;
+            const next = clampRightColumnPx(rect.right - e.clientX, rect.width);
+            rightColumnPreferredRef.current = next;
+            setRightColumnPx(next);
+            persistRightColumnWidth(next);
+        };
+        const onUp = () => {
+            if (!isDraggingRightRef.current) return;
+            isDraggingRightRef.current = false;
+            setIsDraggingRight(false);
+            document.body.style.userSelect = "";
+            document.body.style.cursor = "";
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+        return () => {
+            window.removeEventListener("mousemove", onMove);
+            window.removeEventListener("mouseup", onUp);
+        };
+    }, [persistRightColumnWidth]);
 
     // Keep refs up to date
     useEffect(() => {
@@ -827,7 +916,10 @@ function App() {
                             <div
                                 ref={folderSplitRef}
                                 className="flex h-full flex-1 min-w-0"
-                                style={{ userSelect: isDraggingFolder ? "none" : undefined }}
+                                style={{
+                                    userSelect:
+                                        isDraggingFolder || isDraggingRight ? "none" : undefined,
+                                }}
                             >
                                 <div
                                     className="h-full flex-shrink-0 overflow-hidden"
@@ -846,35 +938,60 @@ function App() {
                                         document.body.style.cursor = "col-resize";
                                     }}
                                 >
-                                    <div className="flex h-10 w-6 items-center justify-center rounded-md border bg-gray-100 hover:bg-gray-200 transition-colors shadow-sm">
-                                        <GripVertical className="h-4 w-4 text-gray-600" />
+                                    <div className="flex h-10 w-6 items-center justify-center rounded-md border border-gray-300 bg-gray-100 shadow-sm transition-colors hover:bg-gray-200 dark:border-neutral-500 dark:bg-neutral-600 dark:hover:bg-neutral-500">
+                                        <GripVertical className="h-4 w-4 text-gray-600 dark:text-neutral-200" />
                                     </div>
                                 </div>
-                                <div className="h-full min-w-0 flex-1 overflow-hidden">
-                                    <ScriptsColumn />
+                                <div
+                                    ref={rightSplitRef}
+                                    className="flex h-full min-w-0 flex-1"
+                                >
+                                    <div className="h-full min-w-0 flex-1 overflow-hidden">
+                                        <ScriptsColumn />
+                                    </div>
+                                    {isHistoryOpen && (
+                                        <>
+                                            <div
+                                                className="relative z-10 flex w-2 flex-shrink-0 items-center justify-center bg-border hover:bg-blue-200 transition-colors cursor-col-resize"
+                                                onMouseDown={(e) => {
+                                                    if (e.button !== 0) return;
+                                                    e.preventDefault();
+                                                    isDraggingRightRef.current = true;
+                                                    setIsDraggingRight(true);
+                                                    document.body.style.userSelect = "none";
+                                                    document.body.style.cursor = "col-resize";
+                                                }}
+                                            >
+                                                <div className="flex h-10 w-6 items-center justify-center rounded-md border border-gray-300 bg-gray-100 shadow-sm transition-colors hover:bg-gray-200 dark:border-neutral-500 dark:bg-neutral-600 dark:hover:bg-neutral-500">
+                                                    <GripVertical className="h-4 w-4 text-gray-600 dark:text-neutral-200" />
+                                                </div>
+                                            </div>
+                                            <div
+                                                className="h-full flex-shrink-0 overflow-hidden animate-panel-in"
+                                                style={{ width: rightColumnPx }}
+                                            >
+                                                <div
+                                                    className={`h-full ${rightPanelMode === "SEARCH" ? "" : "hidden"}`}
+                                                >
+                                                    <SearchPanel />
+                                                </div>
+                                                <div
+                                                    className={`h-full ${rightPanelMode === "HISTORY" ? "" : "hidden"}`}
+                                                >
+                                                    <HistoryPanel />
+                                                </div>
+                                                <div
+                                                    className={`h-full ${rightPanelMode === "LOG" ? "" : "hidden"}`}
+                                                >
+                                                    <LogPanel />
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                     ) : (
                         <div className="flex-1" />
-                    )}
-                    {isHistoryOpen && (
-                        <div
-                            className={`${rightPanelMode === "LOG" ? "w-[460px]" : "w-[350px]"} h-full flex-shrink-0 overflow-hidden border-l border-gray-200 dark:border-neutral-700 animate-panel-in`}
-                        >
-                            <div
-                                className={`h-full ${rightPanelMode === "SEARCH" ? "" : "hidden"}`}
-                            >
-                                <SearchPanel />
-                            </div>
-                            <div
-                                className={`h-full ${rightPanelMode === "HISTORY" ? "" : "hidden"}`}
-                            >
-                                <HistoryPanel />
-                            </div>
-                            <div className={`h-full ${rightPanelMode === "LOG" ? "" : "hidden"}`}>
-                                <LogPanel />
-                            </div>
-                        </div>
                     )}
                 </div>
                 {/* Markdown editors - one per open tab, always mounted while tab exists */}
@@ -898,6 +1015,7 @@ function App() {
             <Toaster />
             <AppClosingOverlay />
             <UnsavedChangesDialog />
+            <PasteTagReplaceDialog />
             <Dialog open={pendingCloseTabId !== null} onOpenChange={() => {}}>
                 <DialogContent
                     className="dark:bg-neutral-800 dark:border-neutral-700"

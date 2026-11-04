@@ -10,6 +10,7 @@ import SortableTagFolderList, {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setOpenPopover } from "@/store/slices/appSlice";
 import { matchesTagFilter } from "@/lib/tagFilter";
+import { fadePopoverClass, useFadePresence } from "@/lib/useFadePresence";
 
 type FolderSelection = number | "ungrouped";
 
@@ -25,6 +26,7 @@ export default function SearchByTagsDropdown({
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const open = useAppSelector((s) => s.app.openPopover === "search-by-tags");
+    const { mounted, visible } = useFadePresence(open);
     const panelRef = useRef<HTMLDivElement>(null);
     const [panelBox, setPanelBox] = useState({ top: 0, right: 0 });
     const [folderId, setFolderId] = useState<FolderSelection>("ungrouped");
@@ -99,12 +101,12 @@ export default function SearchByTagsDropdown({
         setSelectedIds((current) => current.filter((id) => id !== tagId));
     }
 
-    if (!open) return null;
+    if (!mounted) return null;
 
     return createPortal(
                     <div
                         ref={panelRef}
-                        className="fixed z-[10000] flex w-[36rem] max-h-[70vh] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-lg dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                        className={`fixed z-[10000] flex w-[36rem] max-h-[70vh] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-lg dark:border-neutral-700 dark:bg-neutral-800 dark:text-white ${fadePopoverClass(visible)}`}
                         style={{ top: panelBox.top, right: panelBox.right }}
                         onMouseDown={(event) => event.stopPropagation()}
                     >

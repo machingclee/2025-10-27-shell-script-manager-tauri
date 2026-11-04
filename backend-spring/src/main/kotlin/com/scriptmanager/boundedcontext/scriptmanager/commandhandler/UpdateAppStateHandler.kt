@@ -24,7 +24,8 @@ class UpdateAppStateHandler(
             ApplicationState(
                 lastOpenedFolderId = command.lastOpenedFolderId,
                 darkMode = command.darkMode ?: false,
-                folderColumnWidth = (command.folderColumnWidth ?: 280.0).coerceIn(0.0, 800.0)
+                folderColumnWidth = (command.folderColumnWidth ?: 280.0).coerceIn(0.0, 800.0),
+                rightColumnWidth = (command.rightColumnWidth ?: 350.0).coerceIn(200.0, 800.0)
             )
         } else {
             // Update existing - only update fields that are provided
@@ -32,6 +33,7 @@ class UpdateAppStateHandler(
                 command.lastOpenedFolderId?.let { lastOpenedFolderId = it }
                 command.darkMode?.let { darkMode = it }
                 command.folderColumnWidth?.let { folderColumnWidth = it.coerceIn(0.0, 800.0) }
+                command.rightColumnWidth?.let { rightColumnWidth = it.coerceIn(200.0, 800.0) }
             }
         }
 
@@ -42,6 +44,7 @@ class UpdateAppStateHandler(
             lastOpenedFolderId = saved.lastOpenedFolderId,
             darkMode = saved.darkMode,
             folderColumnWidth = saved.folderColumnWidth ?: 280.0,
+            rightColumnWidth = saved.rightColumnWidth ?: 350.0,
             createdAt = saved.createdAt ?: 0.0,
             createdAtHk = saved.createdAtHk ?: ""
         )

@@ -8,10 +8,12 @@ import { setOpenPopover, toggleOpenPopover } from "@/store/slices/appSlice";
 import TagFolderColumn from "./TagFolderColumn";
 import TagsColumn from "./TagsColumn";
 import { useTagSelection } from "./tagSelection";
+import { fadePopoverClass, useFadePresence } from "@/lib/useFadePresence";
 
 export default function TagButton() {
     const dispatch = useAppDispatch();
     const open = useAppSelector((s) => s.app.openPopover === "tags");
+    const { mounted, visible } = useFadePresence(open);
     const rootRef = useRef<HTMLDivElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const [panelBox, setPanelBox] = useState({ top: 0, right: 0 });
@@ -71,24 +73,36 @@ export default function TagButton() {
                 size="sm"
                 className="h-8 bg-white p-1 rounded-md border-0 !shadow-none hover:bg-gray-300 focus:ring-0 dark:bg-neutral-700 dark:text-white dark:hover:bg-neutral-600"
                 onClick={() => dispatch(toggleOpenPopover("tags"))}
-                title="Manage tags"
+                title="Tags Management"
             >
                 <Tag className="w-4 h-4" />
-                Tags
+                Tags Management
             </Button>
-            {open &&
+            {mounted &&
                 createPortal(
                     <div
                         ref={panelRef}
-                        className="fixed z-[10000] flex w-[36rem] max-h-[70vh] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-lg dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+                        className={`fixed z-[10000] flex w-[36rem] max-h-[85vh] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white text-black shadow-lg dark:border-neutral-700 dark:bg-neutral-800 dark:text-white ${fadePopoverClass(visible)}`}
                         style={{ top: panelBox.top, right: panelBox.right }}
                         onMouseDown={(event) => event.stopPropagation()}
                     >
                         <div className="flex-shrink-0 border-b border-gray-200 px-4 py-3 dark:border-neutral-700">
-                            <p className="text-sm font-semibold">Tags</p>
-                            <p className="mt-1 text-sm text-gray-600 dark:text-neutral-400">
-                                Choose a folder, or search every tag.
-                            </p>
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-semibold">Tags</p>
+                                    <p className="mt-1 text-sm text-gray-600 dark:text-neutral-400">
+                                        Choose a folder, or search every tag.
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    aria-label="Close tags"
+                                    onClick={() => dispatch(setOpenPopover(null))}
+                                    className="mt-0.5 text-gray-400 hover:text-gray-600 dark:text-neutral-400 dark:hover:text-neutral-200"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
                             <div className="relative mt-3">
                                 <Input
                                     className="h-8 bg-[rgba(0,0,0,0.05)] border-[rgba(0,0,0,0.1)] pr-7 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-[rgba(255,255,255,0.05)] dark:border-[rgba(255,255,255,0.1)] dark:text-white"
@@ -109,7 +123,7 @@ export default function TagButton() {
                                 )}
                             </div>
                         </div>
-                        <div className="grid h-80 grid-cols-2 overflow-hidden">
+                        <div className="grid h-[32rem] max-h-[calc(85vh-9rem)] grid-cols-2 overflow-hidden">
                             <div className="min-h-0 overflow-hidden border-r border-gray-200 dark:border-neutral-700">
                                 <TagFolderColumn />
                             </div>
