@@ -8,6 +8,7 @@ data class UpdateAppStateCommand(
     val lastOpenedFolderId: Int?,
     val darkMode: Boolean,
     val folderColumnWidth: Double? = null,
+    val rightColumnWidth: Double? = null,
     val createdAt: Double?,
     val createdAtHk: String?,
 ) : Command<ApplicationStateDTO>

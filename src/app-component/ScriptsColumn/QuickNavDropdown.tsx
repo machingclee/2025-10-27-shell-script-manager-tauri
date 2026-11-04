@@ -60,6 +60,7 @@ import {
 import { useAppSelector } from "@/store/hooks";
 import ExecuteConfirmDialog from "./ExecuteConfirmDialog";
 import AssignTagDialog from "./AssignTagDialog";
+import ScriptTagClipboardItems from "./ScriptTagClipboardItems";
 
 // ─── Script right-click context actions ───────────────────────────────────────
 function ScriptContextActions({
@@ -123,6 +124,7 @@ function ScriptContextActions({
                 <Tag className="w-4 h-4 mr-2" />
                 Tag Assignment
             </ContextMenuItem>
+            <ScriptTagClipboardItems scriptId={script.id} assignedTags={script.assignedTags} />
             <ContextMenuSeparator className="dark:bg-neutral-700" />
             <ContextMenuItem
                 className="cursor-pointer dark:text-neutral-200 dark:focus:bg-neutral-700"

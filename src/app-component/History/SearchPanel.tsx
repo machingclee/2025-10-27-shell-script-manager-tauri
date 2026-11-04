@@ -6,7 +6,7 @@ import SearchResultItem from "./SearchResultItem";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { resetTagSearch, setRightPanelMode, setSearchPage } from "@/store/slices/appSlice";
+import { resetTagSearch, setRightPanelMode, setSearchPage, setSearchTagIds } from "@/store/slices/appSlice";
 import { openHistory } from "@/store/slices/historySlice";
 import AssignedTagBadge from "@/lib/AssignedTagBadge";
 import clsx from "clsx";
@@ -56,13 +56,24 @@ export default function SearchPanel() {
 
     const totalPages = results ? Math.ceil(results.total / PAGE_SIZE) : 0;
 
+    const removeSearchTag = (tagId: number) => {
+        const next = tagIds.filter((id) => id !== tagId);
+        if (next.length > 0) {
+            dispatch(setSearchTagIds(next));
+            return;
+        }
+        dispatch(resetTagSearch());
+        dispatch(openHistory());
+        dispatch(setRightPanelMode(search.trim() ? "SEARCH" : "HISTORY"));
+    };
+
     const previewContent = (command: string): string => {
         const lines = command.split("\n").slice(0, 3).join("\n");
         return lines.length > 150 ? lines.slice(0, 150) + "…" : lines || "(empty)";
     };
 
     return (
-        <div className="h-full flex flex-col bg-white dark:bg-neutral-800 border-l border-gray-200 dark:border-neutral-700">
+        <div className="h-full flex flex-col bg-white dark:bg-neutral-800">
             {/* Header */}
             <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-neutral-700">
                 <div className="flex items-center justify-between gap-2">
@@ -83,24 +94,28 @@ export default function SearchPanel() {
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-gray-600 dark:text-neutral-400">
                     {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
-                    {isSearching ? (
+                    {searchMode === "tags" ? (
+                        <>
+                            <span className="italic">
+                                {isSearching
+                                    ? "Searching…"
+                                    : results
+                                      ? `${results.total} result${results.total !== 1 ? "s" : ""} for any of`
+                                      : "Searching by tags…"}
+                            </span>
+                            {selectedTags.map((tag) => (
+                                <AssignedTagBadge
+                                    key={tag.id}
+                                    name={tag.name}
+                                    onRemove={() => removeSearchTag(tag.id)}
+                                />
+                            ))}
+                            {selectedTags.length === 0 && (
+                                <span className="italic">{tagIds.length} tags</span>
+                            )}
+                        </>
+                    ) : isSearching ? (
                         <span className="italic">Searching…</span>
-                    ) : searchMode === "tags" ? (
-                        results ? (
-                            <>
-                                <span className="italic">
-                                    {results.total} result{results.total !== 1 ? "s" : ""} for any of
-                                </span>
-                                {selectedTags.map((tag) => (
-                                    <AssignedTagBadge key={tag.id} name={tag.name} />
-                                ))}
-                                {selectedTags.length === 0 && (
-                                    <span className="italic">{tagIds.length} tags</span>
-                                )}
-                            </>
-                        ) : (
-                            <span className="italic">Searching by tags…</span>
-                        )
                     ) : (
                         <span className="italic">
                             {results

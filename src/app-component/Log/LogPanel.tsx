@@ -107,7 +107,7 @@ export default function LogPanel() {
     const sortLabel = sortOrder === "asc" ? "↑" : sortOrder === "desc" ? "↓" : "";
 
     return (
-        <div className="h-full flex flex-col bg-white dark:bg-neutral-800 border-l border-gray-200 dark:border-neutral-700">
+        <div className="h-full flex flex-col bg-white dark:bg-neutral-800">
             <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-neutral-700 flex items-start justify-between gap-2">
                 <div>
                     <h2 className="text-lg font-semibold text-black dark:text-white">Event Log</h2>

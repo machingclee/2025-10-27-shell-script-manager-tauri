@@ -22,6 +22,8 @@ class SearchScriptsByTagsQueryHandler(
         }
         val pageable = PageRequest.of(query.page, query.size)
         val scriptPage = shellScriptRepository.searchByAnyTagId(tagIds, pageable)
+        val ids = scriptPage.content.mapNotNull { it.id }
+        if (ids.isNotEmpty()) shellScriptRepository.fetchAssignedTags(ids)
         return ScriptsWithTotal(
             scripts = scriptPage.content.map { script ->
                 script.toResponse().copy(parentFolderId = script.resolveWorkspaceRootFolderId())

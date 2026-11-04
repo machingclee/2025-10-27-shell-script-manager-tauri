@@ -20,7 +20,7 @@ class AppStateController(
 ) {
 
 
-    @Operation(summary = "Get application state", description = "Retrieves the current application state including dark mode, last opened folder, and folder column width")
+    @Operation(summary = "Get application state", description = "Retrieves the current application state including dark mode, last opened folder, folder column width, and the shared history/log/search column width")
     @GetMapping("/app-state")
     fun getAppState(): ApiResponse<ApplicationStateDTO> {
         val query = GetAppStateQuery()
@@ -28,7 +28,7 @@ class AppStateController(
         return ApiResponse(result = state)
     }
 
-    @Operation(summary = "Update application state", description = "Updates the application state including dark mode, last opened folder, and folder column width")
+    @Operation(summary = "Update application state", description = "Updates the application state including dark mode, last opened folder, folder column width, and the shared history/log/search column width")
     @PutMapping("/app-state")
     @Transactional
     fun updateAppState(@RequestBody input: ApplicationStateDTO): ApiResponse<ApplicationStateDTO> {
@@ -38,6 +38,7 @@ class AppStateController(
             lastOpenedFolderId = input.lastOpenedFolderId,
             darkMode = input.darkMode,
             folderColumnWidth = input.folderColumnWidth,
+            rightColumnWidth = input.rightColumnWidth,
             createdAt = input.createdAt,
             createdAtHk = input.createdAtHk
         )

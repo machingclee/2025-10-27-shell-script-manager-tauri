@@ -21,6 +21,9 @@ class ApplicationState(
     @Column(name = "folder_column_width")
     var folderColumnWidth: Double? = 280.0,
 
+    @Column(name = "right_column_width")
+    var rightColumnWidth: Double? = 350.0,
+
     @Column(name = "created_at")
     @Generated
     val createdAt: Double? = null,

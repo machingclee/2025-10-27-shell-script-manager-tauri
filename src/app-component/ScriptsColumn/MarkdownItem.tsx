@@ -26,6 +26,7 @@ import {
 import { Trash2, FileText, Link, ExternalLink, Pencil, FolderOpen, Tag, Copy } from "lucide-react";
 import MoveToFolderMenu from "./MoveToFolderMenu";
 import AssignTagDialog from "./AssignTagDialog";
+import ScriptTagClipboardItems from "./ScriptTagClipboardItems";
 import AssignedTagBadge from "@/lib/AssignedTagBadge";
 import {
     Dialog,
@@ -226,6 +227,10 @@ export default function MarkdownItem({
                                     <Tag className="w-4 h-4 mr-2" />
                                     Tag Assignment
                                 </ContextMenuItem>
+                                <ScriptTagClipboardItems
+                                    scriptId={script.id}
+                                    assignedTags={script.assignedTags}
+                                />
                             </>
                         )}
                     </ContextMenuContent>
@@ -248,6 +253,10 @@ export default function MarkdownItem({
                                     <Tag className="w-4 h-4 mr-2" />
                                     Tag Assignment
                                 </ContextMenuItem>
+                                <ScriptTagClipboardItems
+                                    scriptId={script.id}
+                                    assignedTags={script.assignedTags}
+                                />
                             </>
                         )}
                     </ContextMenuContent>
@@ -290,6 +299,10 @@ export default function MarkdownItem({
                                     <Tag className="w-4 h-4 mr-2" />
                                     Tag Assignment
                                 </ContextMenuItem>
+                                <ScriptTagClipboardItems
+                                    scriptId={script.id}
+                                    assignedTags={script.assignedTags}
+                                />
                             </>
                         )}
                         <ContextMenuSeparator className="dark:bg-neutral-700" />

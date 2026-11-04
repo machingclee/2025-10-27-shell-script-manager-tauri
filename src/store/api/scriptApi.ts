@@ -138,6 +138,7 @@ export const scriptApi = baseApi.injectEndpoints({
                 "Script",
                 "FolderContent",
                 "ScriptHistory",
+                "SearchResults",
             ],
         }),
         updateMarkdownScript: builder.mutation<ShellScriptDTO, ShellScriptDTO>({
@@ -151,6 +152,7 @@ export const scriptApi = baseApi.injectEndpoints({
                 "Script",
                 "FolderContent",
                 "ScriptHistory",
+                "SearchResults",
             ],
         }),
         deleteScript: builder.mutation<void, { id: number; folderId: number }>({
@@ -158,7 +160,7 @@ export const scriptApi = baseApi.injectEndpoints({
                 url: `/scripts/${id}?folderId=${folderId}`,
                 method: "DELETE",
             }),
-            invalidatesTags: [{ type: "FolderContent" }, "ScriptHistory"],
+            invalidatesTags: [{ type: "FolderContent" }, "ScriptHistory", "SearchResults"],
             async onQueryStarted({ id, folderId }, { dispatch, queryFulfilled }) {
                 // Optimistically update the cache
                 const patchResult = dispatch(
@@ -249,7 +251,7 @@ export const scriptApi = baseApi.injectEndpoints({
                 method: "POST",
                 body: { tagIds },
             }),
-            invalidatesTags: ["FolderContent", "Script", "SearchResults"],
+            invalidatesTags: ["FolderContent", "Script", "SearchResults", "ScriptHistory"],
         }),
         unassignTagFromScript: builder.mutation<void, { scriptId: number; tagIds: number[] }>({
             query: ({ scriptId, tagIds }) => ({
@@ -257,7 +259,7 @@ export const scriptApi = baseApi.injectEndpoints({
                 method: "DELETE",
                 body: { tagIds },
             }),
-            invalidatesTags: ["FolderContent", "Script", "SearchResults"],
+            invalidatesTags: ["FolderContent", "Script", "SearchResults", "ScriptHistory"],
         }),
         notifyScriptExecuted: builder.mutation<void, { scriptId: number }>({
             query: ({ scriptId }) => ({
