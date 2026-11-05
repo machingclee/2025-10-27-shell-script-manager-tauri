@@ -1,7 +1,7 @@
 package com.scriptmanager.controller
 
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
-import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
+import com.machingclee.domain.util.common.query.interfaces.QueryBus
 import com.scriptmanager.boundedcontext.scriptmanager.command.tag.CreateTagFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.tag.DeleteTagFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.tag.ReorderTagFoldersCommand
@@ -22,14 +22,14 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/tag-folders")
 @Tag(name = "Tag Folder Management", description = "APIs for managing tag folders")
 class TagFolderController(
-    private val commandInvoker: CommandInvoker,
-    private val queryInvoker: QueryInvoker
+    private val commandBus: CommandBus,
+    private val queryBus: QueryBus
 ) {
 
     @Operation(summary = "Get all tag folders", description = "Retrieves every tag folder in stored order")
     @GetMapping
     fun getAllTagFolders(): ApiResponse<List<TagFolderDTO>> {
-        return ApiResponse(queryInvoker.invoke(GetAllTagFoldersQuery()))
+        return ApiResponse(queryBus.send(GetAllTagFoldersQuery()))
     }
 
     @Operation(summary = "Get tag folder by ID", description = "Retrieves a tag folder by its ID")
@@ -38,7 +38,7 @@ class TagFolderController(
         @Parameter(description = "Tag folder ID", required = true)
         @PathVariable id: Int
     ): ApiResponse<TagFolderDTO> {
-        return ApiResponse(queryInvoker.invoke(GetTagFolderByIdQuery(tagFolderId = id)))
+        return ApiResponse(queryBus.send(GetTagFolderByIdQuery(tagFolderId = id)))
     }
 
     @Operation(summary = "Create a tag folder", description = "Creates a tag folder")
@@ -47,7 +47,7 @@ class TagFolderController(
         @Parameter(description = "Tag folder details", required = true)
         @RequestBody request: CreateTagFolderRequest
     ): ApiResponse<TagFolderDTO> {
-        val saved = commandInvoker.invoke(CreateTagFolderCommand(name = request.name))
+        val saved = commandBus.send(CreateTagFolderCommand(name = request.name))
         return ApiResponse(saved.toDTO())
     }
 
@@ -59,7 +59,7 @@ class TagFolderController(
         @Parameter(description = "Updated tag folder details", required = true)
         @RequestBody request: TagFolderDTO
     ): ApiResponse<TagFolderDTO> {
-        val result = commandInvoker.invoke(UpdateTagFolderCommand(id = id, name = request.name))
+        val result = commandBus.send(UpdateTagFolderCommand(id = id, name = request.name))
         return ApiResponse(result)
     }
 
@@ -68,7 +68,7 @@ class TagFolderController(
     fun reorderTagFolders(
         @RequestBody request: ReorderTagFoldersRequest
     ): ApiResponse<Unit> {
-        commandInvoker.invoke(
+        commandBus.send(
             ReorderTagFoldersCommand(fromIndex = request.fromIndex, toIndex = request.toIndex)
         )
         return ApiResponse()
@@ -80,7 +80,7 @@ class TagFolderController(
         @Parameter(description = "Tag folder ID", required = true)
         @PathVariable id: Int
     ): ApiResponse<Unit> {
-        commandInvoker.invoke(DeleteTagFolderCommand(tagFolderId = id))
+        commandBus.send(DeleteTagFolderCommand(tagFolderId = id))
         return ApiResponse()
     }
 }

@@ -31,7 +31,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.machingclee:domain-util:0.2.6")
+    implementation("com.machingclee:domain-util:0.2.11")
 
     implementation("io.micrometer:micrometer-core")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
@@ -120,14 +120,14 @@ graalvmNative {
             imageName.set("backend-native")
             mainClass.set("com.scriptmanager.ApplicationKt")
 
-            // native-image defaults to all cores. On a 10-core Mac that peaks
-            // several GB at "Parsing methods" and the kernel SIGKILLs it (exit 137).
-            // Cap threads. 6g heap is enough to *analyze* this app but OOMs the
-            // builder JVM at [6/8] Compiling methods (exit 3, Java heap space).
-            // 2 threads + 10g stays under 32GB unified memory without the 6g cap.
-            buildArgs.add("-H:NumberOfThreads=2")
-            buildArgs.add("-J-Xms4g")
-            buildArgs.add("-J-Xmx10g")
+            // native-image defaults to all cores and the kernel SIGKILLs it (exit 137)
+            // when the builder's RSS exceeds free RAM. 2 threads + 10g still died
+            // that way on this 32GB Mac once other apps were open. 1 thread + 8g
+            // keeps the peak smaller. Do not drop the heap to 6g: that fails later
+            // with exit 3 (Java heap space) at Compiling methods.
+            buildArgs.add("-H:NumberOfThreads=1")
+            buildArgs.add("-J-Xms2g")
+            buildArgs.add("-J-Xmx8g")
             buildArgs.add("-H:+ReportExceptionStackTraces")
 
             buildArgs.add("--initialize-at-run-time=ch.qos.logback")

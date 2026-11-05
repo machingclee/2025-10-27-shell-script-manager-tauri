@@ -1,6 +1,6 @@
 package com.scriptmanager.boundedcontext.scriptmanager.policy
 
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
 import com.machingclee.domain.util.common.interfaces.Invariant
 import com.machingclee.domain.util.common.interfaces.Policy
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.CreateScriptHistoryCommand
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
  */
 @Component
 class RecordExecutedCommandIntoHistoryPolicy(
-    private val commandInvoker: CommandInvoker
+    private val commandBus: CommandBus
 ) : Policy {
 
     @EventListener
@@ -24,7 +24,7 @@ class RecordExecutedCommandIntoHistoryPolicy(
             scriptId = event.scriptId,
             time = System.currentTimeMillis()
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
     }
 }
 

@@ -16,8 +16,21 @@ class SearchScriptQueryHandler(
 ) : QueryHandler<SearchScriptQuery, ScriptsWithTotal> {
 
     override fun handle(query: SearchScriptQuery): ScriptsWithTotal {
+        val text = query.search.trim()
+        val tagId = query.tagId
+        if (text.isEmpty() && tagId == null) {
+            return ScriptsWithTotal(scripts = emptyList(), total = 0)
+        }
         val pageable = PageRequest.of(query.page, query.size)
-        val scriptPage = shellScriptRepository.searchByNameOrCommand(query.search, pageable)
+        val scriptPage = when {
+            text.isNotEmpty() && tagId != null ->
+                shellScriptRepository.searchByNameOrCommandAndTagId(text, tagId, pageable)
+            text.isNotEmpty() ->
+                shellScriptRepository.searchByNameOrCommand(text, pageable)
+            tagId != null ->
+                shellScriptRepository.searchByAnyTagId(listOf(tagId), pageable)
+            else -> return ScriptsWithTotal(scripts = emptyList(), total = 0)
+        }
         val ids = scriptPage.content.mapNotNull { it.id }
         if (ids.isNotEmpty()) shellScriptRepository.fetchAssignedTags(ids)
         return ScriptsWithTotal(

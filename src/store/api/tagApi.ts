@@ -30,11 +30,13 @@ export const tagApi = baseApi.injectEndpoints({
         }),
         updateTag: builder.mutation<TagDTO, TagDTO>({
             query: (tag) => ({ url: `/tags/${tag.id}`, method: "PUT", body: tag }),
-            invalidatesTags: ["Tag", "SearchResults", "ScriptHistory"],
+            // FolderContent feeds the middle-column script list (and drafts).
+            // SearchResults feeds the right-column search panel. Both embed tag names.
+            invalidatesTags: ["Tag", "FolderContent", "SearchResults", "ScriptHistory"],
         }),
         deleteTag: builder.mutation<void, number>({
             query: (id) => ({ url: `/tags/${id}`, method: "DELETE" }),
-            invalidatesTags: ["Tag", "SearchResults", "ScriptHistory"],
+            invalidatesTags: ["Tag", "FolderContent", "SearchResults", "ScriptHistory"],
         }),
         getAllTagFolders: builder.query<TagFolderDTO[], void>({
             query: () => ({ url: "/tag-folders", method: "GET" }),

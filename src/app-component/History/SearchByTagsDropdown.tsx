@@ -94,7 +94,7 @@ export default function SearchByTagsDropdown({
     }
 
     function addTag(tagId: number) {
-        setSelectedIds((current) => (current.includes(tagId) ? current : [...current, tagId]));
+        setSelectedIds([tagId]);
     }
 
     function removeTag(tagId: number) {
@@ -113,7 +113,7 @@ export default function SearchByTagsDropdown({
                         <div className="flex-shrink-0 border-b border-gray-200 px-4 py-3 dark:border-neutral-700">
                             <p className="text-sm font-semibold">Search by Tags</p>
                             <p className="mt-1 text-sm text-gray-600 dark:text-neutral-400">
-                                Choose a folder and select tags, then confirm.
+                                Choose a folder and select one tag, then confirm.
                             </p>
                             <div className="relative mt-3">
                                 <Input
@@ -163,17 +163,24 @@ export default function SearchByTagsDropdown({
                                                 : "No tags in this folder."}
                                         </p>
                                     ) : (
-                                            visibleTags.map((tag) => (
+                                            visibleTags.map((tag) => {
+                                                const selected = selectedIds.includes(tag.id);
+                                                return (
                                                 <button
                                                     key={tag.id}
                                                     type="button"
                                                     onClick={() => addTag(tag.id)}
-                                                    className="flex w-full cursor-pointer items-center gap-2 rounded-none px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-neutral-700"
+                                                    className={`flex w-full cursor-pointer items-center gap-2 rounded-none px-3 py-2 text-left text-sm ${
+                                                        selected
+                                                            ? "bg-gray-200 dark:bg-neutral-600"
+                                                            : "hover:bg-gray-100 dark:hover:bg-neutral-700"
+                                                    }`}
                                                 >
                                                     <Tag className="h-4 w-4 flex-shrink-0" />
                                                     <span className="flex-1 truncate">{tag.name}</span>
                                                 </button>
-                                            ))
+                                                );
+                                            })
                                         )}
                                 </div>
                             </div>

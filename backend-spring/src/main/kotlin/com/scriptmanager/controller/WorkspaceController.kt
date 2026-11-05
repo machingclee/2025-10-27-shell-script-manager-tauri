@@ -1,7 +1,7 @@
 package com.scriptmanager.controller
 
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
-import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
+import com.machingclee.domain.util.common.query.interfaces.QueryBus
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.RemoveFolderFromWorkspaceCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.*
@@ -19,8 +19,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/workspace")
 @Tag(name = "Workspace Management", description = "APIs for managing workspaces")
 class WorkspaceController(
-    private val commandInvoker: CommandInvoker,
-    private val queryInvoker: QueryInvoker
+    private val commandBus: CommandBus,
+    private val queryBus: QueryBus
 ) {
 
     @PatchMapping("/{id}/status")
@@ -33,7 +33,7 @@ class WorkspaceController(
             workspaceid = id,
             newStatus = statusName
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -42,7 +42,7 @@ class WorkspaceController(
     @GetMapping
     fun getAllWorkspaces(): ApiResponse<List<WorkspaceResponse>> {
         val query = GetAllWorkspacesQuery()
-        val workspaces = queryInvoker.invoke(query)
+        val workspaces = queryBus.send(query)
         return ApiResponse(workspaces)
     }
 
@@ -53,7 +53,7 @@ class WorkspaceController(
         @PathVariable id: Int
     ): ApiResponse<WorkspaceWithFoldersDTO> {
         val query = GetWorkspaceByIdQuery(workspaceId = id)
-        val workspace = queryInvoker.invoke(query)
+        val workspace = queryBus.send(query)
         return ApiResponse(workspace)
     }
 
@@ -64,7 +64,7 @@ class WorkspaceController(
         @RequestBody request: CreateWorkspaceRequest
     ): ApiResponse<WorkspaceDTO> {
         val command = CreateWorkspaceCommand(name = request.name)
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result.toDTO())
     }
 
@@ -81,7 +81,7 @@ class WorkspaceController(
             name = workspaceDetails.name,
             ordering = workspaceDetails.ordering
         )
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result)
     }
 
@@ -92,7 +92,7 @@ class WorkspaceController(
         @PathVariable id: Int
     ): ApiResponse<Unit> {
         val command = DeleteWorkspaceCommand(id = id)
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -107,7 +107,7 @@ class WorkspaceController(
             workspaceId = workspaceId,
             folderId = folderId
         )
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result)
     }
 
@@ -118,7 +118,7 @@ class WorkspaceController(
         @PathVariable folderId: Int
     ): ApiResponse<WorkspaceWithFoldersDTO> {
         val command = RemoveFolderFromWorkspaceCommand(folderId = folderId)
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result)
     }
 
@@ -132,7 +132,7 @@ class WorkspaceController(
             fromIndex = request.fromIndex,
             toIndex = request.toIndex
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -149,7 +149,7 @@ class WorkspaceController(
             fromIndex = request.fromIndex,
             toIndex = request.toIndex
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -166,7 +166,7 @@ class WorkspaceController(
             workspaceId = workspaceId,
             name = request.name
         )
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result.toResponse())
     }
 }

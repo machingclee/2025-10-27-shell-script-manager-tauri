@@ -1,7 +1,7 @@
 package com.scriptmanager.integration.boundedcontext.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
 import com.scriptmanager.integration.BaseTest
@@ -27,7 +27,7 @@ class ScriptTest(
     private val eventRepository: EventRepository,
     private val scriptRepository: ShellScriptRepository,
     private val folderRepository: ScriptsFolderRepository,
-    private val commandInvoker: CommandInvoker,
+    private val commandBus: CommandBus,
     private val objectMapper: ObjectMapper,
     private val entityManager: EntityManager
 ) : BaseTest(eventRepository) {
@@ -36,12 +36,12 @@ class ScriptTest(
     @Transactional
     fun `Should create script`() {
         // Arrange - Create folder first
-        val folder = commandInvoker.invoke(CreateFolderCommand("TestFolder_${System.currentTimeMillis()}"))
+        val folder = commandBus.send(CreateFolderCommand("TestFolder_${System.currentTimeMillis()}"))
         val scriptName = "TestScript_${System.currentTimeMillis()}"
         val scriptContent = "echo 'Hello World'"
 
         // Act
-        val result = commandInvoker.invoke(
+        val result = commandBus.send(
             CreateScriptCommand(
                 folderId = folder.id!!,
                 name = scriptName,
@@ -68,7 +68,7 @@ class ScriptTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "ScriptCreatedEvent" }
+            .filter { it.getEventType() == "ScriptCreatedEvent" }
         assertEquals(1, events.size)
     }
 
@@ -76,12 +76,12 @@ class ScriptTest(
     @Transactional
     fun `Should create markdown script`() {
         // Arrange - Create folder first
-        val folder = commandInvoker.invoke(CreateFolderCommand("MarkdownFolder_${System.currentTimeMillis()}"))
+        val folder = commandBus.send(CreateFolderCommand("MarkdownFolder_${System.currentTimeMillis()}"))
         val markdownName = "README_${System.currentTimeMillis()}"
         val markdownContent = "# Hello World\nThis is markdown content"
 
         // Act
-        val result = commandInvoker.invoke(
+        val result = commandBus.send(
             CreateMarkdownCommand(
                 folderId = folder.id!!,
                 name = markdownName,
@@ -103,7 +103,7 @@ class ScriptTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "MarkdownCreatedEvent" }
+            .filter { it.getEventType() == "MarkdownCreatedEvent" }
         assertEquals(1, events.size)
     }
 
@@ -111,8 +111,8 @@ class ScriptTest(
     @Transactional
     fun `Should update script`() {
         // Arrange - Create folder and script
-        val folder = commandInvoker.invoke(CreateFolderCommand("UpdateFolder_${System.currentTimeMillis()}"))
-        val script = commandInvoker.invoke(
+        val folder = commandBus.send(CreateFolderCommand("UpdateFolder_${System.currentTimeMillis()}"))
+        val script = commandBus.send(
             CreateScriptCommand(
                 folderId = folder.id!!,
                 name = "OriginalName",
@@ -130,7 +130,7 @@ class ScriptTest(
             showShell = true,
             locked = false
         )
-        commandInvoker.invoke(updateCommand)
+        commandBus.send(updateCommand)
 
         // Assert - Script updated
         val updatedScript = scriptRepository.findById(script.id!!).orElse(null)
@@ -142,7 +142,7 @@ class ScriptTest(
 
         // Assert - Update event emitted
         val updateEvents = eventRepository.findAll()
-            .filter { it.eventType == "ScriptUpdatedEvent" }
+            .filter { it.getEventType() == "ScriptUpdatedEvent" }
         assertEquals(1, updateEvents.size)
     }
 
@@ -150,8 +150,8 @@ class ScriptTest(
     @Transactional
     fun `Should update markdown`() {
         // Arrange - Create folder and markdown
-        val folder = commandInvoker.invoke(CreateFolderCommand("MarkdownUpdateFolder_${System.currentTimeMillis()}"))
-        val markdown = commandInvoker.invoke(
+        val folder = commandBus.send(CreateFolderCommand("MarkdownUpdateFolder_${System.currentTimeMillis()}"))
+        val markdown = commandBus.send(
             CreateMarkdownCommand(
                 folderId = folder.id!!,
                 name = "OriginalMarkdown",
@@ -167,7 +167,7 @@ class ScriptTest(
             name = newName,
             content = newContent
         )
-        commandInvoker.invoke(updateCommand)
+        commandBus.send(updateCommand)
 
         // Assert - Markdown updated
         val updatedMarkdown = scriptRepository.findById(markdown.id!!).orElse(null)
@@ -178,7 +178,7 @@ class ScriptTest(
 
         // Assert - Update event emitted
         val updateEvents = eventRepository.findAll()
-            .filter { it.eventType == "MarkdownUpdatedEvent" }
+            .filter { it.getEventType() == "MarkdownUpdatedEvent" }
         assertEquals(1, updateEvents.size)
     }
 
@@ -186,8 +186,8 @@ class ScriptTest(
     @Transactional
     fun `Should delete script`() {
         // Arrange - Create folder and script
-        val folder = commandInvoker.invoke(CreateFolderCommand("DeleteFolder_${System.currentTimeMillis()}"))
-        val script = commandInvoker.invoke(
+        val folder = commandBus.send(CreateFolderCommand("DeleteFolder_${System.currentTimeMillis()}"))
+        val script = commandBus.send(
             CreateScriptCommand(
                 folderId = folder.id!!,
                 name = "ScriptToDelete",
@@ -196,7 +196,7 @@ class ScriptTest(
         )
 
         // Act - Delete script
-        commandInvoker.invoke(DeleteScriptCommand(scriptId = script.id!!, folderId = folder.id!!))
+        commandBus.send(DeleteScriptCommand(scriptId = script.id!!, folderId = folder.id!!))
         //entityManager.flush()
         // Assert - Script deleted
         val sriptShouldHaveBeenDeleted = scriptRepository.findByIdOrNull(script.id!!)
@@ -204,7 +204,7 @@ class ScriptTest(
 
         // Assert - Delete event emitted
         val deleteEvents = eventRepository.findAll()
-            .filter { it.eventType == "ScriptDeletedEvent" }
+            .filter { it.getEventType() == "ScriptDeletedEvent" }
         assertEquals(1, deleteEvents.size)
     }
 
@@ -212,9 +212,9 @@ class ScriptTest(
     @Transactional
     fun `Should move script to different folder`() {
         // Arrange - Create two folders and a script
-        val sourceFolder = commandInvoker.invoke(CreateFolderCommand("SourceFolder_${System.currentTimeMillis()}"))
-        val targetFolder = commandInvoker.invoke(CreateFolderCommand("TargetFolder_${System.currentTimeMillis()}"))
-        val script = commandInvoker.invoke(
+        val sourceFolder = commandBus.send(CreateFolderCommand("SourceFolder_${System.currentTimeMillis()}"))
+        val targetFolder = commandBus.send(CreateFolderCommand("TargetFolder_${System.currentTimeMillis()}"))
+        val script = commandBus.send(
             CreateScriptCommand(
                 folderId = sourceFolder.id!!,
                 name = "ScriptToMove",
@@ -223,7 +223,7 @@ class ScriptTest(
         )
 
         // Act - Move script
-        commandInvoker.invoke(
+        commandBus.send(
             MoveScriptToFolderCommand(
                 scriptId = script.id!!,
                 targetFolderId = targetFolder.id!!
@@ -242,22 +242,22 @@ class ScriptTest(
 
         // Assert - Move event emitted
         val moveEvents = eventRepository.findAll()
-            .filter { it.eventType == "ScriptMovedToFolderEvent" }
+            .filter { it.getEventType() == "ScriptMovedToFolderEvent" }
         assertEquals(1, moveEvents.size)
     }
 
     @Test
     @Transactional
     fun `Should duplicate shell script into the same folder`() {
-        val folder = commandInvoker.invoke(CreateFolderCommand("DupFolder_${System.currentTimeMillis()}"))
-        val script = commandInvoker.invoke(
+        val folder = commandBus.send(CreateFolderCommand("DupFolder_${System.currentTimeMillis()}"))
+        val script = commandBus.send(
             CreateScriptCommand(
                 folderId = folder.id!!,
                 name = "Original",
                 content = "echo 'duplicate me'"
             )
         )
-        commandInvoker.invoke(
+        commandBus.send(
             UpdateScriptCommand(
                 id = script.id!!,
                 name = "Original",
@@ -267,7 +267,7 @@ class ScriptTest(
             )
         )
 
-        val copy = commandInvoker.invoke(DuplicateScriptCommand(scriptId = script.id!!))
+        val copy = commandBus.send(DuplicateScriptCommand(scriptId = script.id!!))
 
         assertNotNull(copy.id)
         assertNotEquals(script.id, copy.id)
@@ -289,7 +289,7 @@ class ScriptTest(
         assertTrue(reloadedFolder.shellScripts.any { it.id == script.id })
         assertTrue(reloadedFolder.shellScripts.any { it.id == copy.id })
 
-        val second = commandInvoker.invoke(DuplicateScriptCommand(scriptId = script.id!!))
+        val second = commandBus.send(DuplicateScriptCommand(scriptId = script.id!!))
         assertEquals("Original copy 2", second.name)
         assertEquals(folder.id, second.parentFolderId)
         assertFalse(second.locked)
@@ -297,7 +297,7 @@ class ScriptTest(
         assertEquals(2, scriptRepository.findById(script.id!!).orElseThrow().ordering)
         assertEquals(0, scriptRepository.findById(copy.id!!).orElseThrow().ordering)
 
-        val events = eventRepository.findAll().filter { it.eventType == "ScriptDuplicatedEvent" }
+        val events = eventRepository.findAll().filter { it.getEventType() == "ScriptDuplicatedEvent" }
         assertEquals(2, events.size)
     }
 
@@ -305,8 +305,8 @@ class ScriptTest(
     @Transactional
     fun `Should create script history`() {
         // Arrange - Create folder and script
-        val folder = commandInvoker.invoke(CreateFolderCommand("HistoryFolder_${System.currentTimeMillis()}"))
-        val script = commandInvoker.invoke(
+        val folder = commandBus.send(CreateFolderCommand("HistoryFolder_${System.currentTimeMillis()}"))
+        val script = commandBus.send(
             CreateScriptCommand(
                 folderId = folder.id!!,
                 name = "ScriptWithHistory",
@@ -316,7 +316,7 @@ class ScriptTest(
 
         // Act - Create history entry
         val historyTime = System.currentTimeMillis()
-        commandInvoker.invoke(
+        commandBus.send(
             CreateScriptHistoryCommand(
                 scriptId = script.id!!,
                 time = historyTime
@@ -325,7 +325,7 @@ class ScriptTest(
 
         // Assert - History event emitted
         val historyEvents = eventRepository.findAll()
-            .filter { it.eventType == "ScriptHistoryCreatedEvent" }
+            .filter { it.getEventType() == "ScriptHistoryCreatedEvent" }
         assertEquals(1, historyEvents.size)
     }
 }

@@ -9,7 +9,6 @@ import {
     HOME_TAB_ID,
     setActiveTab,
     setSearchText,
-    setSearchMode,
     setSearchTagIds,
     setOpenPopover,
     setRightPanelMode,
@@ -108,8 +107,9 @@ function App() {
     // -----------------------------------------------------------------------
     // Search panel state
     // -----------------------------------------------------------------------
-    const searchMode = useAppSelector((s) => s.app.rightPanel.search.mode);
+    const searchText = useAppSelector((s) => s.app.rightPanel.search.searchText);
     const searchTagIds = useAppSelector((s) => s.app.rightPanel.search.tagIds);
+    const searchResetCount = useAppSelector((s) => s.app.rightPanel.search.resetCount);
     const rightPanelMode = useAppSelector((s) => s.app.rightPanel.mode);
     const tagPickerOpen = useAppSelector((s) => s.app.openPopover === "search-by-tags");
     const searchFieldRef = useRef<HTMLDivElement>(null);
@@ -121,24 +121,23 @@ function App() {
 
     const clearSearch = () => {
         setSearchDraft("");
-        if (searchMode === "tags") return;
         dispatch(setSearchText(""));
+        if (searchTagIds.length > 0) return;
         dispatch(setRightPanelMode("HISTORY"));
         dispatch(setActiveTab(HOME_TAB_ID));
     };
 
     const openTagPicker = () => {
-        setSearchDraft("");
+        setSearchDraft(searchText);
         dispatch(setOpenPopover("search-by-tags"));
     };
 
     const pickSearchTag = (tagId: number) => {
-        const next = searchTagIds.includes(tagId) ? searchTagIds : [...searchTagIds, tagId];
-        dispatch(setSearchTagIds(next));
+        dispatch(setSearchTagIds([tagId]));
         dispatch(setRightPanelMode("SEARCH"));
         dispatch(openHistory());
         returnHome();
-        setSearchDraft("");
+        setSearchDraft(searchText);
     };
 
     const submitContentSearch = () => {
@@ -148,7 +147,6 @@ function App() {
             openTagPicker();
             return;
         }
-        dispatch(setSearchMode("content"));
         dispatch(setSearchText(value));
         dispatch(setRightPanelMode("SEARCH"));
         dispatch(openHistory());
@@ -160,6 +158,13 @@ function App() {
     }, [dispatch]);
 
     const closeTagSuggestions = useCallback(() => setSearchFocused(false), []);
+
+    const seenResetCount = useRef(searchResetCount);
+    useEffect(() => {
+        if (seenResetCount.current === searchResetCount) return;
+        seenResetCount.current = searchResetCount;
+        setSearchDraft("");
+    }, [searchResetCount]);
 
     // -----------------------------------------------------------------------
     // Tab system (state lives in Redux)
@@ -808,8 +813,9 @@ function App() {
                                 const value = e.target.value;
                                 setSearchDraft(value);
                                 returnHome();
-                                if (value.trim() || searchMode === "tags") return;
+                                if (value.trim()) return;
                                 dispatch(setSearchText(""));
+                                if (searchTagIds.length > 0) return;
                                 dispatch(setRightPanelMode("HISTORY"));
                             }}
                             onFocus={() => setSearchFocused(true)}

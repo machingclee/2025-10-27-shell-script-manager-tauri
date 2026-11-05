@@ -242,13 +242,17 @@ data class UpdateWorkspaceStatusRequest(
 )
 
 data class SearchScriptRequest(
-    val search: String,
+    val search: String = "",
+    /** When set together with [search], both must match. */
+    val tagId: Int? = null,
     val page: Int = 0,
     val size: Int = 10
 )
 
 data class SearchScriptQuery(
-    val search: String,
+    val search: String = "",
+    /** When set together with [search], both must match. */
+    val tagId: Int? = null,
     val page: Int = 0,
     val size: Int = 10
 ) : Query<ScriptsWithTotal>

@@ -51,6 +51,28 @@ interface ShellScriptRepository : JpaRepository<ShellScript, Int> {
     @Query(
         """
         SELECT s FROM ShellScript s
+        WHERE (
+            LOWER(s.name) LIKE LOWER(CONCAT('%', :search, '%'))
+            OR LOWER(s.command) LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+        AND EXISTS (
+            SELECT a FROM s.assignedTags a WHERE a.tagId = :tagId
+        )
+        ORDER BY COALESCE(
+            (SELECT MAX(h.executedAt) FROM HistoricalShellScript h WHERE h.shellScriptId = s.id),
+            s.createdAt
+        ) DESC
+        """
+    )
+    fun searchByNameOrCommandAndTagId(
+        @Param("search") search: String,
+        @Param("tagId") tagId: Int,
+        pageable: Pageable
+    ): Page<ShellScript>
+
+    @Query(
+        """
+        SELECT s FROM ShellScript s
         WHERE EXISTS (
             SELECT a FROM s.assignedTags a WHERE a.tagId IN :tagIds
         )
