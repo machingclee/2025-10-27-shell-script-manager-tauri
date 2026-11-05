@@ -52,24 +52,29 @@ class Event(
 
     override fun getSuccess(): Boolean = successFlag
 
-    val requestId: String
-        get() = requestIdValue
+    override fun getRequestId(): String = requestIdValue
 
-    val eventType: String
-        get() = eventTypeValue
+    override fun setRequestId(requestId: String) {
+        requestIdValue = requestId
+    }
+
+    override fun getEventType(): String = eventTypeValue
+
+    override fun setEventType(eventType: String) {
+        eventTypeValue = eventType
+    }
 
     val payload: String
         get() = payloadValue
 
-    val failureReason: String
-        get() = failureReasonValue
+    override fun getFailureReason(): String = failureReasonValue
+
+    override fun setFailureReason(failureReason: String) {
+        failureReasonValue = failureReason
+    }
 
     override fun setCreatedAt(createdAt: Double) {
         this.createdAtValue = createdAt
-    }
-
-    override fun setEventType(eventType: String) {
-        this.eventTypeValue = eventType
     }
 
     override fun setPayload(payload: String) {
@@ -80,16 +85,8 @@ class Event(
         this.requestUserEmailValue = requestUserEmail
     }
 
-    override fun setRequestId(requestId: String) {
-        this.requestIdValue = requestId
-    }
-
     override fun setSuccess(success: Boolean) {
         this.successFlag = success
-    }
-
-    override fun setFailureReason(failureReason: String) {
-        this.failureReasonValue = failureReason
     }
 
     override fun setEventOrder(eventOrder: Int) {

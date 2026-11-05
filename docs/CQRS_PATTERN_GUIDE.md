@@ -11,8 +11,8 @@ This document explains the CQRS (Command Query Responsibility Segregation) and e
 3. [CommandHandler](#commandhandler)
 4. [Query](#query)
 5. [QueryHandler](#queryhandler)
-6. [CommandInvoker](#commandinvoker)
-7. [QueryInvoker](#queryinvoker)
+6. [CommandBus](#commandbus)
+7. [QueryBus](#querybus)
 8. [Domain Events](#domain-events)
 9. [Policy](#policy)
 10. [Annotations: `@NextCommand` and `@Invariant`](#annotations-nextcommand-and-invariant)
@@ -24,13 +24,13 @@ This document explains the CQRS (Command Query Responsibility Segregation) and e
 
 ## Overview
 
-The architecture separates **writes** (Commands) from **reads** (Queries). Write operations go through a `CommandInvoker` which:
+The architecture separates **writes** (Commands) from **reads** (Queries). Write operations go through a `CommandBus` which:
 
 1. Locates the correct `CommandHandler`
 2. Runs the handler inside a transaction
 3. Dispatches domain events collected in an `EventQueue`
 
-Read operations go through a `QueryInvoker` which runs in a **read-only** transaction and never produces events.
+Read operations go through a `QueryBus` which runs in a **read-only** transaction and never produces events.
 
 Policies bridge the two sides: they listen to domain events and may issue new commands in response, creating reactive event-driven flows.
 
@@ -40,7 +40,7 @@ HTTP Request
      ▼
   Controller
      │
-     ├──(write)──► CommandInvoker ──► CommandHandler ──► DB
+     ├──(write)──► CommandBus ──► CommandHandler ──► DB
      │                                      │
      │                               EventQueue.add(event)
      │                                      │
@@ -49,9 +49,9 @@ HTTP Request
      │                                  @EventListener
      │                                  Policy
      │                                      │
-     │                               CommandInvoker.invoke(nextCommand)
+     │                               CommandBus.send(nextCommand)
      │
-     └──(read)───► QueryInvoker ──► QueryHandler ──► DB (read-only)
+     └──(read)───► QueryBus ──► QueryHandler ──► DB (read-only)
 ```
 
 ---
@@ -90,7 +90,7 @@ Commands are **plain data** — no behaviour, no dependencies. They live under `
 
 A `CommandHandler<T, R>` processes a single command type `T` and returns `R`. It receives an `EventQueue` so it can publish domain events as side effects.
 
-The `declareEvents()` method is a static declaration (no execution) used by `CommandInvoker` to build a flow map for documentation and observability.
+The `declareEvents()` method is a static declaration (no execution) used by `CommandBus` to build a flow map for documentation and observability.
 
 ### Kotlin (actual code)
 
@@ -245,9 +245,9 @@ public class GetFolderContentQueryHandler
 
 ---
 
-## CommandInvoker
+## CommandBus
 
-`CommandInvoker` is the **bus** for write operations. It:
+`CommandBus` is the **bus** for write operations. It:
 
 - Discovers the correct `CommandHandler` by inspecting generic type parameters at startup (reflection-based handler map)
 - Executes the handler inside a transaction (via `PlatformTransactionManager`)
@@ -257,9 +257,9 @@ public class GetFolderContentQueryHandler
 ### Kotlin (actual code)
 
 ```kotlin
-interface CommandInvoker {
-    fun <T : Any, R> invoke(handler: CommandHandler<T, R>, command: T): R
-    fun <R> invoke(command: Command<R>): R
+interface CommandBus {
+    fun <T : Any, R> send(handler: CommandHandler<T, R>, command: T): R
+    fun <R> send(command: Command<R>): R
     fun getFlow(): FlowResponse
 }
 ```
@@ -269,13 +269,13 @@ Usage in a controller:
 ```kotlin
 @RestController
 class FolderController(
-    private val commandInvoker: CommandInvoker,
-    private val queryInvoker: QueryInvoker
+    private val commandBus: CommandBus,
+    private val queryBus: QueryBus
 ) {
     @PostMapping
     fun createFolder(@RequestBody request: CreateFolderRequest): ApiResponse<ScriptsFolderDTO> {
         val command = CreateFolderCommand(name = request.name)
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result.toDTO())
     }
 }
@@ -284,10 +284,10 @@ class FolderController(
 ### Java equivalent
 
 ```java
-// CommandInvoker.java
-public interface CommandInvoker {
-    <T, R> R invoke(CommandHandler<T, R> handler, T command);
-    <R> R invoke(Command<R> command);
+// CommandBus.java
+public interface CommandBus {
+    <T, R> R send(CommandHandler<T, R> handler, T command);
+    <R> R send(Command<R> command);
     FlowResponse getFlow();
 }
 
@@ -296,18 +296,18 @@ public interface CommandInvoker {
 @RequestMapping("/folders")
 public class FolderController {
 
-    private final CommandInvoker commandInvoker;
-    private final QueryInvoker queryInvoker;
+    private final CommandBus commandBus;
+    private final QueryBus queryBus;
 
-    public FolderController(CommandInvoker commandInvoker, QueryInvoker queryInvoker) {
-        this.commandInvoker = commandInvoker;
-        this.queryInvoker = queryInvoker;
+    public FolderController(CommandBus commandBus, QueryBus queryBus) {
+        this.commandBus = commandBus;
+        this.queryBus = queryBus;
     }
 
     @PostMapping
     public ApiResponse<ScriptsFolderDTO> createFolder(@RequestBody CreateFolderRequest request) {
         var command = new CreateFolderCommand(request.name());
-        var result = commandInvoker.invoke(command);
+        var result = commandBus.send(command);
         return new ApiResponse<>(result.toDTO());
     }
 }
@@ -315,7 +315,7 @@ public class FolderController {
 
 ### How handler resolution works
 
-At Spring startup, `OneTransactionCommandInvoker` receives all `CommandHandler` beans via constructor injection. For each handler it walks the generic interface list at runtime to extract the concrete command class:
+At Spring startup, `CustomCommandBus` receives all `CommandHandler` beans via constructor injection. For each handler it walks the generic interface list at runtime to extract the concrete command class:
 
 ```java
 // Simplified Java equivalent of buildHandlerMap()
@@ -338,15 +338,15 @@ This means **no manual registration is needed** — adding a new `@Component` ha
 
 ---
 
-## QueryInvoker
+## QueryBus
 
-`QueryInvoker` mirrors `CommandInvoker` but for reads. The implementation wraps every call in `@Transactional(readOnly = true)`.
+`QueryBus` mirrors `CommandBus` but for reads. The implementation wraps every call in `@Transactional(readOnly = true)`.
 
 ### Kotlin (actual code)
 
 ```kotlin
-interface QueryInvoker {
-    fun <R> invoke(query: Query<R>): R
+interface QueryBus {
+    fun <R> send(query: Query<R>): R
 }
 ```
 
@@ -356,7 +356,7 @@ Usage in a controller:
 @GetMapping("/{id}")
 fun getFolderById(@PathVariable id: Int): ApiResponse<ScriptsFolderResponse> {
     val query = GetFolderByIdQuery(folderId = id)
-    val folder = queryInvoker.invoke(query)
+    val folder = queryBus.send(query)
     return ApiResponse(folder)
 }
 ```
@@ -364,25 +364,25 @@ fun getFolderById(@PathVariable id: Int): ApiResponse<ScriptsFolderResponse> {
 ### Java equivalent
 
 ```java
-// QueryInvoker.java
-public interface QueryInvoker {
-    <R> R invoke(Query<R> query);
+// QueryBus.java
+public interface QueryBus {
+    <R> R send(Query<R> query);
 }
 
-// DefaultQueryInvoker.java
+// DefaultQueryBus.java
 @Component
-public class DefaultQueryInvoker implements QueryInvoker {
+public class DefaultQueryBus implements QueryBus {
 
     private final Map<Class<?>, QueryHandler<?, ?>> handlerMap;
 
-    public DefaultQueryInvoker(List<QueryHandler<?, ?>> queryHandlers) {
+    public DefaultQueryBus(List<QueryHandler<?, ?>> queryHandlers) {
         this.handlerMap = buildHandlerMap(queryHandlers);
     }
 
     @Transactional(readOnly = true)
     @Override
     @SuppressWarnings("unchecked")
-    public <R> R invoke(Query<R> query) {
+    public <R> R send(Query<R> query) {
         QueryHandler<Query<R>, R> handler =
             (QueryHandler<Query<R>, R>) handlerMap.get(query.getClass());
         if (handler == null) {
@@ -393,7 +393,7 @@ public class DefaultQueryInvoker implements QueryInvoker {
     }
 
     private Map<Class<?>, QueryHandler<?, ?>> buildHandlerMap(List<QueryHandler<?, ?>> handlers) {
-        // same reflection technique as CommandInvoker
+        // same reflection technique as CommandBus
         Map<Class<?>, QueryHandler<?, ?>> map = new HashMap<>();
         for (QueryHandler<?, ?> handler : handlers) {
             for (Type iface : handler.getClass().getGenericInterfaces()) {
@@ -452,7 +452,7 @@ interface Policy
 // RecordExecutedCommandIntoHistoryPolicy.kt
 @Component
 class RecordExecutedCommandIntoHistoryPolicy(
-    private val commandInvoker: CommandInvoker
+    private val commandBus: CommandBus
 ) : Policy {
 
     @EventListener
@@ -463,7 +463,7 @@ class RecordExecutedCommandIntoHistoryPolicy(
             scriptId = event.scriptId,
             time = System.currentTimeMillis()
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
     }
 }
 ```
@@ -478,10 +478,10 @@ public interface Policy {}
 @Component
 public class RecordExecutedCommandIntoHistoryPolicy implements Policy {
 
-    private final CommandInvoker commandInvoker;
+    private final CommandBus commandBus;
 
-    public RecordExecutedCommandIntoHistoryPolicy(CommandInvoker commandInvoker) {
-        this.commandInvoker = commandInvoker;
+    public RecordExecutedCommandIntoHistoryPolicy(CommandBus commandBus) {
+        this.commandBus = commandBus;
     }
 
     @EventListener
@@ -489,7 +489,7 @@ public class RecordExecutedCommandIntoHistoryPolicy implements Policy {
     @NextCommand(CreateScriptHistoryCommand.class)
     public void onScriptExecuted(ScriptExecutedEvent event) {
         var command = new CreateScriptHistoryCommand(event.scriptId(), System.currentTimeMillis());
-        commandInvoker.invoke(command);
+        commandBus.send(command);
     }
 }
 ```
@@ -515,7 +515,7 @@ This pattern lets you **document business invariants in code** before the implem
 
 ## Annotations: `@NextCommand` and `@Invariant`
 
-These are custom annotations that live on Policy handler methods. They serve documentation and observability purposes — `CommandInvoker.getFlow()` reads them via reflection to build a static flow map.
+These are custom annotations that live on Policy handler methods. They serve documentation and observability purposes — `CommandBus.getFlow()` reads them via reflection to build a static flow map.
 
 ### Kotlin (actual code)
 
@@ -652,9 +652,9 @@ POST /scripts/{id}/execute
          ▼
    ScriptController
          │
-         │  commandInvoker.invoke(ExecuteScriptCommand(id))
+         │  commandBus.send(ExecuteScriptCommand(id))
          ▼
-   OneTransactionCommandInvoker
+   CustomCommandBus
    ┌─────────────────────────────────────┐
    │  Transaction starts                  │
    │                                      │
@@ -675,7 +675,7 @@ POST /scripts/{id}/execute
    RecordExecutedCommandIntoHistoryPolicy
    .onScriptExecuted(ScriptExecutedEvent)
          │
-         │  commandInvoker.invoke(
+         │  commandBus.send(
          │      CreateScriptHistoryCommand(scriptId, time))
          ▼
    CreateScriptHistoryHandler.handle(...)
@@ -718,13 +718,13 @@ public record ScriptExecutedEvent(int scriptId) {}
 @Component
 public class RecordExecutedCommandIntoHistoryPolicy implements Policy {
 
-    private final CommandInvoker commandInvoker;
+    private final CommandBus commandBus;
 
     @EventListener
     @Invariant("Whenever a script is executed, create a history record")
     @NextCommand(CreateScriptHistoryCommand.class)
     public void onScriptExecuted(ScriptExecutedEvent event) {
-        commandInvoker.invoke(
+        commandBus.send(
             new CreateScriptHistoryCommand(event.scriptId(), System.currentTimeMillis()));
     }
 }
@@ -734,18 +734,18 @@ public class RecordExecutedCommandIntoHistoryPolicy implements Policy {
 @RequestMapping("/scripts")
 public class ScriptController {
 
-    private final CommandInvoker commandInvoker;
-    private final QueryInvoker queryInvoker;
+    private final CommandBus commandBus;
+    private final QueryBus queryBus;
 
     @PostMapping("/{id}/execute")
     public ResponseEntity<Void> execute(@PathVariable int id) {
-        commandInvoker.invoke(new ExecuteScriptCommand(id));
+        commandBus.send(new ExecuteScriptCommand(id));
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}")
     public ApiResponse<ScriptResponse> getScript(@PathVariable int id) {
-        return new ApiResponse<>(queryInvoker.invoke(new GetScriptByIdQuery(id)));
+        return new ApiResponse<>(queryBus.send(new GetScriptByIdQuery(id)));
     }
 }
 ```
@@ -757,13 +757,13 @@ public class ScriptController {
 | Concept               | Role                                           | Side Effects             | Transaction                           |
 | --------------------- | ---------------------------------------------- | ------------------------ | ------------------------------------- |
 | `Command<R>`          | Expresses write intent                         | None (data only)         | —                                     |
-| `CommandHandler<T,R>` | Executes a command, publishes events           | Via `EventQueue`         | Participates in invoker's transaction |
+| `CommandHandler<T,R>` | Executes a command, publishes events           | Via `EventQueue`         | Participates in the command bus transaction |
 | `Query<R>`            | Expresses read intent                          | None (data only)         | —                                     |
 | `QueryHandler<Q,R>`   | Answers a query                                | None allowed             | Read-only                             |
-| `CommandInvoker`      | Routes commands, manages transactions & events | Dispatches events        | Opens transaction                     |
-| `QueryInvoker`        | Routes queries                                 | None                     | Read-only transaction                 |
+| `CommandBus`      | Routes commands, manages transactions & events | Dispatches events        | Opens transaction                     |
+| `QueryBus`        | Routes queries                                 | None                     | Read-only transaction                 |
 | Domain Event          | Describes what happened                        | None (data only)         | Published post-handle                 |
-| `Policy`              | Reacts to events, chains commands              | Via `CommandInvoker`     | New transaction per command           |
+| `Policy`              | Reacts to events, chains commands              | Via `CommandBus`     | New transaction per command           |
 | `@Invariant`          | Documents business rule                        | None                     | —                                     |
 | `@NextCommand`        | Declares the next command class                | None                     | —                                     |
 | `EventQueue`          | Collects events during handler execution       | IMMEDIATE or POST_COMMIT | —                                     |

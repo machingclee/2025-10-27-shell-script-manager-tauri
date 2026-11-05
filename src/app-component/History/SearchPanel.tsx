@@ -6,7 +6,7 @@ import SearchResultItem from "./SearchResultItem";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { resetTagSearch, setRightPanelMode, setSearchPage, setSearchTagIds } from "@/store/slices/appSlice";
+import { clearSearchTag, resetSearch, setRightPanelMode, setSearchPage } from "@/store/slices/appSlice";
 import { openHistory } from "@/store/slices/historySlice";
 import AssignedTagBadge from "@/lib/AssignedTagBadge";
 import clsx from "clsx";
@@ -17,9 +17,9 @@ export default function SearchPanel() {
     const dispatch = useAppDispatch();
     const backendPort = useAppSelector((s) => s.config.backendPort);
     const search = useAppSelector((s) => s.app.rightPanel.search.searchText);
-    const searchMode = useAppSelector((s) => s.app.rightPanel.search.mode);
     const tagIds = useAppSelector((s) => s.app.rightPanel.search.tagIds);
     const page = useAppSelector((s) => s.app.rightPanel.search.searchPage);
+    const tagId = tagIds[0];
 
     const [queryText, setQueryText] = useState("");
 
@@ -29,26 +29,26 @@ export default function SearchPanel() {
         return () => update.cancel();
     }, [search]);
 
+    const hasText = queryText.length > 0;
+    const hasTag = tagId != null;
+
     // A subscribed query, unlike useLazyQuery, stays subscribed after the request
     // settles — so invalidating SearchResults (on script execution) refetches it.
-    const { currentData, isFetching: isContentSearching, originalArgs } =
+    // Text and tag are AND when both are set.
+    const { currentData: results, isFetching: isSearching } =
         scriptApi.endpoints.searchScript.useQuery(
-            { search: queryText, page, size: PAGE_SIZE },
-            { skip: backendPort === 0 || searchMode !== "content" || !queryText }
-        );
-    const { currentData: tagResults, isFetching: isTagSearching } =
-        scriptApi.endpoints.searchScriptsByTags.useQuery(
-            { tagIds, page, size: PAGE_SIZE },
-            { skip: backendPort === 0 || searchMode !== "tags" || tagIds.length === 0 }
+            {
+                search: queryText,
+                ...(hasTag ? { tagId } : {}),
+                page,
+                size: PAGE_SIZE,
+            },
+            { skip: backendPort === 0 || (!hasText && !hasTag) }
         );
     const { data: tags = [] } = tagApi.endpoints.getAllTags.useQuery(undefined, {
-        skip: backendPort === 0 || searchMode !== "tags",
+        skip: backendPort === 0 || !hasTag,
     });
 
-    // Keep showing the settled query's results while the next one is still debouncing.
-    const contentResults = originalArgs?.search === queryText ? currentData : undefined;
-    const results = searchMode === "tags" ? tagResults : contentResults;
-    const isSearching = searchMode === "tags" ? isTagSearching : isContentSearching;
     const selectedTags = tagIds.flatMap((id) => {
         const tag = tags.find((item) => item.id === id);
         return tag ? [tag] : [];
@@ -56,15 +56,21 @@ export default function SearchPanel() {
 
     const totalPages = results ? Math.ceil(results.total / PAGE_SIZE) : 0;
 
-    const removeSearchTag = (tagId: number) => {
-        const next = tagIds.filter((id) => id !== tagId);
-        if (next.length > 0) {
-            dispatch(setSearchTagIds(next));
-            return;
-        }
-        dispatch(resetTagSearch());
+    const leaveSearchIfEmpty = (textLeft: boolean) => {
+        if (textLeft) return;
         dispatch(openHistory());
-        dispatch(setRightPanelMode(search.trim() ? "SEARCH" : "HISTORY"));
+        dispatch(setRightPanelMode("HISTORY"));
+    };
+
+    const removeSearchTag = () => {
+        dispatch(clearSearchTag());
+        leaveSearchIfEmpty(search.trim().length > 0);
+    };
+
+    const resetAll = () => {
+        dispatch(resetSearch());
+        dispatch(openHistory());
+        dispatch(setRightPanelMode("HISTORY"));
     };
 
     const previewContent = (command: string): string => {
@@ -78,50 +84,28 @@ export default function SearchPanel() {
             <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-neutral-700">
                 <div className="flex items-center justify-between gap-2">
                     <h2 className="text-lg font-semibold text-black dark:text-white">Search Results</h2>
-                    {searchMode === "tags" && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                                dispatch(resetTagSearch());
-                                dispatch(openHistory());
-                                dispatch(setRightPanelMode(search.trim() ? "SEARCH" : "HISTORY"));
-                            }}
-                        >
-                            Reset
-                        </Button>
-                    )}
+                    <Button variant="outline" size="sm" onClick={resetAll}>
+                        Reset
+                    </Button>
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-gray-600 dark:text-neutral-400">
                     {isSearching && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
-                    {searchMode === "tags" ? (
-                        <>
-                            <span className="italic">
-                                {isSearching
-                                    ? "Searching…"
-                                    : results
-                                      ? `${results.total} result${results.total !== 1 ? "s" : ""} for any of`
-                                      : "Searching by tags…"}
-                            </span>
-                            {selectedTags.map((tag) => (
-                                <AssignedTagBadge
-                                    key={tag.id}
-                                    name={tag.name}
-                                    onRemove={() => removeSearchTag(tag.id)}
-                                />
-                            ))}
-                            {selectedTags.length === 0 && (
-                                <span className="italic">{tagIds.length} tags</span>
-                            )}
-                        </>
-                    ) : isSearching ? (
-                        <span className="italic">Searching…</span>
-                    ) : (
-                        <span className="italic">
-                            {results
-                                ? `${results.total} result${results.total !== 1 ? "s" : ""} for "${search}"`
-                                : `Searching for "${search}"`}
-                        </span>
+                    <span className="italic">
+                        {isSearching || !results
+                            ? "Searching…"
+                            : `${results.total} result${results.total !== 1 ? "s" : ""} for${
+                                  hasText ? ` "${search}"` : ""
+                              }${hasText && hasTag ? " and" : ""}`}
+                    </span>
+                    {selectedTags.map((tag) => (
+                        <AssignedTagBadge
+                            key={tag.id}
+                            name={tag.name}
+                            onRemove={removeSearchTag}
+                        />
+                    ))}
+                    {selectedTags.length === 0 && hasTag && (
+                        <span className="italic">1 tag</span>
                     )}
                 </div>
             </div>

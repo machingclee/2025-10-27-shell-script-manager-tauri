@@ -1,7 +1,7 @@
 package com.scriptmanager.controller
 
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
-import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
+import com.machingclee.domain.util.common.query.interfaces.QueryBus
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.ReorderScriptsCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.script.*
 import com.scriptmanager.boundedcontext.scriptmanager.event.ScriptExecutedEvent
@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/scripts")
 @Tag(name = "Script Management", description = "APIs for managing shell scripts")
 class ScriptController(
-    private val commandInvoker: CommandInvoker,
-    private val queryInvoker: QueryInvoker,
+    private val commandBus: CommandBus,
+    private val queryBus: QueryBus,
     private val applicationEventPublisher: ApplicationEventPublisher
 ) {
 
@@ -33,7 +33,7 @@ class ScriptController(
     @GetMapping
     fun getAllScripts(): ApiResponse<List<ShellScriptDTO>> {
         val query = GetAllScriptsQuery()
-        val list = queryInvoker.invoke(query)
+        val list = queryBus.send(query)
         return ApiResponse(list)
     }
 
@@ -44,7 +44,7 @@ class ScriptController(
         @PathVariable id: Int
     ): ApiResponse<ShellScriptDTO> {
         val query = GetScriptByIdQuery(scriptId = id)
-        val script = queryInvoker.invoke(query)
+        val script = queryBus.send(query)
         return ApiResponse(script)
     }
 
@@ -56,7 +56,7 @@ class ScriptController(
             name = request.name,
             content = request.content
         )
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result)
     }
 
@@ -69,7 +69,7 @@ class ScriptController(
             name = request.name,
             content = request.content
         )
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result)
     }
 
@@ -87,7 +87,7 @@ class ScriptController(
             showShell = scriptDetails.showShell,
             locked = scriptDetails.locked!!
         )
-        return commandInvoker.invoke(command)
+        return commandBus.send(command)
     }
 
     @Operation(summary = "Update a markdown", description = "Updates an existing markdown note's content")
@@ -102,7 +102,7 @@ class ScriptController(
             name = scriptDetails.name,
             content = scriptDetails.command
         )
-        return commandInvoker.invoke(command)
+        return commandBus.send(command)
     }
 
     @Operation(summary = "Delete a script", description = "Deletes a script from a folder")
@@ -117,7 +117,7 @@ class ScriptController(
             scriptId = id,
             folderId = folderId
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -129,7 +129,7 @@ class ScriptController(
             fromIndex = request.fromIndex,
             toIndex = request.toIndex
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -143,7 +143,7 @@ class ScriptController(
         @PathVariable id: Int
     ): ApiResponse<ShellScriptResponse> {
         val command = DuplicateScriptCommand(scriptId = id)
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result)
     }
 
@@ -154,7 +154,7 @@ class ScriptController(
         @PathVariable id: Int,
         @RequestBody request: AssignTagRequest
     ): ApiResponse<Unit> {
-        commandInvoker.invoke(AssignTagToScriptCommand(scriptId = id, tagIds = request.tagIds))
+        commandBus.send(AssignTagToScriptCommand(scriptId = id, tagIds = request.tagIds))
         return ApiResponse()
     }
 
@@ -165,7 +165,7 @@ class ScriptController(
         @PathVariable id: Int,
         @RequestBody request: AssignTagRequest
     ): ApiResponse<Unit> {
-        commandInvoker.invoke(UnassignTagFromScriptCommand(scriptId = id, tagIds = request.tagIds))
+        commandBus.send(UnassignTagFromScriptCommand(scriptId = id, tagIds = request.tagIds))
         return ApiResponse()
     }
 
@@ -181,7 +181,7 @@ class ScriptController(
             scriptId = scriptId,
             targetFolderId = folderId
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -205,15 +205,23 @@ class ScriptController(
     @GetMapping("/history")
     fun getScriptHistories(): ApiResponse<List<HistoricalShellScriptResponse>> {
         val query = GetScriptHistoriesQuery()
-        val histories = queryInvoker.invoke(query)
+        val histories = queryBus.send(query)
         return ApiResponse(histories)
     }
 
-    @Operation(summary = "Search scripts", description = "Search scripts by name or command with pagination")
+    @Operation(
+        summary = "Search scripts",
+        description = "Search scripts by name or command, by one tag, or by both (a script must match the text and the tag)"
+    )
     @PostMapping("/search")
     fun searchScripts(@RequestBody request: SearchScriptRequest): ApiResponse<ScriptsWithTotal> {
-        val query = SearchScriptQuery(search = request.search, page = request.page, size = request.size)
-        val result = queryInvoker.invoke(query)
+        val query = SearchScriptQuery(
+            search = request.search,
+            tagId = request.tagId,
+            page = request.page,
+            size = request.size
+        )
+        val result = queryBus.send(query)
         return ApiResponse(result)
     }
 
@@ -224,14 +232,14 @@ class ScriptController(
     @PostMapping("/search/by-tags")
     fun searchScriptsByTags(@RequestBody request: SearchScriptsByTagsRequest): ApiResponse<ScriptsWithTotal> {
         val query = SearchScriptsByTagsQuery(tagIds = request.tagIds, page = request.page, size = request.size)
-        return ApiResponse(queryInvoker.invoke(query))
+        return ApiResponse(queryBus.send(query))
     }
 
     @Operation(summary = "Get draft scripts", description = "Retrieves all scripts that are not in any folder (parentFolder is null)")
     @GetMapping("/drafts")
     fun getDraftScripts(): ApiResponse<List<ShellScriptResponse>> {
         val query = GetDraftScriptsQuery()
-        val result = queryInvoker.invoke(query)
+        val result = queryBus.send(query)
         return ApiResponse(result)
     }
 }

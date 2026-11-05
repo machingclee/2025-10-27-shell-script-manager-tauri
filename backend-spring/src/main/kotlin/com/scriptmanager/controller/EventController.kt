@@ -1,6 +1,6 @@
 package com.scriptmanager.controller
 
-import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
+import com.machingclee.domain.util.common.query.interfaces.QueryBus
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetEventsQuery
 import com.scriptmanager.common.dto.ApiResponse
 import com.scriptmanager.common.dto.EventsWithTotal
@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController
 @Tag(name = "Event Log", description = "Audit event log listing")
 @RequestMapping("/events")
 class EventController(
-    private val queryInvoker: QueryInvoker
+    private val queryBus: QueryBus
 ) {
 
     @Operation(summary = "Get events page by page")
@@ -38,6 +38,6 @@ class EventController(
             eventType = eventType,
             sortOrder = sortOrder
         )
-        return ApiResponse(queryInvoker.invoke(query))
+        return ApiResponse(queryBus.send(query))
     }
 }

@@ -1,7 +1,7 @@
 package com.scriptmanager.controller
 
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
-import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
+import com.machingclee.domain.util.common.query.interfaces.QueryBus
 import com.scriptmanager.boundedcontext.scriptmanager.command.appstate.UpdateAppStateCommand
 import com.scriptmanager.boundedcontext.scriptmanager.query.GetAppStateQuery
 import com.scriptmanager.common.dto.ApiResponse
@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @Tag(name = "Application State", description = "APIs for managing application state")
 class AppStateController(
-    private val queryInvoker: QueryInvoker,
-    private val commandInvoker: CommandInvoker
+    private val queryBus: QueryBus,
+    private val commandBus: CommandBus
 ) {
 
 
@@ -24,7 +24,7 @@ class AppStateController(
     @GetMapping("/app-state")
     fun getAppState(): ApiResponse<ApplicationStateDTO> {
         val query = GetAppStateQuery()
-        val state = queryInvoker.invoke(query)
+        val state = queryBus.send(query)
         return ApiResponse(result = state)
     }
 
@@ -43,7 +43,7 @@ class AppStateController(
             createdAtHk = input.createdAtHk
         )
 
-        val dto = commandInvoker.invoke(command)
+        val dto = commandBus.send(command)
         return ApiResponse(result = dto)
     }
 }

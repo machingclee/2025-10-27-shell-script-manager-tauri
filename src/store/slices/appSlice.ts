@@ -71,7 +71,6 @@ interface TabState {
 }
 
 export type RightPanelMode = "SEARCH" | "HISTORY" | "LOG" | "TAG";
-export type SearchMode = "content" | "tags";
 export type TitlePopover = "search-by-tags" | "tags";
 
 export type CopiedTag = { tagId: number; name: string };
@@ -95,8 +94,9 @@ interface AppState {
         search: {
             searchText: string;
             searchPage: number;
-            mode: SearchMode;
             tagIds: number[];
+            /** Bumped by reset so the search field can clear its uncommitted draft. */
+            resetCount: number;
         };
     };
 }
@@ -122,8 +122,8 @@ const initialState: AppState = {
         search: {
             searchText: "",
             searchPage: 0,
-            mode: "content",
             tagIds: [],
+            resetCount: 0,
         },
     },
 };
@@ -263,19 +263,20 @@ const appSlice = createSlice({
         setSearchPage(state, action: PayloadAction<number>) {
             state.rightPanel.search.searchPage = action.payload;
         },
-        setSearchMode(state, action: PayloadAction<SearchMode>) {
-            state.rightPanel.search.mode = action.payload;
-            state.rightPanel.search.searchPage = 0;
-        },
         setSearchTagIds(state, action: PayloadAction<number[]>) {
-            state.rightPanel.search.tagIds = action.payload;
-            state.rightPanel.search.mode = "tags";
+            const tagId = action.payload[action.payload.length - 1];
+            state.rightPanel.search.tagIds = tagId == null ? [] : [tagId];
             state.rightPanel.search.searchPage = 0;
         },
-        resetTagSearch(state) {
+        clearSearchTag(state) {
             state.rightPanel.search.tagIds = [];
-            state.rightPanel.search.mode = "content";
             state.rightPanel.search.searchPage = 0;
+        },
+        resetSearch(state) {
+            state.rightPanel.search.searchText = "";
+            state.rightPanel.search.tagIds = [];
+            state.rightPanel.search.searchPage = 0;
+            state.rightPanel.search.resetCount += 1;
         },
         setRightPanelMode(state, action: PayloadAction<RightPanelMode>) {
             state.rightPanel.mode = action.payload;
@@ -316,9 +317,9 @@ export const {
     reopenLastClosedTab,
     setSearchText,
     setSearchPage,
-    setSearchMode,
     setSearchTagIds,
-    resetTagSearch,
+    clearSearchTag,
+    resetSearch,
     setRightPanelMode,
     setOpenPopover,
     toggleOpenPopover,

@@ -23,7 +23,7 @@ class MinimalDatabaseTest(
 
 
     @Test
-    fun `can save workspace without CommandInvoker`() {
+    fun `can save workspace without CommandBus`() {
         println("Testing direct repository save...")
 
         val workspace = com.scriptmanager.common.entity.Workspace(

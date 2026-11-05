@@ -1,7 +1,7 @@
 package com.scriptmanager.controller
 
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
-import com.machingclee.domain.util.common.query.interfaces.QueryInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
+import com.machingclee.domain.util.common.query.interfaces.QueryBus
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.AddSubfolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.DeleteFolderCommand
@@ -20,15 +20,15 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/folders")
 @Tag(name = "Folder Management", description = "APIs for managing script folders")
 class FolderController(
-    private val commandInvoker: CommandInvoker,
-    private val queryInvoker: QueryInvoker
+    private val commandBus: CommandBus,
+    private val queryBus: QueryBus
 ) {
 
     @Operation(summary = "Get all folders", description = "Retrieves all script folders ordered by their ordering value")
     @GetMapping
     fun getAllFolders(): ApiResponse<List<ScriptsFolderResponse>> {
         val query = GetAllRootFoldersQuery()
-        val folders = queryInvoker.invoke(query)
+        val folders = queryBus.send(query)
         return ApiResponse(folders)
     }
 
@@ -39,7 +39,7 @@ class FolderController(
         @PathVariable id: Int
     ): ApiResponse<ScriptsFolderResponse> {
         val query = GetFolderByIdQuery(folderId = id)
-        val folder = queryInvoker.invoke(query)
+        val folder = queryBus.send(query)
         return ApiResponse(folder)
     }
 
@@ -50,7 +50,7 @@ class FolderController(
         @RequestBody request: CreateFolderRequest
     ): ApiResponse<ScriptsFolderDTO> {
         val command = CreateFolderCommand(name = request.name)
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result.toDTO())
     }
 
@@ -67,7 +67,7 @@ class FolderController(
             name = folderDetails.name,
             ordering = folderDetails.ordering
         )
-        val result = commandInvoker.invoke(command)
+        val result = commandBus.send(command)
         return ApiResponse(result)
     }
 
@@ -78,7 +78,7 @@ class FolderController(
         @PathVariable id: Int
     ): ApiResponse<Unit> {
         val command = DeleteFolderCommand(folderId = id)
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -90,7 +90,7 @@ class FolderController(
         @PathVariable id: Int
     ): ApiResponse<ScriptsFolderResponse> {
         val query = GetFolderContentByIdQuery(folderId = id)
-        val folder = queryInvoker.invoke(query)
+        val folder = queryBus.send(query)
         return ApiResponse(folder)
     }
 
@@ -107,7 +107,7 @@ class FolderController(
             fromIndex = request.fromIndex,
             toIndex = request.toIndex
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -122,7 +122,7 @@ class FolderController(
             parentFolderId = parentFolderId,
             name = request.name
         )
-        commandInvoker.invoke(command)
+        commandBus.send(command)
         return ApiResponse()
     }
 
@@ -130,7 +130,7 @@ class FolderController(
     @GetMapping("/draft")
     fun getDraftFolder(): ApiResponse<ScriptsFolderResponse> {
         val query = GetDraftFolderQuery()
-        val folder = queryInvoker.invoke(query)
+        val folder = queryBus.send(query)
         return ApiResponse(folder)
     }
 }

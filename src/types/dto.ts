@@ -145,6 +145,8 @@ export interface UpdateWorkspaceStatusRequest {
 
 export interface SearchScriptRequest {
     search: string;
+    /** Combined with search as AND. Omit for a text-only search. */
+    tagId?: number;
     page?: number;
     size?: number;
 }

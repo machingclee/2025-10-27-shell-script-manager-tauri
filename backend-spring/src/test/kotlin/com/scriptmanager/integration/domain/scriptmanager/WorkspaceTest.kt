@@ -1,7 +1,7 @@
 package com.scriptmanager.integration.boundedcontext.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.MoveFolderToWorkspaceCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.workspace.*
@@ -31,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional
 class WorkspaceTest(
     private val eventRepository: EventRepository,
     private val workspaceRepository: WorkspaceRepository,
-    private val commandInvoker: CommandInvoker,
+    private val commandBus: CommandBus,
     private val objectMapper: ObjectMapper,
     private val entityManager: EntityManager
 ) : BaseTest(eventRepository) {
@@ -49,7 +49,7 @@ class WorkspaceTest(
         val workspaceName = "TestWorkspace_${System.currentTimeMillis()}"
 
         // Act
-        val result = commandInvoker.invoke(CreateWorkspaceCommand(workspaceName))
+        val result = commandBus.send(CreateWorkspaceCommand(workspaceName))
 
         // Assert - Command result
         assertNotNull(result.id)
@@ -59,7 +59,7 @@ class WorkspaceTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "WorkspaceCreatedEvent" }
+            .filter { it.getEventType() == "WorkspaceCreatedEvent" }
         assertEquals(1, events.size)
         val event = objectMapper.readValue(events.first().payload, WorkspaceCreatedEvent::class.java)
         assertEquals(result.id, event.workspace.id)
@@ -69,11 +69,11 @@ class WorkspaceTest(
     @Transactional
     fun `Should create folder in workspace`() {
         // Arrange - Create workspace first
-        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
+        val workspace = commandBus.send(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
         val folderName = "FolderInWorkspace_${System.currentTimeMillis()}"
 
         // Act
-        val folder = commandInvoker.invoke(CreateFolderInWorkspaceCommand(workspace.id!!, folderName))
+        val folder = commandBus.send(CreateFolderInWorkspaceCommand(workspace.id!!, folderName))
 
         // Assert - Folder created
         assertNotNull(folder.id)
@@ -86,7 +86,7 @@ class WorkspaceTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "FolderCreatedInWorkspaceEvent" }
+            .filter { it.getEventType() == "FolderCreatedInWorkspaceEvent" }
         assertEquals(1, events.size)
     }
 
@@ -94,7 +94,7 @@ class WorkspaceTest(
     @Transactional
     fun `Should update workspace`() {
         // Arrange - Create workspace first
-        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("OriginalName_${System.currentTimeMillis()}"))
+        val workspace = commandBus.send(CreateWorkspaceCommand("OriginalName_${System.currentTimeMillis()}"))
         entityManager.refresh(workspace)
         // Act - Update workspace name
         val newName = "UpdatedName_${System.currentTimeMillis()}"
@@ -103,7 +103,7 @@ class WorkspaceTest(
             name = newName,
             ordering = workspace.ordering
         )
-        commandInvoker.invoke(updateCommand)
+        commandBus.send(updateCommand)
 
         // Assert - Workspace name updated
         val updatedWorkspace = workspaceRepository.findByIdOrNull(workspace.id!!)
@@ -112,7 +112,7 @@ class WorkspaceTest(
 
         // Assert - Update event emitted
         val updateEvents = eventRepository.findAll()
-            .filter { it.eventType == "WorkspaceUpdatedEvent" }
+            .filter { it.getEventType() == "WorkspaceUpdatedEvent" }
         assertEquals(1, updateEvents.size)
     }
 
@@ -120,14 +120,14 @@ class WorkspaceTest(
     @Transactional
     fun `Should delete workspace`() {
         // Arrange - Create workspace first
-        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("ToDelete_${System.currentTimeMillis()}"))
+        val workspace = commandBus.send(CreateWorkspaceCommand("ToDelete_${System.currentTimeMillis()}"))
         entityManager.refresh(workspace)
         // Act
-        commandInvoker.invoke(DeleteWorkspaceCommand(workspace.id!!))
+        commandBus.send(DeleteWorkspaceCommand(workspace.id!!))
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "WorkspaceDeletedEvent" }
+            .filter { it.getEventType() == "WorkspaceDeletedEvent" }
         assertEquals(1, events.size)
 
         val payload = objectMapper.readValue(events.first().payload, WorkspaceDeletedEvent::class.java)
@@ -141,18 +141,18 @@ class WorkspaceTest(
     @Transactional
     fun `Should reorder workspaces`() {
         // Arrange - Create multiple workspaces
-        val ws1 = commandInvoker.invoke(CreateWorkspaceCommand("WS1_${System.currentTimeMillis()}"))
-        val ws2 = commandInvoker.invoke(CreateWorkspaceCommand("WS2_${System.currentTimeMillis()}"))
-        val ws3 = commandInvoker.invoke(CreateWorkspaceCommand("WS3_${System.currentTimeMillis()}"))
+        val ws1 = commandBus.send(CreateWorkspaceCommand("WS1_${System.currentTimeMillis()}"))
+        val ws2 = commandBus.send(CreateWorkspaceCommand("WS2_${System.currentTimeMillis()}"))
+        val ws3 = commandBus.send(CreateWorkspaceCommand("WS3_${System.currentTimeMillis()}"))
         entityManager.refresh(ws1)
         entityManager.refresh(ws2)
         entityManager.refresh(ws3)
         // Act - Reorder workspaces (move from index 0 to index 2)
-        commandInvoker.invoke(ReorderWorkspacesCommand(fromIndex = 0, toIndex = 2))
+        commandBus.send(ReorderWorkspacesCommand(fromIndex = 0, toIndex = 2))
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "WorkspacesReorderedEvent" }
+            .filter { it.getEventType() == "WorkspacesReorderedEvent" }
         assertEquals(1, events.size)
 
         // Assert - Order in database is updated
@@ -168,10 +168,10 @@ class WorkspaceTest(
     @Transactional
     fun `Should reorder folders within workspace`() {
         // Arrange - Create workspace with multiple folders
-        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
-        val folder1 = commandInvoker.invoke(CreateFolderInWorkspaceCommand(workspace.id!!, "Folder1"))
-        val folder2 = commandInvoker.invoke(CreateFolderInWorkspaceCommand(workspace.id!!, "Folder2"))
-        val folder3 = commandInvoker.invoke(CreateFolderInWorkspaceCommand(workspace.id!!, "Folder3"))
+        val workspace = commandBus.send(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
+        val folder1 = commandBus.send(CreateFolderInWorkspaceCommand(workspace.id!!, "Folder1"))
+        val folder2 = commandBus.send(CreateFolderInWorkspaceCommand(workspace.id!!, "Folder2"))
+        val folder3 = commandBus.send(CreateFolderInWorkspaceCommand(workspace.id!!, "Folder3"))
 
         // Act - Reorder folders (move from index 0 to index 2)
         // so [folder3, folder2, folder1] -> [folder2, folder1, folder3]
@@ -184,7 +184,7 @@ class WorkspaceTest(
         assertEquals(folder2.id, orderedFolders[1].id)
         assertEquals(folder1.id, orderedFolders[2].id)
 
-        commandInvoker.invoke(
+        commandBus.send(
             ReorderWorkspaceFoldersCommand(
                 workspaceId = workspace.id!!,
                 fromIndex = 0,
@@ -194,7 +194,7 @@ class WorkspaceTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "WorkspaceFoldersReorderedEvent" }
+            .filter { it.getEventType() == "WorkspaceFoldersReorderedEvent" }
         assertEquals(1, events.size)
 
         // Assert - Folders are reordered
@@ -219,20 +219,20 @@ class WorkspaceTest(
     @Transactional
     fun `Should move folder from one workspace to another workspace`() {
         // arrange
-        val workspace1 = commandInvoker.invoke(
+        val workspace1 = commandBus.send(
             CreateWorkspaceCommand("Workspace1_${System.currentTimeMillis()}")
         )
-        val workspace2 = commandInvoker.invoke(
+        val workspace2 = commandBus.send(
             CreateWorkspaceCommand("Workspace2_${System.currentTimeMillis()}")
         )
-        val folder = commandInvoker.invoke(
+        val folder = commandBus.send(
             CreateFolderCommand("FolderToMove_${System.currentTimeMillis()}")
         )
         val originalFolderId = folder.id!!
 
         // idempotent test
-        commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace1.id!!, folder.id!!))
-        commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace1.id!!, folder.id!!))
+        commandBus.send(MoveFolderToWorkspaceCommand(workspace1.id!!, folder.id!!))
+        commandBus.send(MoveFolderToWorkspaceCommand(workspace1.id!!, folder.id!!))
 
         val reloadedWorkspace1 = workspaceRepository.findByIdOrNull(workspace1.id!!)
         assertNotNull(reloadedWorkspace1)
@@ -243,7 +243,7 @@ class WorkspaceTest(
         }
 
         // act - move to different workspace
-        commandInvoker.invoke(
+        commandBus.send(
             MoveFolderToWorkspaceCommand(
                 workspaceId = workspace2.id!!,
                 folderId = folder.id!!
@@ -269,34 +269,34 @@ class WorkspaceTest(
     @Transactional
     fun `Moved folders should be in correct order`() {
         // arrange
-        val workspace1 = commandInvoker.invoke(
+        val workspace1 = commandBus.send(
             CreateWorkspaceCommand("Workspace1_${System.currentTimeMillis()}")
         )
-        val workspace2 = commandInvoker.invoke(
+        val workspace2 = commandBus.send(
             CreateWorkspaceCommand("Workspace2_${System.currentTimeMillis()}")
         )
 
         // create folders in workspace1
-        val folder1 = commandInvoker.invoke(
+        val folder1 = commandBus.send(
             CreateFolderCommand("ExistingFolderInTarget_1_${System.currentTimeMillis()}")
         )
-        commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace1.id!!, folder1.id!!))
+        commandBus.send(MoveFolderToWorkspaceCommand(workspace1.id!!, folder1.id!!))
 
-        val folder2 = commandInvoker.invoke(
+        val folder2 = commandBus.send(
             CreateFolderCommand("ExistingFolderInTarget_2_${System.currentTimeMillis()}")
         )
-        commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace1.id!!, folder2.id!!))
+        commandBus.send(MoveFolderToWorkspaceCommand(workspace1.id!!, folder2.id!!))
 
-        val folder3 = commandInvoker.invoke(
+        val folder3 = commandBus.send(
             CreateFolderCommand("ExistingFolderInTarget_3_${System.currentTimeMillis()}")
         )
-        commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace1.id!!, folder3.id!!))
+        commandBus.send(MoveFolderToWorkspaceCommand(workspace1.id!!, folder3.id!!))
 
         // create folder in workspace2
-        val folder4 = commandInvoker.invoke(
+        val folder4 = commandBus.send(
             CreateFolderCommand("ExistingFolderInTarget_4_${System.currentTimeMillis()}")
         )
-        commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace2.id!!, folder4.id!!))
+        commandBus.send(MoveFolderToWorkspaceCommand(workspace2.id!!, folder4.id!!))
 
         // current order in workspace1: [folder3, folder2, folder1] (assuming newest first)
         // current order in workspace2: [folder4]
@@ -305,7 +305,7 @@ class WorkspaceTest(
         assertEquals(3, ws1BeforeMove.folders.size)
 
         // move the middle folder to another workspace
-        commandInvoker.invoke(
+        commandBus.send(
             MoveFolderToWorkspaceCommand(
                 workspaceId = workspace2.id!!,
                 folderId = folder2.id!!

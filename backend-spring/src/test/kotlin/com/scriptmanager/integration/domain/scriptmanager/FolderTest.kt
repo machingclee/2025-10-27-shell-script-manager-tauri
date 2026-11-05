@@ -2,7 +2,7 @@ package com.scriptmanager.integration.boundedcontext.scriptmanager
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.machingclee.domain.util.common.interfaces.CommandInvoker
+import com.machingclee.domain.util.common.interfaces.CommandBus
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.AddSubfolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.CreateFolderCommand
 import com.scriptmanager.boundedcontext.scriptmanager.command.folder.DeleteFolderCommand
@@ -43,7 +43,7 @@ import org.springframework.transaction.annotation.Transactional
 class FolderTest(
     private val eventRepository: EventRepository,
     private val folderRepository: ScriptsFolderRepository,
-    private val commandInvoker: CommandInvoker,
+    private val commandBus: CommandBus,
     private val shellScriptRepository: ShellScriptRepository,
     private val objectMapper: ObjectMapper,
     private val entityManager: EntityManager,
@@ -60,11 +60,11 @@ class FolderTest(
     @Transactional
     fun `Should add folder to workspace`() {
         // Arrange - Create workspace and folder
-        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
-        val folder = commandInvoker.invoke(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
+        val workspace = commandBus.send(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
+        val folder = commandBus.send(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
 
         // Act - Add folder to workspace
-        val result = commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace.id!!, folder.id!!))
+        val result = commandBus.send(MoveFolderToWorkspaceCommand(workspace.id!!, folder.id!!))
 
         // Assert - Folder added to workspace
         assertNotNull(result)
@@ -74,18 +74,18 @@ class FolderTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "FolderAddedToWorkspaceEvent" }
+            .filter { it.getEventType() == "FolderAddedToWorkspaceEvent" }
         assertEquals(1, events.size)
     }
 
     @Test
     fun `Should add subfolder to folder`() {
         // Arrange - Create parent folder
-        val parentFolder = commandInvoker.invoke(CreateFolderCommand("ParentFolder_${System.currentTimeMillis()}"))
+        val parentFolder = commandBus.send(CreateFolderCommand("ParentFolder_${System.currentTimeMillis()}"))
 
         // Act - Add subfolder to parent folder
         val subfolderName = "Subfolder_${System.currentTimeMillis()}"
-        val subfolder = commandInvoker.invoke(AddSubfolderCommand(parentFolder.id!!, subfolderName))
+        val subfolder = commandBus.send(AddSubfolderCommand(parentFolder.id!!, subfolderName))
 
         // Assert - Subfolder created
         assertNotNull(subfolder.id)
@@ -96,7 +96,7 @@ class FolderTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "SubfolderAddedEvent" }
+            .filter { it.getEventType() == "SubfolderAddedEvent" }
         assertEquals(1, events.size)
     }
 
@@ -106,7 +106,7 @@ class FolderTest(
         val folderName = "TestFolder_${System.currentTimeMillis()}"
 
         // Act
-        val result = commandInvoker.invoke(CreateFolderCommand(folderName))
+        val result = commandBus.send(CreateFolderCommand(folderName))
 
         // Assert - Command result
         assertNotNull(result.id)
@@ -116,29 +116,29 @@ class FolderTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "FolderCreatedEvent" }
+            .filter { it.getEventType() == "FolderCreatedEvent" }
         assertEquals(1, events.size)
     }
 
     @Test
     fun `Should persist failure_reason when command throws`() {
         val thrown = assertThrows(ScriptManagerException::class.java) {
-            commandInvoker.invoke(
+            commandBus.send(
                 UpdateFolderCommand(id = 999_999_999, name = "missing", ordering = 0)
             )
         }
         assertEquals("Folder not found", thrown.message)
 
         val failedCommands = eventRepository.findAll()
-            .filter { it.eventType == "UpdateFolderCommand" }
+            .filter { it.getEventType() == "UpdateFolderCommand" }
         assertEquals(1, failedCommands.size)
         val row = failedCommands.first()
         assertNotNull(row.id)
         assertNotEquals(0, row.id)
         assertEquals(false, row.success)
         assertTrue(
-            row.failureReason.contains("Folder not found"),
-            "failure_reason should contain the thrown message, was: ${row.failureReason}"
+            row.getFailureReason().contains("Folder not found"),
+            "failure_reason should contain the thrown message, was: ${row.getFailureReason()}"
         )
     }
 
@@ -153,18 +153,18 @@ class FolderTest(
         @BeforeEach
         @Transactional
         open fun arrange() {
-            parentFolder = commandInvoker.invoke(
+            parentFolder = commandBus.send(
                 CreateFolderCommand("Parent_${System.currentTimeMillis()}")
             )
 
-            subfolder = commandInvoker.invoke(
+            subfolder = commandBus.send(
                 AddSubfolderCommand(
                     parentFolderId = parentFolder.id!!,
                     name = "Subfolder_${System.currentTimeMillis()}"
                 )
             )
 
-            scriptInfolder = commandInvoker.invoke(
+            scriptInfolder = commandBus.send(
                 CreateScriptCommand(
                     folderId = subfolder.id!!,
                     name = "Script_${System.currentTimeMillis()}_in_folder",
@@ -172,7 +172,7 @@ class FolderTest(
                 )
             )
 
-            scriptInSubfolder = commandInvoker.invoke(
+            scriptInSubfolder = commandBus.send(
                 CreateScriptCommand(
                     folderId = parentFolder.id!!,
                     name = "Script_${System.currentTimeMillis()}_in_subfolder",
@@ -189,7 +189,7 @@ class FolderTest(
             val scriptIdInFolder = scriptInfolder.id!!
             val scriptIdInSubfolderId = scriptInSubfolder.id!!
             // Act
-            commandInvoker.invoke(DeleteFolderCommand(deleteParentFolderId))
+            commandBus.send(DeleteFolderCommand(deleteParentFolderId))
 
             // Assert - All entities deleted
             assertNull(
@@ -211,11 +211,11 @@ class FolderTest(
 
             // Assert - Events emitted
             val events = eventRepository.findAll()
-            val folderCreatedEvents = events.filter { it.eventType == "FolderCreatedEvent" }
-            val subfolderCreatedEvents = events.filter { it.eventType == "SubfolderAddedEvent" }
-            val scriptCreatedEvents = events.filter { it.eventType == "ScriptCreatedEvent" }
-            val folderDeletedEvents = events.filter { it.eventType == "FolderDeletedEvent" }
-            val scriptDeletedEvents = events.filter { it.eventType == "ScriptDeletedEvent" }
+            val folderCreatedEvents = events.filter { it.getEventType() == "FolderCreatedEvent" }
+            val subfolderCreatedEvents = events.filter { it.getEventType() == "SubfolderAddedEvent" }
+            val scriptCreatedEvents = events.filter { it.getEventType() == "ScriptCreatedEvent" }
+            val folderDeletedEvents = events.filter { it.getEventType() == "FolderDeletedEvent" }
+            val scriptDeletedEvents = events.filter { it.getEventType() == "ScriptDeletedEvent" }
 
             assertEquals(1, folderCreatedEvents.size, "Should have 1 FolderCreatedEvents from setup")
             assertEquals(1, subfolderCreatedEvents.size, "Should have 1 SubfolderAddedEvent from setup")
@@ -229,11 +229,11 @@ class FolderTest(
         @Transactional
         open fun `should emit events with correct folder IDs`() {
             // Act
-            commandInvoker.invoke(DeleteFolderCommand(parentFolder.id!!))
+            commandBus.send(DeleteFolderCommand(parentFolder.id!!))
             this@FolderTest.entityManager.flush()
             // Assert
             val folderDeleteEvents = eventRepository.findAll()
-                .filter { it.eventType == "FolderDeletedEvent" }
+                .filter { it.getEventType() == "FolderDeletedEvent" }
                 .map { objectMapper.readValue<FolderDeletedEvent>(it.payload) }
 
             assertTrue(
@@ -251,13 +251,13 @@ class FolderTest(
     @Transactional
     fun `Should Remove Folder from Workspace`() {
         // Arrange - Create workspace and add folder
-        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
-        val folder = commandInvoker.invoke(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
-        commandInvoker.invoke(MoveFolderToWorkspaceCommand(workspace.id!!, folder.id!!))
+        val workspace = commandBus.send(CreateWorkspaceCommand("Workspace_${System.currentTimeMillis()}"))
+        val folder = commandBus.send(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
+        commandBus.send(MoveFolderToWorkspaceCommand(workspace.id!!, folder.id!!))
         entityManager.flush()
 
         // Act - Remove folder from workspace
-        commandInvoker.invoke(RemoveFolderFromWorkspaceCommand(folder.id!!))
+        commandBus.send(RemoveFolderFromWorkspaceCommand(folder.id!!))
         entityManager.flush()
         entityManager.clear()
 
@@ -274,7 +274,7 @@ class FolderTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "FolderRemovedFromWorkspaceEvent" }
+            .filter { it.getEventType() == "FolderRemovedFromWorkspaceEvent" }
         assertEquals(1, events.size)
     }
 
@@ -282,22 +282,22 @@ class FolderTest(
     @Transactional
     fun `Should reorder scripts`() {
         // Arrange - Create folder with scripts
-        val folder = commandInvoker.invoke(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
-        val script1 = commandInvoker.invoke(
+        val folder = commandBus.send(CreateFolderCommand("Folder_${System.currentTimeMillis()}"))
+        val script1 = commandBus.send(
             CreateScriptCommand(
                 folderId = folder.id!!,
                 name = "Script1_${System.currentTimeMillis()}",
                 content = "echo 'Script 1'"
             )
         )
-        val script2 = commandInvoker.invoke(
+        val script2 = commandBus.send(
             CreateScriptCommand(
                 folderId = folder.id!!,
                 name = "Script2_${System.currentTimeMillis()}",
                 content = "echo 'Script 2'"
             )
         )
-        val script3 = commandInvoker.invoke(
+        val script3 = commandBus.send(
             CreateScriptCommand(
                 folderId = folder.id!!,
                 name = "Script3_${System.currentTimeMillis()}",
@@ -306,7 +306,7 @@ class FolderTest(
         )
 
         // Act - Reorder scripts (move script from index 0 to index 2)
-        commandInvoker.invoke(ReorderScriptsCommand(folder.id!!, fromIndex = 0, toIndex = 2))
+        commandBus.send(ReorderScriptsCommand(folder.id!!, fromIndex = 0, toIndex = 2))
 
         // Assert - Scripts reordered
         val updatedFolder = folderRepository.findById(folder.id!!).orElse(null)
@@ -319,7 +319,7 @@ class FolderTest(
 
         // Assert - Event emitted
         val events = eventRepository.findAll()
-            .filter { it.eventType == "ScriptsReorderedEvent" }
+            .filter { it.getEventType() == "ScriptsReorderedEvent" }
         assertEquals(1, events.size)
     }
 
@@ -327,9 +327,9 @@ class FolderTest(
     @Test
     fun `should update folder`() {
         // Arrange - Create workspace with folder
-        val workspace = commandInvoker.invoke(CreateWorkspaceCommand("WorkspaceForFolder_${System.currentTimeMillis()}"))
+        val workspace = commandBus.send(CreateWorkspaceCommand("WorkspaceForFolder_${System.currentTimeMillis()}"))
         val folderName = "FolderInWorkspace_${System.currentTimeMillis()}"
-        val savedFolder = commandInvoker.invoke(CreateFolderInWorkspaceCommand(workspace.id!!, folderName))
+        val savedFolder = commandBus.send(CreateFolderInWorkspaceCommand(workspace.id!!, folderName))
 
         // Act - Update folder name
         val newFolderName = "UpdatedFolderName_${System.currentTimeMillis()}"
@@ -338,7 +338,7 @@ class FolderTest(
             name = newFolderName,
             ordering = savedFolder.ordering
         )
-        commandInvoker.invoke(updateCommand)
+        commandBus.send(updateCommand)
 
         // Assert - Folder name updated
         val updatedFolder = folderRepository.findById(savedFolder.id!!).orElse(null)
@@ -347,7 +347,7 @@ class FolderTest(
 
         // Assert - Update event emitted
         val updateEvents = eventRepository.findAll()
-            .filter { it.eventType == "FolderUpdatedEvent" }
+            .filter { it.getEventType() == "FolderUpdatedEvent" }
         assertEquals(1, updateEvents.size)
     }
 
@@ -355,13 +355,13 @@ class FolderTest(
     @Transactional
     fun `Should move script from one folder to another folder`() {
         // arrnage
-        val parentFolder1 = commandInvoker.invoke(
+        val parentFolder1 = commandBus.send(
             CreateFolderCommand("ParentFolder1_${System.currentTimeMillis()}")
         )
-        val parentFolder2 = commandInvoker.invoke(
+        val parentFolder2 = commandBus.send(
             CreateFolderCommand("ParentFolder2_${System.currentTimeMillis()}")
         )
-        val script = commandInvoker.invoke(
+        val script = commandBus.send(
             CreateScriptCommand(
                 folderId = parentFolder1.id!!,
                 name = "ScriptToMove_${System.currentTimeMillis()}",
@@ -370,7 +370,7 @@ class FolderTest(
         )
 
         // act
-        commandInvoker.invoke(
+        commandBus.send(
             MoveScriptToFolderCommand(
                 scriptId = script.id!!,
                 targetFolderId = parentFolder1.id!!
@@ -385,7 +385,7 @@ class FolderTest(
             assertEquals(1, events.size, "Should emit one ScriptMovedToFolderEvent")
         }
 
-        commandInvoker.invoke(
+        commandBus.send(
             MoveScriptToFolderCommand(
                 scriptId = script.id!!,
                 targetFolderId = parentFolder2.id!!
@@ -406,36 +406,36 @@ class FolderTest(
     @Transactional
     fun `Moved scripts should be in correct order`() {
         // arrange
-        val parentFolder1 = commandInvoker.invoke(
+        val parentFolder1 = commandBus.send(
             CreateFolderCommand("ParentFolder1_${System.currentTimeMillis()}")
         )
-        val parentFolder2 = commandInvoker.invoke(
+        val parentFolder2 = commandBus.send(
             CreateFolderCommand("ParentFolder2_${System.currentTimeMillis()}")
         )
         // act
         // our script creation always sort script to the top (order 0)
-        val script1 = commandInvoker.invoke(
+        val script1 = commandBus.send(
             CreateScriptCommand(
                 folderId = parentFolder1.id!!,
                 name = "ExistingScriptInTarget_1_${System.currentTimeMillis()}",
                 content = "echo 'I am already here!'"
             )
         )
-        val script2 = commandInvoker.invoke(
+        val script2 = commandBus.send(
             CreateScriptCommand(
                 folderId = parentFolder1.id!!,
                 name = "ExistingScriptInTarget_2_${System.currentTimeMillis()}",
                 content = "echo 'I am already here!'"
             )
         )
-        val script3 = commandInvoker.invoke(
+        val script3 = commandBus.send(
             CreateScriptCommand(
                 folderId = parentFolder1.id!!,
                 name = "ExistingScriptInTarget_3_${System.currentTimeMillis()}",
                 content = "echo 'I am already here!'"
             )
         )
-        val script4 = commandInvoker.invoke(
+        val script4 = commandBus.send(
             CreateScriptCommand(
                 folderId = parentFolder2.id!!,
                 name = "ExistingScriptInTarget_3_${System.currentTimeMillis()}",
@@ -450,7 +450,7 @@ class FolderTest(
         assertEquals(3, parentFolder1.shellScripts.size)
 
         // move the middle one to another folder
-        commandInvoker.invoke(
+        commandBus.send(
             MoveScriptToFolderCommand(
                 scriptId = script2.id!!,
                 targetFolderId = parentFolder2.id!!
